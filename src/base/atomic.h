@@ -1,6 +1,10 @@
 #ifndef NETLIB_SRC_BASE_ATOMIC_H_
 #define NETLIB_SRC_BASE_ATOMIC_H_
 
+#include <stdint.h> // int32_t, int64_t
+
+#include <base/non_copyable.h> // netlib::NonCopyable class.
+
 namespace netlib
 {
 namespace detail
@@ -22,7 +26,8 @@ public:
 		// they could with a more appropriate implementation of the relaxed requirements.
 	}
 
-	T GetAndAdd(T value) // Get the value of `value_` before addition.
+	// value_ += value; and return the value that had previously been in value_.
+	T GetAndAdd(T value)
 	{
 		// Perform the add operation and return the value that had previously been in *ptr.
 		return __atomic_fetch_add(&value_, value, __ATOMIC_SEQ_CST);
@@ -30,6 +35,7 @@ public:
 
 	T AddAndGet(T value) // Get the value of `value_` after addition.
 	{
+		// TODO: Why don't use __atomic_add_fetch?
 		return GetAndAdd(value) + value;
 	}
 
@@ -60,8 +66,9 @@ public:
 
 	T GetAndSet(T new_value)
 	{
-		// Implement an atomic store operation: it writes val into *ptr.
-		return __atomic_store_n(&value, new_value, __ATOMIC_SEQ_CST);
+		// Implement an atomic exchange operation: write val into *ptr,
+		// and returns the previous contents of *ptr.
+		return __atomic_exchange_n(&value_, new_value, __ATOMIC_SEQ_CST);
 	}
 
 private:
