@@ -3,7 +3,7 @@
 
 namespace netlib
 {
-class NonCopyable // Class that disallow copy or assignment.
+class NonCopyable // Class that disallow copy or assignment. Object semantics.
 {
 public:
 	NonCopyable() = default;
