@@ -2,10 +2,13 @@
 
 #include <assert.h>
 
+using netlib::AtomicInt32;
+using netlib::AtomicInt64;
+
 int main()
 {
 	{
-		netlib::AtomicInt64 number1;
+		AtomicInt32 number1;
 		assert(number1.Get() == 0);
 
 		number1.Add(5);
@@ -43,7 +46,7 @@ int main()
 	}
 
 	{
-		netlib::AtomicInt64 number2;
+		AtomicInt64 number2;
 		assert(number2.Get() == 0);
 
 		number2.Add(5);
