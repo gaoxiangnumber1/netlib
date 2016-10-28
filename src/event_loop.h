@@ -1,7 +1,7 @@
 #ifndef NETLIB_SRC_NET_EVENTLOOP_H_
 #define NETLIB_SRC_NET_EVENTLOOP_H_
 
-#include <base/non_copyable.h>
+#include <non_copyable.h>
 
 namespace netlib
 {

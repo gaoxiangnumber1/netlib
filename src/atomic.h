@@ -3,7 +3,7 @@
 
 #include <stdint.h> // int32_t, int64_t
 
-#include <base/non_copyable.h> // netlib::NonCopyable class.
+#include <non_copyable.h> // netlib::NonCopyable class.
 
 namespace netlib
 {
