@@ -1,12 +1,37 @@
-#ifndef NETLIB_SRC_BASE_LOGGING_H_;
-#define NETLIB_SRC_BASE_LOGGING_H_
+#ifndef NETLIB_SRC_LOGGING_H_
+#define NETLIB_SRC_LOGGING_H_
 
-#include <types.h>
+#include <stdint.h> // int64_t
+
+#include <atomic> // atomic
+
+#include <copyable.h> // Copyable
+#include <types.h> // string
+
+#define LOG(level, ...) do \
+{ \
+	if(level <= netlib::Logger::logger().log_level()) \
+	{ \
+		::snprintf(0, 0, __VA_ARGS__); \
+		netlib::Logger::logger().Log(level, __FILE__, __LINE__, __VA_ARGS__); \
+	} \
+} \
+while(false);
+
+#define LOG_FATAL(...) LOG(netlib::Logger::FATAL, __VA_ARGS__)
+#define LOG_ERROR(...) LOG(netlib::Logger::ERROR, __VA_ARGS__)
+#define LOG_WARN(...) LOG(netlib::Logger::WARN, __VA_ARGS__)
+#define LOG_INFO(...) LOG(netlib::Logger::INFO, __VA_ARGS__)
+#define LOG_DEBUG(...) LOG(netlib::Logger::DEBUG, __VA_ARGS__)
+#define LOG_TRACE(...) LOG(netlib::Logger::TRACE, __VA_ARGS__)
+
+#define SetLogLevel(level) netlib::Logger::logger().set_log_level(netlib::Logger::level)
+#define SetLogFile(file) netlib::Logger::logger().set_file_name(file)
 
 namespace netlib
 {
 
-class Logger: public Copyable
+class Logger: public netlib::Copyable
 {
 public:
 	enum LogLevel
@@ -17,37 +42,19 @@ public:
 	Logger();
 	~Logger();
 
-	void Log(int level, const char *file, int line, const char *func, const char *fmt ...);
-
-	void set_file_name(const string &file_name);
-	void set_log_level(const string &level);
+	LogLevel log_level() const
+	{
+		return log_level_;
+	}
 	void set_log_level(LogLevel level)
 	{
-		level_ = (level <= FATAL ? FATAL : (level <= ALL ? level : ALL));
+		log_level_ = (level <= FATAL ? FATAL : (level <= ALL ? level : ALL));
 	}
+	void set_file_name(const string &file_name);
 
-	LogLevel log_level()
-	{
-		return level_;
-	}
-	const char *log_level_string()
-	{
-		return log_level_string[level_];
-	}
-	int fd()
-	{
-		return fd_;
-	}
+	void Log(int level, const char *file, int line, const char *fmt ...);
 
-	void AdjustLogLevel(int adjust)
-	{
-		set_log_level(LogLevel(level_ + adjust));
-	}
-	void set_rotate_interval(long rotate_interval)
-	{
-		rotate_interval_ = rotate_interval;
-	}
-	//static Logger &logger(); // TODO: When use???
+	static Logger &logger(); // Get Logger object.
 
 private:
 	static const char *log_level_string_[ALL + 1];
@@ -57,11 +64,10 @@ private:
 	LogLevel log_level_;
 	string file_name_;
 	int fd_;
-	uint64_t last_rotate_;
-	std::atomic<uint64_t> real_rotate_;
-	long rotate_interval_;
+	std::atomic<int64_t> rotate_time_;
+	int64_t rotate_interval_;
 };
 
 }
 
-#endif // NETLIB_SRC_BASE_LOGGING_H_
+#endif // NETLIB_SRC_LOGGING_H_

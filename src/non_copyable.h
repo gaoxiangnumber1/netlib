@@ -1,5 +1,5 @@
-#ifndef NETLIB_SRC_BASE_NON_COPYABLE_H_
-#define NETLIB_SRC_BASE_NON_COPYABLE_H_
+#ifndef NETLIB_SRC_NON_COPYABLE_H_
+#define NETLIB_SRC_NON_COPYABLE_H_
 
 namespace netlib
 {
@@ -13,4 +13,4 @@ public:
 };
 }
 
-#endif // NETLIB_SRC_BASE_NON_COPYABLE_H_
+#endif // NETLIB_SRC_NON_COPYABLE_H_

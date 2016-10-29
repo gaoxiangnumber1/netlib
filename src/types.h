@@ -1,16 +1,8 @@
-#ifndef NETLIB_SRC_BASE_TYPES_H_
-#define NETLIB_SRC_BASE_TYPES_H_
+#ifndef NETLIB_SRC_TYPES_H_
+#define NETLIB_SRC_TYPES_H_
 
 #include <stdint.h> // Header for `int64_t`
-
-// By default, we don't use std::string, but user can explicitly
-// use std::string by define NETLIB_STD_STRING
-#ifdef NETLIB_STD_STRING
 #include <string>
-#else
-#include <ext/vstring.h>
-#include <ext/vstring_fwd.h>
-#endif // NETLIB_STD_STRING
 
 #ifndef NDEBUG
 // If the macro NDEBUG was defined at the moment <assert.h> was last included, assert()
@@ -21,11 +13,7 @@
 
 namespace netlib
 {
-#ifdef NETLIB_STD_STRING
 using std::string;
-#else
-typedef __gnu_cxx::__sso_string string;
-#endif // NETLIB_STD_STRING
 
 // up_cast is a safe version of static_cast or const_cast for up-casting
 // in the type hierarchy(i.e. casting `Test*` to `SuperClassOfTest*` or
@@ -69,4 +57,4 @@ inline To down_cast(From* from) // Only accept pointers since To is always a poi
 }
 }
 
-#endif // NETLIB_SRC_BASE_TYPES_H_
+#endif // NETLIB_SRC_TYPES_H_

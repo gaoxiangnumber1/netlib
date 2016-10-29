@@ -1,5 +1,5 @@
-#ifndef NETLIB_SRC_BASE_STRING_PIECE_H_
-#define NETLIB_SRC_BASE_STRING_PIECE_H_
+#ifndef NETLIB_SRC_STRING_PIECE_H_
+#define NETLIB_SRC_STRING_PIECE_H_
 
 // A string like object that points into another piece of memory.
 // Useful for providing an interface that allows clients to easily
@@ -61,4 +61,4 @@ private:
 
 }
 
-#endif // NETLIB_SRC_BASE_STRING_PIECE_H_
+#endif // NETLIB_SRC_STRING_PIECE_H_

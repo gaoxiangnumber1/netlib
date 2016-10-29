@@ -1,5 +1,5 @@
-#ifndef NETLIB_SRC_BASE_CURRENT_THREAD_H_
-#define NETLIB_SRC_BASE_CURRENT_THREAD_H_
+#ifndef NETLIB_SRC_CURRENT_THREAD_H_
+#define NETLIB_SRC_CURRENT_THREAD_H_
 
 #include <stdint.h> // Header for `int64_t`
 
@@ -52,4 +52,4 @@ void SleepUsec(int64_t usec); // TODO: How to implement?
 }
 }
 
-#endif // NETLIB_SRC_BASE_CURRENT_THREAD_H_
+#endif // NETLIB_SRC_CURRENT_THREAD_H_
