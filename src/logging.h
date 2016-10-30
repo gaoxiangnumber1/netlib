@@ -4,9 +4,9 @@
 #include <stdint.h> // int64_t
 
 #include <atomic> // atomic
+#include <string> // string
 
 #include <copyable.h> // Copyable
-#include <types.h> // string
 
 #define LOG(level, ...) do \
 { \
@@ -50,7 +50,7 @@ public:
 	{
 		log_level_ = (level <= FATAL ? FATAL : (level <= ALL ? level : ALL));
 	}
-	void set_file_name(const string &file_name);
+	void set_file_name(const std::string &file_name);
 
 	void Log(int level, const char *file, int line, const char *fmt ...);
 
@@ -62,7 +62,7 @@ private:
 	void Rotate();
 
 	LogLevel log_level_;
-	string file_name_;
+	std::string file_name_;
 	int fd_;
 	std::atomic<int64_t> rotate_time_;
 	int64_t rotate_interval_;

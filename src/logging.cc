@@ -11,6 +11,8 @@
 #include <sys/time.h> // gettimeofday()
 #include <stdarg.h> // va_*
 
+using std::string;
+
 namespace netlib
 {
 const int kSecondsPerDay = 24 * 60 * 60;
