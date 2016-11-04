@@ -18,7 +18,7 @@ using netlib::TimeStamp;
 
 // Every thread has its own instance of __thread variable.
 __thread EventLoop *t_loop_in_this_thread = nullptr;
-const int kPollTimeout = 10 * 1000;
+const int kPollTimeout = 2 * 1000;
 
 EventLoop::EventLoop():
 	looping_(false),
@@ -89,7 +89,8 @@ void EventLoop::Loop()
 		active_channel_.clear(); // Clear old active channel vector.
 		// Invoke ::poll() to get the number of active IO events and
 		// invoke FillActiveChannel to fill active_channel_.
-		poller_->Poll(kPollTimeout, &active_channel_);
+		poll_return_time_ = poller_->Poll(kPollTimeout, &active_channel_);
+		LOG_INFO("Poll Return.");
 		// Now, each channel in active_channel_ has IO events happened.
 		for(ChannelVector::iterator it = active_channel_.begin();
 		        it != active_channel_.end(); ++it)
@@ -103,7 +104,8 @@ void EventLoop::Loop()
 }
 
 // Runs callback at `time_stamp`.
-TimerId EventLoop::RunAt(const TimerCallback &callback,const TimeStamp &time_stamp)
+TimerId EventLoop::RunAt(const TimerCallback &callback,
+                         const TimeStamp &time_stamp)
 {
 	// TimerId AddTimer(const TimerCallback &callback,
 	//                  TimeStamp expired_time,
@@ -131,4 +133,17 @@ void EventLoop::UpdateChannel(Channel *channel)
 	assert(channel->owner_loop() == this);
 	AssertInLoopThread();
 	poller_->UpdateChannel(channel);
+}
+
+void QueueInLoop(const Functor &callback)
+{
+	{
+		MutexLockGuard lock(mutex_);
+		pending_functor_.push_back(callback);
+	}
+
+	if(IsLoopInThread() == false || calling_pending_functor_ == true)
+	{
+		Wakeup();
+	}
 }

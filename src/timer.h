@@ -1,6 +1,10 @@
 #ifndef NETLIB_SRC_TIMER_H_
 #define NETLIB_SRC_TIMER_H_
 
+#include <callback.h>
+#include <non_copyable.h>
+#include <time_stamp.h>
+
 namespace netlib
 {
 
@@ -8,30 +12,42 @@ namespace netlib
 class Timer: public NonCopyable
 {
 public:
-	Timer(const TimerCallback &callback, Timestamp when, double interval):
-		callback_(callback), expiration_(when), interval_(interval), repeat_(interval > 0.0)
+	Timer(const TimerCallback &fun, TimeStamp expired_time, double time):
+		callback_(fun),
+		expiration_(expired_time), // TODO: how to set expiration_ and interval_?
+		interval_(time),
+		repeat_(interval_ > 0.0)
 	{}
 	// Getter
-	Timestamp expiration() const
+	TimerCallback callback() const
+	{
+		return callback_;
+	}
+	TimeStamp expiration() const
 	{
 		return expiration_;
 	}
-	bool repeat() const
+	double interval() const
+	{
+		return interval_;
+	}
+	bool repeat() const // true if interval_ > 0.0
 	{
 		return repeat_;
 	}
 
-	void Run() const
+	void Run() const // Run the event callback.
 	{
 		callback_();
 	}
-	void Restart(Timestamp now);
+	void Restart(TimeStamp now); // Restart timer from now on if interval_ > 0.0.
 
 private:
-	const TimerCallback callback_;
-	Timestamp expiration_;
+	const TimerCallback callback_; // Called in TimerQueue::ReadCallback().
+	TimeStamp expiration_; // The absolute expiration time for this timer.
+	// The time "length" of expiration time, should equal to `expiration_ - Now()`
 	const double interval_;
-	const bool repeat_;
+	const bool repeat_; // true if interval_ > 0.0; false otherwise.
 };
 
 }
