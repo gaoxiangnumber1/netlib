@@ -1,21 +1,19 @@
-#ifndef NETLIB_SRC_THREAD_H_
-#define NETLIB_SRC_THREAD_H_
+#ifndef NETLIB_NETLIB_THREAD_H_
+#define NETLIB_NETLIB_THREAD_H_
 
 #include <stdint.h> // int64_t
 #include <sys/types.h> // pid_t
+#include <unistd.h> // getpid(), may use.
 #include <pthread.h> // pthread_t
 
 #include <atomic> // atomic<>
 #include <functional> // function<>
 #include <memory> // shared_ptr<>
 
-#include <non_copyable.h> // NonCopyable
+#include <netlib/non_copyable.h> // NonCopyable
 
 namespace netlib
 {
-
-pid_t ThreadId();
-void SleepUsec(int64_t usec);
 
 class Thread: public NonCopyable
 {
@@ -24,19 +22,21 @@ public:
 
 	explicit Thread(const ThreadFunction&);
 	explicit Thread(ThreadFunction&&);
-	~Thread();
+	~Thread(); // May call pthread_detach.
 
-	void Start();
-	int Join(); // return pthread_join()
-
-	pid_t thread_id() const
+	bool started()
 	{
-		return *shared_thread_id_;
+		return started_;
 	}
+
+	void Start(); // Invoke pthread_create.
+	int Join(); // Invoke pthread_join.
+
 	static int created_number()
 	{
 		return created_number_.load();
 	}
+	static pid_t ThreadId(); // Get current thread's kernel-thread-id.
 
 private:
 	bool started_;
@@ -51,9 +51,9 @@ private:
 	// on the system, except when a thread is the thread group leader for a process.
 	// glibc doesn't provide gettid(), using syscall(SYS_gettid).
 	std::shared_ptr<pid_t> shared_thread_id_;
-	ThreadFunction function_;
-	static std::atomic<int32_t> created_number_;
+	ThreadFunction function_; // Start function.
+	static std::atomic<int32_t> created_number_; // The number of created threads.
 };
 }
 
-#endif // NETLIB_SRC_THREAD_H_
+#endif // NETLIB_NETLIB_THREAD_H_

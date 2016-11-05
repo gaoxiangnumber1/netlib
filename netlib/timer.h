@@ -1,9 +1,9 @@
-#ifndef NETLIB_SRC_TIMER_H_
-#define NETLIB_SRC_TIMER_H_
+#ifndef NETLIB_NETLIB_TIMER_H_
+#define NETLIB_NETLIB_TIMER_H_
 
-#include <callback.h>
-#include <non_copyable.h>
-#include <time_stamp.h>
+#include <netlib/callback.h>
+#include <netlib/non_copyable.h>
+#include <netlib/time_stamp.h>
 
 namespace netlib
 {
@@ -52,4 +52,4 @@ private:
 
 }
 
-#endif // NETLIB_SRC_TIMER_H_
+#endif // NETLIB_NETLIB_TIMER_H_

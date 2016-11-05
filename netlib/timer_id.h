@@ -1,7 +1,7 @@
-#ifndef NETLIB_SRC_TIMER_ID_H_
-#define NETLIB_SRC_TIMER_ID_H_
+#ifndef NETLIB_NETLIB_TIMER_ID_H_
+#define NETLIB_NETLIB_TIMER_ID_H_
 
-#include <copyable.h>
+#include <netlib/copyable.h>
 
 namespace netlib
 {
@@ -21,4 +21,4 @@ private:
 
 }
 
-#endif // NETLIB_SRC_TIMER_ID_H_
+#endif // NETLIB_NETLIB_TIMER_ID_H_

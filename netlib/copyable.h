@@ -1,5 +1,5 @@
-#ifndef NETLIB_SRC_COPYABLE_H_
-#define NETLIB_SRC_COPYABLE_H_
+#ifndef NETLIB_NETLIB_COPYABLE_H_
+#define NETLIB_NETLIB_COPYABLE_H_
 
 namespace netlib
 {
@@ -9,4 +9,4 @@ namespace netlib
 class Copyable {}; // Value semantics
 }
 
-#endif // NETLIB_SRC_COPYABLE_H_
+#endif // NETLIB_NETLIB_COPYABLE_H_

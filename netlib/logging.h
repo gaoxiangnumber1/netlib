@@ -1,12 +1,12 @@
-#ifndef NETLIB_SRC_LOGGING_H_
-#define NETLIB_SRC_LOGGING_H_
+#ifndef NETLIB_NETLIB_LOGGING_H_
+#define NETLIB_NETLIB_LOGGING_H_
 
 #include <stdint.h> // int64_t
 
 #include <atomic> // atomic
 #include <string> // string
 
-#include <copyable.h> // Copyable
+#include <netlib/copyable.h> // Copyable
 
 #define LOG(level, ...) do \
 { \
@@ -70,4 +70,4 @@ private:
 
 }
 
-#endif // NETLIB_SRC_LOGGING_H_
+#endif // NETLIB_NETLIB_LOGGING_H_

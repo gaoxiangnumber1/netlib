@@ -1,14 +1,14 @@
-#ifndef NETLIB_SRC_TIMER_QUEUE_H_
-#define NETLIB_SRC_TIMER_QUEUE_H_
+#ifndef NETLIB_NETLIB_TIMER_QUEUE_H_
+#define NETLIB_NETLIB_TIMER_QUEUE_H_
 
 #include <memory>
 #include <set>
 #include <vector>
 
-#include <callback.h>
-#include <channel.h>
-#include <non_copyable.h>
-#include <time_stamp.h>
+#include <netlib/callback.h>
+#include <netlib/channel.h>
+#include <netlib/non_copyable.h>
+#include <netlib/time_stamp.h>
 
 namespace netlib
 {
@@ -25,7 +25,8 @@ public:
 	~TimerQueue();
 
 	// Schedule the callback to be run at given time, repeats if `interval > 0.0`.
-	// Must be thread safe. Usually be called from other threads.
+	// Thread safe: always add timer in the loop thread by calling
+	// RunInLoop(AddTimerInLoop).
 	// Used by EventLoop, and EventLoop encapsulates it to be RunAt(), RunAfter()...
 	// Construct a new timer based on the arguments; Insert it to timer set;
 	// Return a TimerId object that encapsulates this timer.
@@ -63,12 +64,18 @@ private:
 	using TimerPair = std::pair<TimeStamp, Timer*>;
 	using TimerPairSet = std::set<TimerPair>;
 
+	// Add timer in the loop thread. Always as a functor passed to RunInLoop().
+	void AddTimerInLoop(Timer *timer);
+	// Create a new timer fd. Called by TimerQueue::TimerQueue(EventLoop *loop).
+	int CreateTimerFd();
 	// Get the expired timers relative to `now` and store them in expired_time_ vector.
 	void GetExpiredTimer(TimeStamp now);
 	// Insert the specified timer into timer set. Return true if this timer will expire first.
 	bool InsertIntoTimerPairSet(Timer *timer);
 	// The callback for IO read event, in this case, the timer fd alarms.
 	void ReadCallback();
+	// Call ::read to read from `timer_fd` at `time_stamp` time.
+	void ReadTimerFd(TimeStamp time_stamp);
 	// Restart or delete expired timer and update timer_fd_'s expiration time.
 	void Refresh(TimeStamp now);
 	// Set timer_fd_'s expiration time to be `expiration` argument.
@@ -88,4 +95,4 @@ private:
 
 }
 
-#endif // NETLIB_SRC_TIMER_QUEUE_H_
+#endif // NETLIB_NETLIB_TIMER_QUEUE_H_

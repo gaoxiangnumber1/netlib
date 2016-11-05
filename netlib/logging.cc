@@ -1,5 +1,6 @@
-#include <logging.h>
+#include <netlib/logging.h>
 
+#include <assert.h>
 #include <stdio.h> // *printf(), rename()
 #include <time.h> // time(), tzset(), localtime_r()
 #include <unistd.h> // close(), dup2(), write()
@@ -11,7 +12,10 @@
 #include <sys/time.h> // gettimeofday()
 #include <stdarg.h> // va_*
 
+#include <netlib/thread.h> // ThreadId()
+
 using std::string;
+using netlib::Thread;
 
 namespace netlib
 {
@@ -96,16 +100,16 @@ void Logger::Log(int level, const char *file, int line, const char *format ...)
 	// struct tm *localtime_r(const time_t *timep, struct tm *result);
 	localtime_r(&(now_time_val.tv_sec), &now_tm);
 	ptr += snprintf(ptr, buffer_end - ptr,
-	                "%s\t%04d/%02d/%02d-%02d:%02d:%02d.%06d tid = ? %s:%d ",
-	                log_level_string_[level],
-	                now_tm.tm_year + 1900,
-	                now_tm.tm_mon + 1,
-	                now_tm.tm_mday,
+	                "%02d:%02d:%02d.%06d %5d %s - %s:%d ",
+	                //now_tm.tm_year + 1900,
+	                //now_tm.tm_mon + 1,
+	                //now_tm.tm_mday,
 	                now_tm.tm_hour,
 	                now_tm.tm_min,
 	                now_tm.tm_sec,
 	                static_cast<int>(now_time_val.tv_usec),
-	                //(long)tid,
+	                static_cast<int>(Thread::ThreadId()),
+	                log_level_string_[level],
 	                file,
 	                line);
 	// #include <stdarg.h>
@@ -125,6 +129,11 @@ void Logger::Log(int level, const char *file, int line, const char *format ...)
 		fprintf(stderr, "Write log file %s failed. written %d bytes. errno: %s\n",
 		        file_name_.c_str(), written, strerror(errno));
 	}
+	if(level == FATAL)
+	{
+		fprintf(stderr, "errno: %s", strerror(errno));
+		assert(0);
+	}
 }
 
 void Logger::Rotate()
@@ -132,8 +141,7 @@ void Logger::Rotate()
 	time_t now = time(NULL); // Get now time.
 	// If (1) don't have log file or (2) now-time and rotate-time are in the same day:
 	// don't need rotate.
-	if(file_name_.empty() ||
-	        (now - timezone)/rotate_interval_ == (rotate_time_.load() - timezone)/rotate_interval_)
+	if(file_name_.empty() || (now - rotate_time_.load()) <= rotate_interval_)
 	{
 		return;
 	}
@@ -144,19 +152,24 @@ void Logger::Rotate()
 	localtime_r(&now, &now_tm);
 	const char *old_file = file_name_.c_str();
 	char new_file[kBufferSize];
-	snprintf(new_file, sizeof(new_file), "%s.%d%02d%02d%02d%02d",
+	snprintf(new_file, sizeof(new_file), "%s.%d-%02d-%02d-%02d|%02d|%02d",
 	         old_file,
 	         now_tm.tm_year + 1900,
 	         now_tm.tm_mon + 1,
 	         now_tm.tm_mday,
 	         now_tm.tm_hour,
-	         now_tm.tm_min);
+	         now_tm.tm_min,
+	         now_tm.tm_sec);
 	// int rename(const char *oldpath, const char *newpath);
 	// 1. Rename the file that is already opened.
 	if(rename(old_file, new_file) != 0)
 	{
-		fprintf(stderr, "Rename logging file %s TO %s failed errno: %s\n",
-		        old_file, new_file, strerror(errno));
+		// FIXME: Why when there are very large number of threads, it always print
+		// error message:
+		// `TId = ..., Rename xxx -> yyy failed: No such file or directory`
+		// and some logging messages are lost forever. WHY?
+		fprintf(stderr, "TId = %d, Rename %s -> %s failed: %s\n",
+		        Thread::ThreadId(), old_file, new_file, strerror(errno));
 		return;
 	}
 	// 2. Create new logging file.

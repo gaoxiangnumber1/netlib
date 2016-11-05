@@ -2,32 +2,32 @@
 #define _GNU_SOURCE
 #endif // _GNU_SOURCE
 
-#include <thread.h>
+#include <netlib/thread.h>
 
 #include <assert.h> // assert()
-#include <unistd.h>
+#include <unistd.h> // getpid()
 #include <sys/syscall.h> // syscall()
 #include <time.h> // nanosleep()
 
-#include <logging.h> // LOG_FATAL()
+#include <netlib/logging.h> // LOG_FATAL()
 
 using std::shared_ptr;
 using std::weak_ptr;
 using std::move;
 using std::atomic;
+using netlib::Thread;
 
 namespace netlib
 {
 
-const int kMicroSecondsPerSecond = 1000 * 1000;
-
 namespace detail
 {
-struct ThreadData
+
+struct ThreadData // Store the arguments that need passed to pthread_create.
 {
 	using ThreadFunction = netlib::Thread::ThreadFunction;
 
-	ThreadFunction function_;
+	ThreadFunction function_; // Thread's start function.
 	weak_ptr<pid_t> weak_thread_id_;
 
 	ThreadData(const ThreadFunction &function,
@@ -39,7 +39,7 @@ struct ThreadData
 	void RunInThread()
 	{
 		// 1. Set thread id.
-		pid_t thread_id = netlib::ThreadId();
+		pid_t thread_id = Thread::ThreadId();
 		// If the number of shared_ptrs that share ownership with weak_ptr is 0,
 		// return a null shared_ptr; otherwise return a shared_ptr to the object
 		// to which weak_ptr points.
@@ -57,7 +57,7 @@ struct ThreadData
 	}
 };
 
-void *StartThread(void *object)
+void *StartThread(void *object) // Thread start function passed to pthread_create.
 {
 	ThreadData *data = static_cast<ThreadData*>(object);
 	data->RunInThread();
@@ -70,21 +70,13 @@ void *StartThread(void *object)
 // Every thread has it own instance of __thread variable.
 __thread pid_t t_cached_thread_id = 0; // The thread id in the kernel, not the pthread_t.
 
-pid_t ThreadId() // Return the cached thread-id.
+pid_t Thread::ThreadId() // Return the cached thread-id.
 {
 	if(t_cached_thread_id == 0) // If not cached yet.
 	{
 		t_cached_thread_id = static_cast<pid_t>(::syscall(SYS_gettid));
 	}
 	return t_cached_thread_id;
-}
-
-void SleepUsec(int64_t usec)
-{
-	struct timespec ts = {0, 0};
-	ts.tv_sec = static_cast<time_t>(usec / kMicroSecondsPerSecond); // seconds
-	ts.tv_nsec = static_cast<long>(usec % kMicroSecondsPerSecond  *1000); // nanoseconds
-	::nanosleep(&ts, NULL);
 }
 
 atomic<int32_t> Thread::created_number_(0);
@@ -134,7 +126,8 @@ void Thread::Start()
 	// *ptid is set to the thread ID of the newly created thread.
 	// attr = NULL: create a thread with the default attributes.
 	// The newly created thread starts running at the address of the fun function.
-	// arg is passed to fun.
+	// arg is the argument that passed to fun. If we need pass more than one argument,
+	// we should store them in a structure and pass the address of the structure in arg.
 	if(pthread_create(&pthread_id_, NULL, &detail::StartThread, data))
 	{
 		started_ = false;
