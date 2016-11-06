@@ -28,8 +28,8 @@ public:
 		return listening_;
 	}
 	// Called in TcpServer constructor: acceptor_->set_new_connection_callback(
-	//					    bind(&TcpServer::NewConnection, this, _1, _2));
-	// `void NewConnection(int socket_fd, const SocketAddress &peer_address);`
+	//					    bind(&TcpServer::NewConnectionCallback, this, _1, _2));
+	// `void NewConnectionCallback(int socket_fd, const SocketAddress &peer_address);`
 	void set_new_connection_callback(const NewConnectionCallback &callback)
 	{
 		new_connection_callback_ = callback;

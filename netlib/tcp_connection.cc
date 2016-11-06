@@ -7,22 +7,23 @@
 
 using std::string;
 using std::bind;
+using std::shared_ptr;
 using netlib::TcpConnection;
 
 TcpConnection::TcpConnection(EventLoop *event_loop,
                              const string string_name,
                              int socket,
                              const SocketAddress &local,
-                             const SocketAssress &peer):
+                             const SocketAddress &peer):
 	loop_(CHECK_NOT_NULL(event_loop)),
 	name_(string_name),
 	state_(CONNECTING),
 	socket_(new Socket(socket)),
-	channel_(new Channel(loop_, socket_)),
+	channel_(new Channel(loop_, socket)),
 	local_address_(local),
 	peer_address_(peer)
 {
-	LOG_INFO("TcpConnection::ctor[%s] at %p fd=%d", name_.c_str(), this, socket_);
+	LOG_INFO("TcpConnection::ctor[%s] at %p fd=%d", name_.c_str(), this, socket);
 	channel_->set_read_callback(bind(&TcpConnection::ReadCallback, this));
 }
 
@@ -38,7 +39,7 @@ void TcpConnection::ConnectEstablished()
 	assert(state_ == CONNECTING);
 	set_state(CONNECTED);
 	channel_->set_requested_event_read();
-	// std::function<void(const TcpConnection&)>;
+	// std::function<void(const TcpConnectionPtr&)>;
 	connection_callback_(shared_form_this());
 }
 

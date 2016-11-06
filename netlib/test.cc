@@ -1,15 +1,21 @@
 #include <stdio.h>
 
-#include "TcpServer.h"
-#include "EventLoop.h"
-#include "InetAddress.h"
-void onConnection(const muduo::TcpConnectionPtr& conn)
+#include <netlib/tcp_server.h>
+#include <netlib/event_loop.h>
+#include <netlib/socket_address.h>
+
+using netlib::TcpConnectionPtr;
+using netlib::EventLoop;
+using netlib::SocketAddress;
+using netlib::TcpServer;
+
+void onConnection(const TcpConnectionPtr& conn)
 {
 	if(conn->connected())
 	{
 		printf("onConnection(): new connection [%s] from %s\n",
 		       conn->name().c_str(),
-		       conn->peerAddress().toHostPort().c_str());
+		       conn->peer_address().ToHostPort().c_str());
 	}
 	else
 	{
@@ -18,7 +24,7 @@ void onConnection(const muduo::TcpConnectionPtr& conn)
 	}
 }
 
-void onMessage(const muduo::TcpConnectionPtr& conn,
+void onMessage(const TcpConnectionPtr& conn,
                const char* data,
                ssize_t len)
 {
@@ -30,13 +36,13 @@ int main()
 {
 	printf("main(): pid = %d\n", getpid());
 
-	muduo::InetAddress listenAddr(9981);
-	muduo::EventLoop loop;
+	SocketAddress listenAddr(9981);
+	EventLoop loop;
 
-	muduo::TcpServer server(&loop, listenAddr);
-	server.setConnectionCallback(onConnection);
-	server.setMessageCallback(onMessage);
-	server.start();
+	TcpServer server(&loop, listenAddr);
+	server.set_connection_callback(onConnection);
+	server.set_message_callback(onMessage);
+	server.Start();
 
-	loop.loop();
+	loop.Loop();
 }

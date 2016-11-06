@@ -13,11 +13,11 @@ LDFLAGS = -L$(MUDUO_LIBRARY) -lmuduo_net -lmuduo_base -lpthread #-lrt
 
 .SUFFIXES: .cc .o
 
-SOURCE = server_basic.cc sudoku.cc
+SOURCE = server_multiloop.cc sudoku.cc
 OBJECT = $(SOURCE:.cc=.o)
-EXEC = server_basic
+EXEC = server_multiloop
 
-all:  server_basic
+all: $(EXEC)
 
 $(EXEC): $(OBJECT)
 	$(CC) -o $(EXEC) $(OBJECT) $(LDFLAGS)
