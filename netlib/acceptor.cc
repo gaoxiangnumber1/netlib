@@ -1,9 +1,11 @@
 #include <netlib/acceptor.h>
+#include <netlib/event_loop.h>
+#include <netlib/socket_address.h>
+#include <netlib/socket_operation.h>
 
 namespace nso = netlib::socket_operation;
-/************************************************************************
-Since the connections are too complex, work to know one line at a time.
-*************************************************************************/
+using std::bind;
+using netlib::Acceptor;
 
 Acceptor::Acceptor(EventLoop *loop, const SocketAddress &listen_address):
 	loop_(loop),
@@ -17,15 +19,31 @@ Acceptor::Acceptor(EventLoop *loop, const SocketAddress &listen_address):
 	accept_channel_.set_read_callback(bind(&Acceptor::ReadCallback, this));
 }
 
-void ReadCallback()
+void Acceptor::Listen()
+{
+	loop_->AssertInLoopThread();
+	listening_ = true;
+	accept_socket_.Listen();
+	accept_channel_.set_requested_event_read();
+}
+
+void Acceptor::ReadCallback()
 {
 	loop_->AssertInLoopThread();
 	SocketAddress peer_address(0); // Construct an endpoint with given port number.
+	// FIXME: Here we accept(2) one socket each time, which is suitable for long
+	// connection. There two strategies for short-connection:
+	// 1.	accept(2) until no more new connections arrive.
+	// 2.	accept(2) N connections at a time, N normally is 10.
 	int connection_fd = accept_socket_.Accept(&peer_address);
+	// TODO: See 7.7 "How to avoid the `haojin` of file descriptors?"
 	if(connection_fd >= 0)
 	{
 		if(new_connection_callback_) // void(int, const InetAddress&)
 		{
+			// FIXME: Here pass the connection_fd by value, which may not free memory
+			// properly. C++11: create Socket object -> use std::move() to move this object
+			// to new_connection_callback. This Guarantee the safe memory release.
 			new_connection_callback_(connection_fd, peer_address);
 		}
 		else

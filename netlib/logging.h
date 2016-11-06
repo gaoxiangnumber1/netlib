@@ -68,6 +68,20 @@ private:
 	int64_t rotate_interval_;
 };
 
+// Check the input is non null.  This is useful in constructor initializer lists.
+#define CHECK_NOT_NULL(val) \
+netlib::CheckNotNull("'" #val "' Must be non NULL", (val))
+
+// A helper for CHECK_NOTNULL().
+template <typename T>
+void CheckNotNull(const char *name, T *ptr)
+{
+	if(ptr == nullptr)
+	{
+		LOG_FATAL("%s", name);
+	}
+}
+
 }
 
 #endif // NETLIB_NETLIB_LOGGING_H_

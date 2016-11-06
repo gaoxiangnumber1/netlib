@@ -1,28 +1,42 @@
-/*#include <netlib/event_loop.h>
-#include <netlib/event_loop_thread.h>
-
 #include <stdio.h>
 
-using netlib::Thread;
-using netlib::EventLoop;
-using netlib::EventLoopThread;
-
-void RunInThread()
+#include "TcpServer.h"
+#include "EventLoop.h"
+#include "InetAddress.h"
+void onConnection(const muduo::TcpConnectionPtr& conn)
 {
-	printf("RunInThread(): pid = %d, tid = %d\n", getpid(), Thread::ThreadId());
+	if(conn->connected())
+	{
+		printf("onConnection(): new connection [%s] from %s\n",
+		       conn->name().c_str(),
+		       conn->peerAddress().toHostPort().c_str());
+	}
+	else
+	{
+		printf("onConnection(): connection [%s] is down\n",
+		       conn->name().c_str());
+	}
+}
+
+void onMessage(const muduo::TcpConnectionPtr& conn,
+               const char* data,
+               ssize_t len)
+{
+	printf("onMessage(): received %zd bytes from connection [%s]\n",
+	       len, conn->name().c_str());
 }
 
 int main()
 {
-	printf("main(): pid = %d, tid = %d\n", getpid(), Thread::ThreadId());
+	printf("main(): pid = %d\n", getpid());
 
-	EventLoopThread loop_thread;
-	EventLoop* loop = loop_thread.StartLoop();
-	loop->RunInLoop(RunInThread);
-	loop->RunAfter(RunInThread, 2);
-	sleep(3);
-	loop->Quit();
+	muduo::InetAddress listenAddr(9981);
+	muduo::EventLoop loop;
 
-	printf("exit main().\n");
+	muduo::TcpServer server(&loop, listenAddr);
+	server.setConnectionCallback(onConnection);
+	server.setMessageCallback(onMessage);
+	server.start();
+
+	loop.loop();
 }
-*/
