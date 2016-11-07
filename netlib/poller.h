@@ -35,6 +35,7 @@ public:
 	// in `vector<struct pollfd> pollfd_vector_`
 	// `void Channel::Update()` -> `void EventLoop::UpdateChannel(Channel*)` -> here.
 	void UpdateChannel(Channel *channel);
+	void RemoveChannel(Channel *channel);
 
 private:
 	using PollfdVector = std::vector<struct pollfd>; // The cached pollfd array.

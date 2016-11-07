@@ -31,6 +31,7 @@ public:
 	// which has been set to non-blocking and close-on-exec. *peer_address is assigned.
 	// On error, -1 is returned, and *peer_address is untouched.
 	int Accept(SocketAddress *peer_address);
+	void ShutdownWrite();
 
 private:
 	const int socket_fd_;

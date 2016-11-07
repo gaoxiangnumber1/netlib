@@ -32,7 +32,7 @@ TimerQueue::TimerQueue(EventLoop *owner_loop):
 	timer_pair_set_()
 {
 	timer_fd_channel_.set_requested_event_read(); // Monitor IO read event.
-	timer_fd_channel_.set_read_callback(bind(&TimerQueue::ReadCallback, this));
+	timer_fd_channel_.set_read_callback(bind(&TimerQueue::HandleRead, this));
 }
 
 TimerQueue::~TimerQueue()
@@ -138,7 +138,7 @@ bool TimerQueue::InsertIntoTimerPairSet(Timer *timer)
 }
 
 // The callback for IO read event, in this case, the timer fd alarms.
-void TimerQueue::ReadCallback()
+void TimerQueue::HandleRead()
 {
 	owner_loop_->AssertInLoopThread();
 	// 1. Get now time and Invoke `ReadTimerFd()` to read form timer_fd_.

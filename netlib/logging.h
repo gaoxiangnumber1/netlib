@@ -68,6 +68,8 @@ private:
 	int64_t rotate_interval_;
 };
 
+const char *ThreadSafeStrError(int saved_errno);
+
 // Check the input is non null.  This is useful in constructor initializer lists.
 #define CHECK_NOT_NULL(val) \
 netlib::CheckNotNull("'" #val "' Must be non NULL", (val))

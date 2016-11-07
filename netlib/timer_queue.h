@@ -73,7 +73,7 @@ private:
 	// Insert the specified timer into timer set. Return true if this timer will expire first.
 	bool InsertIntoTimerPairSet(Timer *timer);
 	// The callback for IO read event, in this case, the timer fd alarms.
-	void ReadCallback();
+	void HandleRead();
 	// Call ::read to read from `timer_fd` at `time_stamp` time.
 	void ReadTimerFd(TimeStamp time_stamp);
 	// Restart or delete expired timer and update timer_fd_'s expiration time.

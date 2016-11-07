@@ -16,10 +16,11 @@ Acceptor::Acceptor(EventLoop *loop, const SocketAddress &listen_address):
 {
 	accept_socket_.SetReuseAddress(true); // Enable SO_REUSEADDR
 	accept_socket_.BindAddress(listen_address); // Wrapper for ::bind().
-	accept_channel_.set_read_callback(bind(&Acceptor::ReadCallback, this));
+	accept_channel_.set_read_callback(bind(&Acceptor::HandleRead, this));
 }
 
 // Let accept_channel_ monitor IO readable events and let accept_socket_ to listen().
+// Called by `TcpServer::Start()`
 void Acceptor::Listen()
 {
 	loop_->AssertInLoopThread();
@@ -34,7 +35,7 @@ void Acceptor::Listen()
 // will return and calls Channel::HandleEvent(), that in turn calls this function.
 // Call accept_socket_.Accept() to accept(2) new connections and call new connection
 // callback if user supply.
-void Acceptor::ReadCallback()
+void Acceptor::HandleRead()
 {
 	loop_->AssertInLoopThread();
 

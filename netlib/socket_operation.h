@@ -43,9 +43,13 @@ void ListenOrDie(int socket_fd);
 void ToHostPort(char *buffer, size_t size, const struct sockaddr_in &address);
 // Return the address to which the socket socket_fd is bound.
 struct sockaddr_in GetLocalAddress(int socket_fd);
+int GetSocketError(int socket_fd);
+void ShutdownWrite(int socket_fd);
 
 }
 
 }
+
+namespace nso = netlib::socket_operation;
 
 #endif // NETLIB_NETLIB_SOCKET_OPERATION_H_

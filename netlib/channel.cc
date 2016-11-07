@@ -21,17 +21,31 @@ Channel::Channel(EventLoop *loop, int file_descriptor):
 	fd_(file_descriptor),
 	requested_event_(kNoneEvent),
 	returned_event_(kNoneEvent),
-	index_(-1)
+	index_(-1),
+	event_handling_(false)
 {}
+
+Channel::~Channel()
+{
+	assert(event_handling_ == false);
+}
 
 // Call different callbacks based on the value of returned_event_.
 // Invoked by EventLoop::Loop().
-void Channel::HandleEvent()
+void Channel::HandleEvent(TimeStamp receive_time)
 {
+	event_handling_ = true;
 	// POLLNVAL: file descriptor is not open.
 	if(returned_event_ & POLLNVAL)
 	{
 		LOG_INFO("Channel::handle_event() POLLNVAL");
+	}
+	// POLLHUP: hangup has occurred.
+	if((returned_event_ & POLLHUP) &&
+	        !(returned_event_ & POLLIN) &&
+	        close_callback_)
+	{
+		close_callback_();
 	}
 	// POLLERR: An error has occurred.
 	if((returned_event_ & (POLLERR | POLLNVAL)) && error_callback_)
@@ -41,12 +55,13 @@ void Channel::HandleEvent()
 	// POLLRDHUP: Shutdown on peer socket.
 	if((returned_event_ & (POLLIN | POLLPRI | POLLRDHUP)) && read_callback_)
 	{
-		read_callback_();
+		read_callback_(receive_time);
 	}
 	if((returned_event_ & POLLOUT) && write_callback_)
 	{
 		write_callback_();
 	}
+	event_handling_ = false;
 }
 
 void Channel::Update()

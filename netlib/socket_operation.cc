@@ -29,8 +29,6 @@ SA *CastToNonConstsockaddr(struct sockaddr_in *address)
 
 } // Unnamed namespace.
 
-namespace nso = netlib::socket_operation;
-
 // Return a nonnegative file descriptor for the accepted socket on success.
 int nso::Accept(int socket_fd, struct sockaddr_in *address)
 {
@@ -189,4 +187,29 @@ struct sockaddr_in nso::GetLocalAddress(int socket_fd)
 		LOG_INFO("nso::GetLocalAddress error");
 	}
 	return local_address;
+}
+
+int nso::GetSocketError(int socket_fd)
+{
+	int option_value;
+	socklen_t option_length = sizeof option_value;
+
+	if(::getsockopt(socket_fd, SOL_SOCKET, SO_ERROR, &option_value, &option_length)
+	        < 0)
+	{
+		return errno;
+	}
+	else
+	{
+		return option_value;
+	}
+}
+
+void nso::ShutdownWrite(int socket_fd)
+{
+	// int shutdown(int sockfd, int how);
+	if(::shutdown(socket_fd, SHUT_WR) < 0)
+	{
+		LOG_INFO("nso::ShutdownWrite error");
+	}
 }

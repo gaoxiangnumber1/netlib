@@ -53,6 +53,7 @@ public:
 
 	// Invoke its poller_'s UpdateChannel()
 	void UpdateChannel(Channel *channel);
+	void RemoveChannel(Channel *channel);
 
 	// Create a wakeup_fd_ by calling `eventfd()`
 	int CreateWakeupFd();
@@ -72,7 +73,7 @@ private:
 	using ChannelVector = std::vector<Channel*>;
 
 	void DoPendingFunctor();
-	void WakeupFdCallback();
+	void HandleWakeupFd();
 
 	bool looping_; // Atomic.
 	bool quit_; // Atomic.
@@ -85,7 +86,7 @@ private:
 	std::unique_ptr<TimerQueue> timer_queue_;
 	int wakeup_fd_; // A Linux eventfd.
 	// wakeup_fd_channel_ monitors the IO events(readable) of wakeup_fd_,
-	// and dispatch these IO events to WakeupFdCallback().
+	// and dispatch these IO events to HandleWakeupFd().
 	std::unique_ptr<Channel> wakeup_fd_channel_;
 	MutexLock mutex_; // An object encapsulates pthread_mutex_t.
 	// Only pending_functor_ is exposed to other threads, so we protect it by mutex_.

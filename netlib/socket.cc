@@ -53,3 +53,8 @@ int Socket::Accept(SocketAddress *peer_address)
 	}
 	return connection_fd;
 }
+
+void Socket::ShutdownWrite()
+{
+	nso::ShutdownWrite(socket_fd_);
+}

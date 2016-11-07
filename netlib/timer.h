@@ -43,7 +43,7 @@ public:
 	void Restart(TimeStamp now); // Restart timer from now on if interval_ > 0.0.
 
 private:
-	const TimerCallback callback_; // Called in TimerQueue::ReadCallback().
+	const TimerCallback callback_; // Called in TimerQueue::HandleRead().
 	TimeStamp expiration_; // The absolute expiration time for this timer.
 	// The time "length" of expiration time, should equal to `expiration_ - Now()`
 	const double interval_;

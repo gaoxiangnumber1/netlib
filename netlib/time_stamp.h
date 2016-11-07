@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include <netlib/copyable.h>
+#include <string>
 
 namespace netlib
 {
@@ -37,7 +38,8 @@ public:
 		return microsecond_since_epoch_ > 0;
 	}
 	static TimeStamp Now();
-	char *ToString() const;
+	std::string ToString() const;
+	std::string ToFormattedString() const;
 
 private:
 	int64_t microsecond_since_epoch_; // 1 second = 10^6 microsecond.

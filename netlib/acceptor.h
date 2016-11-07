@@ -39,11 +39,11 @@ public:
 
 private:
 	// Call accept(2) to accept new connections and call user's callback.
-	void ReadCallback();
+	void HandleRead();
 
 	EventLoop *loop_; // owner loop.
 	Socket accept_socket_; // A listening socket, i.e., a server socket.
-	// Monitor the IO readable events of accept_socket_, and then call ReadCallback().
+	// Monitor the IO readable events of accept_socket_, and then call HandleRead().
 	Channel accept_channel_;
 	NewConnectionCallback new_connection_callback_;
 	bool listening_;

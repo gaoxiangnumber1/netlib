@@ -30,7 +30,7 @@ TimeStamp Poller::Poll(int timeout, ChannelVector *active_channel_)
 	}
 	else if(event_number == 0)
 	{
-		LOG_INFO("Nothing happened.");
+		//LOG_INFO("Nothing happened.");
 	}
 	else
 	{
@@ -41,8 +41,8 @@ TimeStamp Poller::Poll(int timeout, ChannelVector *active_channel_)
 
 // Add new Channel(O(logN)) or update already existing Channel(O(1))
 // in `vector<struct pollfd> pollfd_vector_`
-// TODO: why O(logN) or O(1)?
-// `void Channel::Update()` -> `void EventLoop::UpdateChannel(Channel*)` -> here.
+// Called: `void Channel::set_requested_event_*()` -> `void Channel::Update()` ->
+// `void EventLoop::UpdateChannel(Channel*)` -> here.
 void Poller::UpdateChannel(Channel *channel)
 {
 	AssertInLoopThread();
@@ -72,17 +72,61 @@ void Poller::UpdateChannel(Channel *channel)
 
 		struct pollfd &pfd = pollfd_vector_[index]; // Fetch pollfd by reference.
 		// If `pfd.fd != channel->fd()`, then pfd.fd must be -1(see below), otherwise error.
-		assert(pfd.fd == channel->fd() || pfd.fd == -1);
+		assert(pfd.fd == channel->fd() || pfd.fd == -channel->fd() - 1);
 		// Update this pollfd's events and reset revents.
 		pfd.events = static_cast<short>(channel->requested_event());
 		pfd.revents = 0;
-		// If this channel doesn't interest in any events, set pfd.fd to -1 to make poll(2)
-		// ignore this file descriptor. Note that we can't set pfd.events to 0 since this can't
-		// mask POLLERR event.
+		// If this channel doesn't interest in any events, set pfd.fd to negative value to make
+		// poll(2) ignore this file descriptor. Note that we can't set pfd.events to 0
+		// since this can't mask POLLERR event.
 		if(channel->IsNoneEvent())
 		{
-			pfd.fd = -1; // Ignore this pollfd.
+			// TODO: Why subtract 1? I think that since file descriptor 0 is stdin and -0 is
+			// the same as 0, so, when we don't want to monitor any events on stdin, if we
+			// only set fd = -fd, then we can't truly ignore stdin's pollfd. So we need
+			// distinguish between 0 and -0. Subtract 1 is okay, and I think that subtract 2
+			// is also okay, but subtract 1 is enough.
+			pfd.fd = -channel->fd() - 1; // Ignore this pollfd.
 		}
+	}
+}
+
+// Remove `channel` from channel_map_ and remove this channel's
+// `struct pollfd` from pollfd_vector_.
+// Called: Every TcpConnection object owns a `socket_` and use a `channel_` to
+// monitor its socket's IO events. `channel_.close_callback_` is
+// `TcpConnection::HandleClose()` -> `TcpConnection::close_callback_` is
+// `TcpServer::RemoveConnection()` -> `TcpConnection::ConnectDestroyed()` ->
+// `EventLoop::RemoveChannel()` -> here.
+void Poller::RemoveChannel(Channel *channel)
+{
+	AssertInLoopThread();
+	assert(channel_map_.find(channel->fd()) != channel_map_.end());
+	assert(channel_map_[channel->fd()] == channel);
+	// Always `channel->set_requested_event_none()` before RemoveChannel().
+	assert(channel->IsNoneEvent() == true);
+
+	int index = channel->index();
+	assert(0 <= index && index < static_cast<int>(pollfd_vector_.size()));
+	const struct pollfd &pfd = pollfd_vector_[index];
+	assert(pfd.fd == -channel->fd() - 1 && pfd.events == channel->requested_event());
+	// Remove this Channel from channel_map_:
+	assert(channel_map_.erase(channel->fd()) == 1);
+	// Remove this channel's fd's `struct pollfd` from pollfd_vector_:
+	if(index == static_cast<int>(pollfd_vector_.size()) - 1) // The last element.
+	{
+		pollfd_vector_.pop_back();
+	}
+	else // Swap with the last element and then pop_back().
+	{
+		int last_fd = pollfd_vector_.back().fd;
+		iter_swap(pollfd_vector_.begin() + index, pollfd_vector_.end() - 1);
+		if(last_fd < 0)
+		{
+			last_fd = -last_fd - 1; // Get this pollfd's actual fd. See UpdateChannel.
+		}
+		channel_map_[last_fd]->set_index(index);
+		pollfd_vector_.pop_back();
 	}
 }
 

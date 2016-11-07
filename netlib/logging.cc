@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h> // open()
-#include <string.h> // strerror()
+#include <string.h> // strerror(), strerror_r()
 #include <stdlib.h> // exit()
 #include <sys/time.h> // gettimeofday()
 #include <stdarg.h> // va_*
@@ -190,5 +190,12 @@ Logger &Logger::logger()
 	static Logger logger;
 	return logger;
 }
+
+__thread char t_errno_buffer[512];
+const char *ThreadSafeStrError(int saved_errno)
+{
+	return ::strerror_r(saved_errno, t_errno_buffer, sizeof t_errno_buffer);
+}
+
 
 }

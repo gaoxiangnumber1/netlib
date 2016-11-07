@@ -1,17 +1,21 @@
 #include <stdio.h>
 
-#include <netlib/tcp_server.h>
-#include <netlib/event_loop.h>
+#include <netlib/tcp_connection.h>
+#include <netlib/time_stamp.h>
 #include <netlib/socket_address.h>
+#include <netlib/event_loop.h>
+#include <netlib/tcp_server.h>
 
 using netlib::TcpConnectionPtr;
-using netlib::EventLoop;
+using netlib::Buffer;
+using netlib::TimeStamp;
 using netlib::SocketAddress;
+using netlib::EventLoop;
 using netlib::TcpServer;
 
 void onConnection(const TcpConnectionPtr& conn)
 {
-	if(conn->connected())
+	if (conn->Connected())
 	{
 		printf("onConnection(): new connection [%s] from %s\n",
 		       conn->name().c_str(),
@@ -25,18 +29,21 @@ void onConnection(const TcpConnectionPtr& conn)
 }
 
 void onMessage(const TcpConnectionPtr& conn,
-               const char* data,
-               ssize_t len)
+               Buffer* buf,
+               TimeStamp receiveTime)
 {
-	printf("onMessage(): received %zd bytes from connection [%s]\n",
-	       len, conn->name().c_str());
+	printf("onMessage(): received %d bytes from connection [%s] at %s\n",
+	       buf->ReadableByte(),
+	       conn->name().c_str(),
+	       receiveTime.ToFormattedString().c_str());
+	printf("onMessage(): [%s]\n", buf->RetrieveAsString().c_str());
 }
 
 int main()
 {
 	printf("main(): pid = %d\n", getpid());
 
-	SocketAddress listenAddr(9981);
+	SocketAddress listenAddr(7188);
 	EventLoop loop;
 
 	TcpServer server(&loop, listenAddr);

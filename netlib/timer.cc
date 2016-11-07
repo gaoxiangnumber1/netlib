@@ -4,7 +4,7 @@ using netlib::Timer;
 using netlib::TimeStamp;
 
 // Restart timer from now on if interval_ > 0.0.
-// Called: TimerQueue::ReadCallback()->TimerQueue::Refresh()
+// Called: TimerQueue::HandleRead()->TimerQueue::Refresh()
 void Timer::Restart(TimeStamp now)
 {
 	if(repeat_) // true if interval_ > 0.0

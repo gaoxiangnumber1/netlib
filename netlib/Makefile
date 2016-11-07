@@ -8,10 +8,9 @@ CXXFLAGS = -std=c++11 -Wall -Wconversion -Werror -Wextra -Wno-unused-parameter \
 LDFLAGS = -lpthread
 
 .SUFFIXES: .cc .o
-
-#test.cc \
-
-SOURCE =	tcp_connection.cc tcp_server.cc \
+SOURCE =	test.cc \
+					buffer.cc \
+					tcp_connection.cc tcp_server.cc \
 					acceptor.cc \
 					event_loop.cc event_loop_thread.cc \
 					poller.cc \
@@ -21,13 +20,12 @@ SOURCE =	tcp_connection.cc tcp_server.cc \
 					socket.cc socket_address.cc socket_operation.cc \
 					logging.cc
 OBJECT = $(SOURCE:.cc=.o)
-#TEST = test
+TEST = test
 
-all: $(OBJECT) 
-#$(TEST)
+all: $(OBJECT) $(TEST)
 
-#$(TEST): $(OBJECT)
-#	$(CC) -o $@ $^ $(LDFLAGS)
+$(TEST): $(OBJECT)
+	$(CC) -o $@ $^ $(LDFLAGS)
 
 .cc.o:
 	$(CC) $(CXXFLAGS) -o $@ -c $<

@@ -50,7 +50,7 @@ EventLoop::EventLoop():
 		t_loop_in_this_thread = this;
 	}
 	wakeup_fd_channel_->set_requested_event_read();
-	wakeup_fd_channel_->set_read_callback(bind(&EventLoop::WakeupFdCallback, this));
+	wakeup_fd_channel_->set_read_callback(bind(&EventLoop::HandleWakeupFd, this));
 }
 
 EventLoop::~EventLoop()
@@ -108,7 +108,7 @@ void EventLoop::Loop()
 		for(ChannelVector::iterator it = active_channel_.begin();
 		        it != active_channel_.end(); ++it)
 		{
-			(*it)->HandleEvent();
+			(*it)->HandleEvent(poll_return_time_);
 		}
 		DoPendingFunctor(); // Do callbacks of pending_functor_.
 	}
@@ -147,6 +147,13 @@ void EventLoop::UpdateChannel(Channel *channel)
 	assert(channel->owner_loop() == this);
 	AssertInLoopThread();
 	poller_->UpdateChannel(channel);
+}
+
+void EventLoop::RemoveChannel(Channel *channel)
+{
+	assert(channel->owner_loop() == this);
+	AssertInLoopThread();
+	poller_->RemoveChannel(channel);
 }
 
 int EventLoop::CreateWakeupFd() // Create a wakeup_fd_ by calling `eventfd()`
@@ -243,7 +250,7 @@ void EventLoop::DoPendingFunctor()
 	calling_pending_functor_ = false;
 }
 
-void EventLoop::WakeupFdCallback()
+void EventLoop::HandleWakeupFd()
 {
 	// The value returned by read(2) is in host byte order.
 	// 1.	If EFD_SEMAPHORE was not specified and the eventfd counter has a nonzero
@@ -255,6 +262,6 @@ void EventLoop::WakeupFdCallback()
 	int readn = static_cast<int>(::read(wakeup_fd_, &counter, 8));
 	if(readn != 8)
 	{
-		LOG_INFO("EventLoop::WakeupFdCallback() reads %d bytes instead of 8", readn);
+		LOG_INFO("EventLoop::HandleWakeupFd() reads %d bytes instead of 8", readn);
 	}
 }

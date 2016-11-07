@@ -4,6 +4,7 @@
 #include <netlib/non_copyable.h>
 #include <netlib/socket_address.h>
 #include <netlib/callback.h>
+#include <netlib/buffer.h>
 
 #include <memory>
 #include <string>
@@ -33,7 +34,7 @@ public:
 	              const SocketAddress &local,
 	              const SocketAddress &peer);
 	~TcpConnection();
-
+	// Getter.
 	EventLoop *loop() const
 	{
 		return loop_;
@@ -54,6 +55,7 @@ public:
 	{
 		return state_ == CONNECTED;
 	}
+	// Setter.
 	void set_connection_callback(ConnectionCallback callback)
 	{
 		connection_callback_ = callback;
@@ -62,19 +64,39 @@ public:
 	{
 		message_callback_ = callback;
 	}
-	// Internal use only. Called when TcpServer accepts a new connection.
-	// Should be called only once
+	// Internal use only.
+	void set_close_callback(CloseCallback callback)
+	{
+		close_callback_ = callback;
+	}
+	// Called when TcpServer accept a new connection. Should be called only once.
 	void ConnectEstablished();
+	// Called when TcpServer remove this TcpConnection from its map.
+	// Should be called only once.
+	void ConnectDestroyed();
+
+	// Thread safe.
+	void Send(const std::string &message);
+	// Thread safe.
+	void Shutdown();
 
 private:
-	enum State {CONNECTING, CONNECTED};
+	enum State {CONNECTING, CONNECTED, DISCONNECTING, DISCONNECTED};
 	void set_state(State state)
 	{
 		state_ = state;
 	}
-	void ReadCallback();
+	// Channel's *_callback_ is Handle*() here.
+	void HandleRead(TimeStamp receive_time);
+	void HandleWrite();
+	void HandleClose();
+	void HandleError();
+
+	void SendInLoop(const std::string &message);
+	void ShutdownInLoop();
 
 	EventLoop *loop_;
+	// "listen_address.ToHostPort()" + "#next_connection_id_". Set by TcpServer.
 	std::string name_;
 	State state_; // FIXME: Use atomic variable
 	// We don't expose following classes to client.
@@ -82,14 +104,24 @@ private:
 	// destructor of Socket object.
 	std::unique_ptr<Socket> socket_;
 	// TcpConnection gets the socket_'s IO events by channel_. It deals with the writable
-	// events by itself, and pass readable events to user by MessageCallback.
+	// events by itself, and pass readable events to user by message_callback_.
 	std::unique_ptr<Channel> channel_;
 	SocketAddress local_address_;
 	SocketAddress peer_address_;
 	// std::function<void(const TcpConnectionPtr&)>;
+	// TcpServer::HandleNewConnection -> TcpConnection::ConnectEstablished() ->
+	// connection_callback_.
 	ConnectionCallback connection_callback_;
-	// Pass readable events to user by MessageCallback.
+	// std::function<void(const TcpConnectionPtr&, const char*, int)>
+	// Called in HandleRead(), that is, when the socket is readable(message arrives).
 	MessageCallback message_callback_;
+	// close_callback_ can be only used by TcpServer and TcpClient, to notify that
+	// they should remove this TcpConnection object's shared_ptr; not used by user,
+	// user still use connection_callback_. Called in HandleClose().
+	// Bind to TcpServer::RemoveConnection().
+	CloseCallback close_callback_;
+	Buffer input_buffer_;
+	Buffer output_buffer_;
 };
 
 }

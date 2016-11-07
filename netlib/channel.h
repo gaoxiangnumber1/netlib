@@ -12,7 +12,10 @@ class EventLoop; // Forward declaration.
 class Channel: public NonCopyable // A selectable I/O channel.
 {
 public:
+	using ReadEventCallback = std::function<void(TimeStamp)>;
+
 	Channel(EventLoop *owner_loop, int file_descriptor);
+	~Channel();
 	// Getter.
 	EventLoop *owner_loop() const
 	{
@@ -37,6 +40,25 @@ public:
 		requested_event_ |= kReadEvent;
 		Update();
 	}
+	void set_requested_event_write()
+	{
+		requested_event_ |= kWriteEvent;
+		Update();
+	}
+	void set_requested_event_not_write()
+	{
+		requested_event_ &= ~kWriteEvent;
+		Update();
+	}
+	void set_requested_event_none()
+	{
+		requested_event_ = kNoneEvent;
+		Update();
+	}
+	bool IsWriting() const
+	{
+		return requested_event_ & kWriteEvent;
+	}
 	void set_returned_event(int returned_event)
 	{
 		returned_event_ = returned_event;
@@ -45,7 +67,7 @@ public:
 	{
 		index_ = new_index;
 	}
-	void set_read_callback(const EventCallback &callback)
+	void set_read_callback(const ReadEventCallback &callback)
 	{
 		read_callback_ = callback;
 	}
@@ -53,12 +75,16 @@ public:
 	{
 		write_callback_ = callback;
 	}
+	void set_close_callback(const EventCallback &callback)
+	{
+		close_callback_ = callback;
+	}
 	void set_error_callback(const EventCallback &callback)
 	{
 		error_callback_ = callback;
 	}
-
-	void HandleEvent(); // Call different callbacks based on returned_event_.
+	// Call different callbacks based on returned_event_.
+	void HandleEvent(TimeStamp receive_time);
 	bool IsNoneEvent() const
 	{
 		return requested_event_ == kNoneEvent;
@@ -89,9 +115,11 @@ private:
 	// {int fd; short events; /*requested events*/ short revents; /*returned events*/};`
 	// that represents this Channel object's monitoring file descriptor.
 	int index_;
+	bool event_handling_; // Whether is handing event? If it is, we shouldn't destruct.
 	// Different callbacks called when corresponding event happens.
-	EventCallback read_callback_;
+	ReadEventCallback read_callback_;
 	EventCallback write_callback_;
+	EventCallback close_callback_;
 	EventCallback error_callback_;
 };
 
