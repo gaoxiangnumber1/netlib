@@ -19,17 +19,25 @@ Acceptor::Acceptor(EventLoop *loop, const SocketAddress &listen_address):
 	accept_channel_.set_read_callback(bind(&Acceptor::ReadCallback, this));
 }
 
+// Let accept_channel_ monitor IO readable events and let accept_socket_ to listen().
 void Acceptor::Listen()
 {
 	loop_->AssertInLoopThread();
 	listening_ = true;
-	accept_socket_.Listen();
+	// Monitor IO readable events. The trigger for Channel::HandleEvent() is
+	// that the listening socket is readable, which indicates new connection arrives.
 	accept_channel_.set_requested_event_read();
+	accept_socket_.Listen();
 }
 
+// When the listening socket(i.e., the accept_socket_) is readable, Poller::Poll()
+// will return and calls Channel::HandleEvent(), that in turn calls this function.
+// Call accept_socket_.Accept() to accept(2) new connections and call new connection
+// callback if user supply.
 void Acceptor::ReadCallback()
 {
 	loop_->AssertInLoopThread();
+
 	SocketAddress peer_address(0); // Construct an endpoint with given port number.
 	// FIXME: Here we accept(2) one socket each time, which is suitable for long
 	// connection. There two strategies for short-connection:

@@ -17,16 +17,16 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using netlib::TcpServer;
 
-/*TcpServer::TcpServer(EventLoop *loop, const SocketAddress &listen_address):
+TcpServer::TcpServer(EventLoop *loop, const SocketAddress &listen_address):
 	loop_(CHECK_NOT_NULL(loop)),
 	name_(listen_address.ToHostPort()),
 	acceptor_(new Acceptor(loop_, listen_address)),
 	started_(false),
-	next_connection_id_(1) // FIXME: error: void value not ignored as it ought to be
+	next_connection_id_(1)
 {
 	acceptor_->set_new_connection_callback(
 	    bind(&TcpServer::NewConnectionCallback, this, _1, _2));
-}*/
+}
 
 TcpServer::~TcpServer() {}
 

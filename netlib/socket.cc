@@ -49,7 +49,7 @@ int Socket::Accept(SocketAddress *peer_address)
 	int connection_fd = nso::Accept(socket_fd_, &address);
 	if(connection_fd >= 0)
 	{
-		peer_address->SetSocketAddress(address);
+		peer_address->set_socket_address(address);
 	}
 	return connection_fd;
 }

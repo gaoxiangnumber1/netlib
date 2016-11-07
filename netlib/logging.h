@@ -74,12 +74,13 @@ netlib::CheckNotNull("'" #val "' Must be non NULL", (val))
 
 // A helper for CHECK_NOTNULL().
 template <typename T>
-void CheckNotNull(const char *name, T *ptr)
+T *CheckNotNull(const char *name, T *ptr)
 {
 	if(ptr == nullptr)
 	{
 		LOG_FATAL("%s", name);
 	}
+	return ptr;
 }
 
 }

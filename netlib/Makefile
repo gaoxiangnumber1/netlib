@@ -9,8 +9,17 @@ LDFLAGS = -lpthread
 
 .SUFFIXES: .cc .o
 
-SOURCE =	tcp_connection.cc tcp_server.cc
-# acceptor.cc test.cc event_loop.cc event_loop_thread.cc poller.cc channel.cc thread.cc timer_queue.cc timer.cc time_stamp.cc socket.cc socket_address.cc socket_operation.cc logging.cc
+#test.cc \
+
+SOURCE =	tcp_connection.cc tcp_server.cc \
+					acceptor.cc \
+					event_loop.cc event_loop_thread.cc \
+					poller.cc \
+					channel.cc \
+					thread.cc \
+					timer_queue.cc timer.cc time_stamp.cc \
+					socket.cc socket_address.cc socket_operation.cc \
+					logging.cc
 OBJECT = $(SOURCE:.cc=.o)
 #TEST = test
 

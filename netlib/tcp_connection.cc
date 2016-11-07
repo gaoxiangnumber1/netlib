@@ -40,7 +40,7 @@ void TcpConnection::ConnectEstablished()
 	set_state(CONNECTED);
 	channel_->set_requested_event_read();
 	// std::function<void(const TcpConnectionPtr&)>;
-	connection_callback_(shared_form_this());
+	connection_callback_(shared_from_this());
 }
 
 void TcpConnection::ReadCallback()

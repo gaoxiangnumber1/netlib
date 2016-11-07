@@ -27,21 +27,21 @@ public:
 	{
 		return listening_;
 	}
-	// Called in TcpServer constructor: acceptor_->set_new_connection_callback(
-	//					    bind(&TcpServer::NewConnectionCallback, this, _1, _2));
+	// Called in TcpServer constructor: `acceptor_->set_new_connection_callback(
+	//					    bind(&TcpServer::NewConnectionCallback, this, _1, _2));`
 	// `void NewConnectionCallback(int socket_fd, const SocketAddress &peer_address);`
 	void set_new_connection_callback(const NewConnectionCallback &callback)
 	{
 		new_connection_callback_ = callback;
 	}
-
+	// Let accept_channel_ monitor IO readable events and let accept_socket_ to listen().
 	void Listen();
 
 private:
 	// Call accept(2) to accept new connections and call user's callback.
 	void ReadCallback();
 
-	EventLoop *loop_;
+	EventLoop *loop_; // owner loop.
 	Socket accept_socket_; // A listening socket, i.e., a server socket.
 	// Monitor the IO readable events of accept_socket_, and then call ReadCallback().
 	Channel accept_channel_;

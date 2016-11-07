@@ -86,7 +86,7 @@ private:
 	std::unique_ptr<Channel> channel_;
 	SocketAddress local_address_;
 	SocketAddress peer_address_;
-	// std::function<void(const TcpConnection&)>;
+	// std::function<void(const TcpConnectionPtr&)>;
 	ConnectionCallback connection_callback_;
 	// Pass readable events to user by MessageCallback.
 	MessageCallback message_callback_;
