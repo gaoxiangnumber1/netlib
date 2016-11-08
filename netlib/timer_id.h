@@ -8,15 +8,26 @@ namespace netlib
 
 class Timer;
 
-// An opaque不透明的 identifier, for canceling Timer.
+// Used by TimerQueue::Cancel() to find corresponding Timer object
+// when we want to cancel some Timer.
 class TimerId: public Copyable
 {
+	friend class TimerQueue;
 public:
 	// Called in `TimerQueue::AddTimer(const TimerCallback&, TimeStamp, double);
-	explicit TimerId(Timer *timer): timer_(timer) {}
+	explicit TimerId(Timer *timer = nullptr, int64_t sequence = 0):
+		timer_(timer),
+		sequence_(sequence)
+	{}
 
 private:
+	// Distinguish different Timer object by two values: <Timer*:sequence_number>.
+	// Only use Timer* is not enough since we can't distinguish two different objects that
+	// have the same memory address, which can happen if they are created at different
+	// time(malloc -> free -> malloc). So we add a sequence number that increases
+	// by 1 every time we create a new Timer object.
 	Timer *timer_;
+	int64_t sequence_;
 };
 
 }

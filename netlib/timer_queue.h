@@ -33,6 +33,7 @@ public:
 	TimerId AddTimer(const TimerCallback &callback,
 	                 TimeStamp expired_time,
 	                 double interval);
+	void Cancel(TimerId timer_id);
 
 private:
 	// Don't use unique_ptr<Timer>:
@@ -61,8 +62,10 @@ private:
 	//		too many timer objects and waste a lot of memory and lower performance.
 
 	using TimerVector = std::vector<Timer*>;
-	using TimerPair = std::pair<TimeStamp, Timer*>;
-	using TimerPairSet = std::set<TimerPair>;
+	using ExpirationTimerPair = std::pair<TimeStamp, Timer*>;
+	using ExpirationTimerPairSet = std::set<ExpirationTimerPair>;
+	using TimerSequencePair = std::pair<Timer*, int64_t>;
+	using TimerSequencePairSet = std::set<TimerSequencePair>;
 
 	// Add timer in the loop thread. Always as a functor passed to RunInLoop().
 	void AddTimerInLoop(Timer *timer);
@@ -80,17 +83,26 @@ private:
 	void Refresh(TimeStamp now);
 	// Set timer_fd_'s expiration time to be `expiration` argument.
 	void SetExpirationTime(TimeStamp expiration);
+	void CancelInLoop(TimerId timer_id);
 
 	EventLoop *owner_loop_; // Its owner loop.
 	const int timer_fd_; // The timer file descriptor of this Timer object.
 	Channel timer_fd_channel_; // Monitor the IO(readable) events on timer_fd_.
 	// Store the expired Timer object's pointer for specified time.
-	// We use it to call each Timer's callback and update the timer_pair_set_.
+	// We use it to call each Timer's callback and update the active_timer_set_by_expiration_.
 	TimerVector expired_timer_;
-	// Timer set sorted by <timer_expiration_time, timer_object_pointer>: first sorted
-	// by the timer's expiration time; if two or more timers have the same expiration
-	// time, we distinguish them by their object's pointer value.
-	TimerPairSet timer_pair_set_;
+	// Active Timer set sorted by <timer_expiration_time, timer_object_address>:
+	// first sorted by the timer's expiration time; if two or more timers have the same
+	// expiration time, we distinguish them by their object's address value.
+	ExpirationTimerPairSet active_timer_set_by_expiration_;
+	// For Cancel():
+	bool calling_expired_timer_; // Atomic.
+	// Active timer set sorted by <timer_object_address, sequence_number>:
+	// first sorted by timer object's address, if two objects have same address value,
+	// then sorted by sequence number.
+	TimerSequencePairSet active_timer_set_by_address_;
+	// Timer set that stores the canceled timer.
+	TimerSequencePairSet canceling_timer_set_;
 };
 
 }
