@@ -5,6 +5,7 @@
 #include <sys/eventfd.h> // eventfd()
 #include <unistd.h> // read(), close(), write()
 #include <stdint.h> // uint64_t
+#include <signal.h> // signal()
 
 #include <netlib/channel.h>
 #include <netlib/logging.h>
@@ -24,6 +25,17 @@ using netlib::TimeStamp;
 // Every thread has its own instance of __thread variable.
 __thread EventLoop *t_loop_in_this_thread = nullptr;
 const int kPollTimeout = 10 * 1000;
+
+class IgnoreSigPipe
+{
+public:
+	IgnoreSigPipe()
+	{
+		::signal(SIGPIPE, SIG_IGN);
+	}
+};
+
+IgnoreSigPipe ignore_sig_pipe_object;
 
 EventLoop::EventLoop():
 	looping_(false),

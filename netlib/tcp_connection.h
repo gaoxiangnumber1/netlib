@@ -56,16 +56,26 @@ public:
 		return state_ == CONNECTED;
 	}
 	// Setter.
-	void set_connection_callback(ConnectionCallback callback)
+	void set_connection_callback(const ConnectionCallback &callback)
 	{
 		connection_callback_ = callback;
 	}
-	void set_message_callback(MessageCallback callback)
+	void set_message_callback(const MessageCallback &callback)
 	{
 		message_callback_ = callback;
 	}
+	void set_write_complete_callback(const WriteCompleteCallback &callback)
+	{
+		write_complete_callback_ = callback;
+	}
+	void set_high_water_mark_callback(const HighWaterMarkCallback &callback,
+	                                  int high_water_mark)
+	{
+		high_water_mark_callback_ = callback;
+		high_water_mark_ = high_water_mark;
+	}
 	// Internal use only.
-	void set_close_callback(CloseCallback callback)
+	void set_close_callback(const CloseCallback &callback)
 	{
 		close_callback_ = callback;
 	}
@@ -79,6 +89,7 @@ public:
 	void Send(const std::string &message);
 	// Thread safe.
 	void Shutdown();
+	void SetTcpNoDelay(bool on);
 
 private:
 	enum State {CONNECTING, CONNECTED, DISCONNECTING, DISCONNECTED};
@@ -119,7 +130,10 @@ private:
 	// they should remove this TcpConnection object's shared_ptr; not used by user,
 	// user still use connection_callback_. Called in HandleClose().
 	// Bind to TcpServer::RemoveConnection().
+	WriteCompleteCallback write_complete_callback_;
+	HighWaterMarkCallback high_water_mark_callback_;
 	CloseCallback close_callback_;
+	int high_water_mark_;
 	Buffer input_buffer_;
 	Buffer output_buffer_;
 };

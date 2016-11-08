@@ -22,13 +22,15 @@ TcpConnection::TcpConnection(EventLoop *event_loop,
 	socket_(new Socket(socket)),
 	channel_(new Channel(loop_, socket)),
 	local_address_(local),
-	peer_address_(peer)
+	peer_address_(peer),
+	high_water_mark_(64 * 1024 * 1024)
 {
 	LOG_INFO("TcpConnection::ctor[%s] at %p fd=%d", name_.c_str(), this, socket);
 	channel_->set_read_callback(bind(&TcpConnection::HandleRead, this, _1));
 	channel_->set_write_callback(bind(&TcpConnection::HandleWrite, this));
 	channel_->set_close_callback(bind(&TcpConnection::HandleClose, this));
 	channel_->set_error_callback(bind(&TcpConnection::HandleError, this));
+	socket_->SetTcpKeepAlive(true);
 }
 
 TcpConnection::~TcpConnection()
@@ -83,8 +85,6 @@ void TcpConnection::HandleRead(TimeStamp receive_time)
 	}
 }
 
-void TcpConnection::HandleWrite() {}
-
 void TcpConnection::HandleClose()
 {
 	loop_->AssertInLoopThread();
@@ -125,7 +125,7 @@ void TcpConnection::Send(const std::string &message)
 {
 	if(state_ == CONNECTED)
 	{
-		if(loop_>IsInLoopThread() == true)
+		if(loop_->IsInLoopThread() == true)
 		{
 			SendInLoop(message);
 		}
@@ -141,18 +141,22 @@ void TcpConnection::SendInLoop(const std::string &message)
 {
 	loop_->AssertInLoopThread();
 
-	int write_byte = 0;
+	int write_byte = 0, message_size = static_cast<int>(message.size());
 	// If we are not writing and there is no data in the output_buffer_,
 	// try writing directly. If we still send data when output_buffer_ is not empty,
 	// the data may be out of order.
-	if (channel_->IsWriting() == false && output_buffer_.ReadableByte() == 0)
+	if(channel_->IsWriting() == false && output_buffer_.ReadableByte() == 0)
 	{
-		write_byte = static_cast<int>(::write(channel_->fd(), message.data(), message.size()));
+		write_byte = static_cast<int>(::write(channel_->fd(), message.data(), message_size));
 		if(write_byte >= 0)
 		{
-			if (write_byte < message.size())
+			if (write_byte < message_size)
 			{
 				LOG_INFO("Not send all data.");
+			}
+			else if(write_complete_callback_)
+			{
+				loop_->QueueInLoop(bind(write_complete_callback_, shared_from_this()));
 			}
 		}
 		else
@@ -168,12 +172,62 @@ void TcpConnection::SendInLoop(const std::string &message)
 	assert(write_byte >= 0);
 	// Only send partial data, store left data in output_buffer_ and monitor
 	// IO writable events. Send left data in HandleWrite().
-	if(write_byte < message.size())
+	// TODO: Add HighWaterMarkCallback()!
+	if(write_byte < message_size)
 	{
-		output_buffer_.Append(message.data() + write_byte, message.size() - write_byte);
+		output_buffer_.Append(message.data() + write_byte, message_size - write_byte);
 		if (channel_->IsWriting() == false)
 		{
 			channel_->set_requested_event_write();
 		}
 	}
+}
+
+void TcpConnection::HandleWrite()
+{
+	loop_->AssertInLoopThread();
+	if(channel_->IsWriting() == true)
+	{
+		int write_byte = static_cast<int>(::write(channel_->fd(),
+		                                  output_buffer_.Peek(),
+		                                  output_buffer_.ReadableByte()));
+		if(write_byte > 0)
+		{
+			output_buffer_.Retrieve(write_byte);
+			// Have send all data in the output_buffer_.
+			if(output_buffer_.ReadableByte() == 0)
+			{
+				// TODO: Why in level trigger we need stop monitoring
+				// the writable events to avoid busy loop?
+				channel_->set_requested_event_not_write();
+				if(write_complete_callback_)
+				{
+					loop_->QueueInLoop(bind(write_complete_callback_, shared_from_this()));
+				}
+				if(state_ == DISCONNECTING)
+				{
+					// If the connection is closing now, call ShutdownInLoop()
+					// to continue shutdown.
+					ShutdownInLoop();
+				}
+			}
+			else
+			{
+				LOG_INFO("Not send all data.");
+			}
+		}
+		else
+		{
+			LOG_INFO("HandleWrite write error.");
+		}
+	}
+	else
+	{
+		LOG_INFO("No need to write.");
+	}
+}
+
+void TcpConnection::SetTcpNoDelay(bool on)
+{
+	socket_->SetTcpNoDelay(on);
 }

@@ -32,6 +32,8 @@ public:
 	// On error, -1 is returned, and *peer_address is untouched.
 	int Accept(SocketAddress *peer_address);
 	void ShutdownWrite();
+	void SetTcpNoDelay(bool on);
+	void SetTcpKeepAlive(bool on);
 
 private:
 	const int socket_fd_;

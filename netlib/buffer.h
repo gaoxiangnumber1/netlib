@@ -72,9 +72,14 @@ public:
 	{
 		read_index_ = write_index_ = kPrepend;
 	}
-	const char *Peek() const
+	const char *Peek() const // The begin pointer of data to be read.
 	{
 		return Begin() + read_index_;
+	}
+	void Retrieve(int length)
+	{
+		assert(length <= ReadableByte());
+		read_index_ += length;
 	}
 	std::string RetrieveAsString()
 	{

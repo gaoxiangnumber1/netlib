@@ -4,6 +4,7 @@
 #include <netlib/socket_address.h>
 
 #include <sys/socket.h> // setsockopt()
+#include <netinet/tcp.h> // TCP_NODELAY
 #include <strings.h> // bzero()
 
 namespace nso = netlib::socket_operation;
@@ -19,9 +20,9 @@ void Socket::SetReuseAddress(bool on)
 {
 	int option_value = on ? 1 : 0;
 	// int setsockopt(int sockfd, int level, int optname,
-	//                const void *optval, socklen_t optlen);
+	//                const void *option_value, socklen_t optlen);
 	// SOL_SOCKET: manipulate options at the sockets API level.
-	// optval and optlen are used to access option values.
+	// option_value and optlen are used to access option values.
 	// On success, 0 is returned. On error, -1 is returned, and errno is set.
 	int ret = ::setsockopt(socket_fd_, SOL_SOCKET, SO_REUSEADDR,
 	                       &option_value, static_cast<socklen_t>(sizeof option_value));
@@ -57,4 +58,26 @@ int Socket::Accept(SocketAddress *peer_address)
 void Socket::ShutdownWrite()
 {
 	nso::ShutdownWrite(socket_fd_);
+}
+
+void Socket::SetTcpNoDelay(bool on) // TODO: Move this function to `nso::`
+{
+	int option_value = on ? 1 : 0;
+	int ret = ::setsockopt(socket_fd_, IPPROTO_TCP, TCP_NODELAY,
+	                       &option_value, sizeof option_value);
+	if(ret == -1)
+	{
+		LOG_FATAL("SetTcpNoDelay error");
+	}
+}
+
+void Socket::SetTcpKeepAlive(bool on)
+{
+	int option_value = on ? 1 : 0;
+	int ret = ::setsockopt(socket_fd_, SOL_SOCKET, SO_KEEPALIVE,
+	                       &option_value, static_cast<socklen_t>(sizeof option_value));
+	if(ret == -1)
+	{
+		LOG_FATAL("SetTcpNoDelay error");
+	}
 }

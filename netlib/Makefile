@@ -12,7 +12,7 @@ SOURCE =	test.cc \
 					buffer.cc \
 					tcp_connection.cc tcp_server.cc \
 					acceptor.cc \
-					event_loop.cc event_loop_thread.cc \
+					event_loop.cc event_loop_thread.cc event_loop_thread_pool.cc \
 					poller.cc \
 					channel.cc \
 					thread.cc \
