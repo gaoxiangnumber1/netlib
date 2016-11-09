@@ -277,3 +277,8 @@ void EventLoop::HandleWakeupFd()
 		LOG_INFO("EventLoop::HandleWakeupFd() reads %d bytes instead of 8", readn);
 	}
 }
+
+void EventLoop::Cancel(TimerId timer_id)
+{
+	(*timer_queue_).Cancel(timer_id);
+}

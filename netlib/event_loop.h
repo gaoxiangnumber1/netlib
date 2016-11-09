@@ -11,6 +11,7 @@
 #include <netlib/time_stamp.h>
 #include <netlib/timer_id.h>
 #include <netlib/mutex.h>
+#include <netlib/timer_id.h>
 
 namespace netlib
 {
@@ -68,6 +69,8 @@ public:
 	// Queue callback in the loop thread. Run after finish pooling.
 	// Safe to call from other threads.
 	void QueueInLoop(const Functor &callback);
+
+	void Cancel(TimerId timer_id);
 
 private:
 	using ChannelVector = std::vector<Channel*>;

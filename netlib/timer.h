@@ -5,6 +5,8 @@
 #include <netlib/non_copyable.h>
 #include <netlib/time_stamp.h>
 
+#include <atomic> // atomic<>
+
 namespace netlib
 {
 
@@ -51,7 +53,7 @@ private:
 	const bool repeat_; // true if interval_ > 0.0; false otherwise.
 	const int64_t sequence_;
 
-	static atomic<int64_t> create_number_;
+	static std::atomic<int64_t> create_number_;
 };
 
 }

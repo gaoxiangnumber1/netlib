@@ -1,7 +1,10 @@
 #include <netlib/timer.h>
 
+using std::atomic;
 using netlib::Timer;
 using netlib::TimeStamp;
+
+atomic<int64_t> Timer::create_number_(0);
 
 // Restart timer from now on if interval_ > 0.0.
 // Called: TimerQueue::HandleRead()->TimerQueue::Refresh()

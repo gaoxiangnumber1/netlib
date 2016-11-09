@@ -74,7 +74,7 @@ private:
 	// Get the expired timers relative to `now` and store them in expired_time_ vector.
 	void GetExpiredTimer(TimeStamp now);
 	// Insert the specified timer into timer set. Return true if this timer will expire first.
-	bool InsertIntoTimerPairSet(Timer *timer);
+	bool InsertIntoActiveTimerSet(Timer *timer);
 	// The callback for IO read event, in this case, the timer fd alarms.
 	void HandleRead();
 	// Call ::read to read from `timer_fd` at `time_stamp` time.
