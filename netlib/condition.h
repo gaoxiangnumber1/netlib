@@ -25,7 +25,7 @@ public:
 	void Wait()
 	{
 		// TODO: why mutex_holder = 0;
-		MutexLock::UnassignGuard unassign_guard(mutex_); // mutex_.holder_ = 0;
+		MutexLock::UnassignHolderGuard unassign_guard(mutex_); // mutex_.holder_ = 0;
 		// int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
 		// The argument `mutex` protects the condition. The caller passes it locked to the
 		// function, which then atomically places the calling thread on the list of threads
