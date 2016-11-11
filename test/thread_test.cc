@@ -1,4 +1,4 @@
-#include <thread.h>
+#include <netlib/thread.h>
 
 #include <stdio.h>
 #include <unistd.h> // sleep()
@@ -6,64 +6,52 @@
 using std::bind;
 using netlib::Thread;
 
-void ThreadFunction()
+void Fun1()
 {
-	printf("ThreadFunction: thread_id=%d\n", Thread::ThreadId());
+	printf("Thread 1: thread_id=%d\n", Thread::ThreadId());
 }
 
-void ThreadFunction2(int x)
+void Fun2(int num)
 {
-	printf("ThreadFunction2: thread_id=%d, x=%d\n", Thread::ThreadId(), x);
-}
-
-void ThreadFunction3()
-{
-	printf("ThreadFunction3: thread_id=%d\n", Thread::ThreadId());
-	sleep(1);
+	printf("Thread 2: thread_id=%d, num=%d\n", Thread::ThreadId(), num);
 }
 
 class Test
 {
 public:
-	explicit Test(double x): x_(x) {}
-
-	void MemberFunction()
+	void Fun3(double dou)
 	{
-		printf("MemberFunction: thread_id=%d, Test::x_=%f\n", Thread::ThreadId(), x_);
+		printf("Thread 3: thread_id=%d, dou=%f\n", Thread::ThreadId(), dou);
 	}
-
-private:
-	double x_;
 };
 
 int main()
 {
 	printf("main: pid=%d, thread_id=%d\n", getpid(), Thread::ThreadId());
 
-	Thread thread1(ThreadFunction);
+	Thread thread1(Fun1);
 	thread1.Start();
 	thread1.Join();
 
-	Thread thread2(bind(ThreadFunction2, 100));
-	thread2.Start();
-	thread2.Join();
-
-	Test test(71.88);
-	Thread thread3(bind(&Test::MemberFunction, &test));
-	thread3.Start();
-	thread3.Join();
-
 	{
-		Thread thread4(ThreadFunction3);
-		thread4.Start(); // May destruct earlier than thread creation.
+		Thread thread2(bind(Fun2, 7188));
+		thread2.Start();
+		// May destruct earlier than thread creation.
 	}
 
 	{
-		Thread thread5(ThreadFunction3);
-		thread5.Start();
-		sleep(2);
+		Test test;
+		Thread thread3(bind(&Test::Fun3, &test, 71.88));
+		thread3.Start();
+		sleep(1);
 		// Destruct later than thread creation.
 	}
 
-	printf("number of created threads %d\n", Thread::created_number());
+	printf("Create %d threads\n", Thread::created_number());
+
+	pid_t pid = fork();
+	if(pid == 0)
+	{
+		printf("child process: pid=%d, thread_id=%d\n", getpid(), Thread::ThreadId());
+	}
 }

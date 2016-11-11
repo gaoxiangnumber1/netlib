@@ -50,6 +50,13 @@ inline bool operator<(TimeStamp lhs, TimeStamp rhs)
 	return lhs.microsecond_since_epoch() < rhs.microsecond_since_epoch();
 }
 
+// Get time difference of two timestamps(high-low), result in seconds.
+inline double TimeDifference(TimeStamp high, TimeStamp low)
+{
+	int64_t difference = high.microsecond_since_epoch() - low.microsecond_since_epoch();
+	return static_cast<double>(difference) / netlib::TimeStamp::kMicrosecondPerSecond;
+}
+
 inline TimeStamp AddTime(TimeStamp time_stamp, double second)
 {
 	int64_t microsecond =

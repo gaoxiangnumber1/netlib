@@ -5,8 +5,8 @@
 #include <pthread.h> // pthread_*
 #include <sys/types.h> // pid_t
 
-#include <netlib/thread.h>
-#include <netlib/non_copyable.h>
+#include <netlib/non_copyable.h> // NonCopyable class.
+#include <netlib/thread.h> // Thread::ThreadId();
 
 namespace netlib
 {
@@ -24,6 +24,12 @@ namespace netlib
 class MutexLock: public NonCopyable
 {
 	friend class Condition; // TODO: Why make Condition as friend?
+	// Me: Since we use MuetxLock private member(UnassignHolderGuard) in
+	// Condition::Wait(), friend class can access the private member.
+	// Class can allow another class or function to access its nonpublic members
+	// by making that class or function a friend.
+	// private member: base class itself and friend can access.
+	// protected members: base class itself, friend and derived classes can access.
 
 public:
 	MutexLock(): holder_(0) // pthread_mutex_init
@@ -40,7 +46,11 @@ public:
 		assert(pthread_mutex_destroy(&mutex_) == 0);
 	}
 
-	pthread_mutex_t *get_pthread_mutex_t() // TODO: what use?
+	// Used in `pthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);` to get
+	// condition_'s mutex_ object's pthread_mutex_t attribute.
+	// Note this getter is non-const since we will change the value of mutex_
+	// in pthread_cond_wait().
+	pthread_mutex_t *get_pthread_mutex_t()
 	{
 		return &mutex_;
 	}
@@ -50,7 +60,7 @@ public:
 	{
 		return holder_ == Thread::ThreadId();
 	}
-	void AssertLockedByThisThread() const // Used in ThreadPool class.
+	void AssertLockedByThisThread() const // TODO: Used in ThreadPool class.
 	{
 		assert(IsLockedByThisThread());
 	}
@@ -72,7 +82,7 @@ public:
 private:
 	void AssignHolder()
 	{
-		holder_ = netlib::Thread::ThreadId();
+		holder_ = Thread::ThreadId();
 	}
 	void UnassignHolder()
 	{
@@ -92,6 +102,11 @@ private:
 		}
 
 	private:
+		// Note: Since we use this class to guard the calling class's MutexLock
+		// object is assign/un-assign, we should use `MutexLock&` as data member,
+		// not `MutexLock` because the former will change calling class's MutexLock,
+		// which is we expected, the latter will copy and change the copied, not original
+		// MutexLock, thus it is wrong.
 		MutexLock &owner_;
 	};
 
@@ -105,8 +120,7 @@ private:
 //			MutexLockGuard lock(mutex_);
 //			return data_.size();
 //		}
-
-class MutexLockGuard : public NonCopyable
+class MutexLockGuard: public NonCopyable
 {
 public:
 	explicit MutexLockGuard(MutexLock &mutex): mutex_(mutex)
@@ -119,29 +133,13 @@ public:
 	}
 
 private:
-	MutexLock &mutex_;
+	MutexLock &mutex_; // Must be `MutexLock&` not `MutexLock`.
 };
 
 }
 
 // Prevent misuse like: `MutexLockGuard(mutex_);`
-// A temporary object doesn't hold the lock for long!
+// A temporary object doesn't hold the lock for long! We should use stack object.
 #define MutexLockGuard(name) error "Missing guard object name"
 
 #endif  // NETLIB_NETLIB_MUTEX_H_
-
-class Port
-{
-public:
-	Port( const string& destination ); // call OpenPort
-	~Port(); // call ClosePort
-	// ... ports can't usually be cloned, so disable copying and assignment ...
-};
-void DoSomething()
-{
-	Port port1( "server1:80" );
-	// ...
-}// can't forget to close port1; it's closed automatically at the end of the scope
-
-shared_ptr<Port> port2 = /*...*/; // port2 is closed automatically
-// when the last shared_ptr referring to it goes away
