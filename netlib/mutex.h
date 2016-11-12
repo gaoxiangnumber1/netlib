@@ -23,7 +23,8 @@ namespace netlib
 //		};
 class MutexLock: public NonCopyable
 {
-	friend class Condition; // TODO: Why make Condition as friend?
+	friend class Condition; // TODO: why class Condition uses UnassignHolder?
+	friend class MutexLockGuard; // Use private: Lock(), Unlock().
 	// Me: Since we use MuetxLock private member(UnassignHolderGuard) in
 	// Condition::Wait(), friend class can access the private member.
 	// Class can allow another class or function to access its nonpublic members
@@ -34,25 +35,30 @@ class MutexLock: public NonCopyable
 public:
 	MutexLock(): holder_(0) // pthread_mutex_init
 	{
+		//```
+		// int pthread_mutexattr_init(pthread_mutexattr_t *attr);
+		// int pthread_mutexattr_destroy(pthread_mutexattr_t *attr);
+		// Both return: 0 if OK, error number on failure
+		//```
+		// pthread_mutexattr_init will initialize the pthread_mutexattr_t structure
+		// with the default mutex attributes.
+		assert(pthread_mutexattr_init(&mutex_attribute_) == 0);
+		// int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type);
+		// Return: 0 if OK, error number on failure
+		assert(pthread_mutexattr_settype(&mutex_attribute_,
+		                                 PTHREAD_MUTEX_NORMAL) == 0);
 		// int pthread_mutex_init(pthread_mutex_t *mutex,
 		//                        const pthread_mutexattr_t *attr);
 		// int pthread_mutex_destroy(pthread_mutex_t *mutex);
 		// Both return: 0 if OK, error number on failure
-		assert(pthread_mutex_init(&mutex_, NULL) == 0);
+		assert(pthread_mutex_init(&mutex_, &mutex_attribute_) == 0);
 	}
 	~MutexLock() // pthread_mutex_destroy
 	{
 		assert(holder_ == 0);
+		// TODO: Use non-debug assert().
+		assert(pthread_mutexattr_destroy(&mutex_attribute_) == 0);
 		assert(pthread_mutex_destroy(&mutex_) == 0);
-	}
-
-	// Used in `pthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);` to get
-	// condition_'s mutex_ object's pthread_mutex_t attribute.
-	// Note this getter is non-const since we will change the value of mutex_
-	// in pthread_cond_wait().
-	pthread_mutex_t *get_pthread_mutex_t()
-	{
-		return &mutex_;
 	}
 
 	// Must be called when locked, i.e. for assertion.
@@ -64,8 +70,9 @@ public:
 	{
 		assert(IsLockedByThisThread());
 	}
-	// Internal usage.
-	void Lock()
+
+private:
+	void Lock() // Can be used only by MutexLockGuard.
 	{
 		// int pthread_mutex_lock(pthread_mutex_t *mutex);
 		// int pthread_mutex_unlock(pthread_mutex_t *mutex);
@@ -73,13 +80,21 @@ public:
 		assert(pthread_mutex_lock(&mutex_) == 0);
 		AssignHolder();
 	}
-	void Unlock()
+	void Unlock() // Can be used only by MutexLockGuard.
 	{
 		UnassignHolder();
 		assert(pthread_mutex_unlock(&mutex_) == 0);
 	}
 
-private:
+	// Used in `pthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);` to get
+	// condition_'s mutex_ object's pthread_mutex_t attribute.
+	// Note this getter is non-const since we will change the value of mutex_
+	// in pthread_cond_wait().
+	pthread_mutex_t *get_pthread_mutex_t() // Can be used only by Condition.
+	{
+		return &mutex_;
+	}
+
 	void AssignHolder()
 	{
 		holder_ = Thread::ThreadId();
@@ -111,6 +126,7 @@ private:
 	};
 
 	pthread_mutex_t mutex_;
+	pthread_mutexattr_t mutex_attribute_;
 	pid_t holder_; // TODO: Used in implementing ThreadPool class.
 };
 

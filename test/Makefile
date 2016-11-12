@@ -9,7 +9,9 @@ LDFLAGS = -lpthread
 
 .SUFFIXES: .cc .o
 SOURCE =	mutex_test.cc \
+					$(SRC)/count_down_latch.cc \
 					thread_test.cc thread_bench.cc $(SRC)/thread.cc \
+					thread_pool_test.cc $(SRC)/thread_pool.cc\
 					$(SRC)/time_stamp.cc
 OBJECT = $(SOURCE:.cc=.o)
 
@@ -19,7 +21,11 @@ THREAD_TEST = thread_test
 THREAD_OBJ = thread_test.o $(SRC)/thread.o
 THREAD_BENCH = thread_bench
 THREAD_BENCH_OBJ = thread_bench.o $(SRC)/thread.o $(SRC)/time_stamp.o
-TEST = $(MUTEX_TEST) $(THREAD_TEST) $(THREAD_BENCH)
+THREAD_POOL_TEST = thread_pool_test
+THREAD_POOL_OBJ =		thread_pool_test.o $(SRC)/thread_pool.o \
+											$(SRC)/thread.o $(SRC)/count_down_latch.o
+TEST =	$(MUTEX_TEST) $(THREAD_TEST) $(THREAD_BENCH) \
+				$(THREAD_POOL_TEST)
 
 all: $(OBJECT) $(TEST)
 
@@ -30,6 +36,9 @@ $(THREAD_TEST): $(THREAD_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 $(THREAD_BENCH): $(THREAD_BENCH_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(THREAD_POOL_TEST): $(THREAD_POOL_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 .cc.o:

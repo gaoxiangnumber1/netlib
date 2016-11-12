@@ -117,8 +117,14 @@ Thread::~Thread()
 		// int pthread_detach(pthread_t tid);
 		// Return 0 if OK, error number on failure.
 		//```
-		pthread_detach(pthread_id_); // TODO: why not pthread_exit()?
+		pthread_detach(pthread_id_);
 	}
+	// When this Thread object destructs, it doesn't destroy its pthread_t handle,
+	// pthread_id_, that is, the destruction of Thread object won't wait the termination
+	// of thread. Normally, we let the Thread object live longer than thread, and then
+	// use Thread::Join() to wait the termination of thread and the release of thread's
+	// resources. Thus, if the lifetime of Thread object is shorter than thread,
+	// we have no chance to destroy pthread_t.
 }
 
 int Thread::Join()

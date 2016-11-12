@@ -33,7 +33,7 @@ public:
 		MutexLock::UnassignHolderGuard guard(mutex_); // mutex_.holder_ = 0;
 		// int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
 		// The argument `mutex` protects the condition. The caller passes it locked to the
-		// function, which then atomically places the calling thread on the list of threads
+		// function, which then [atomically]!!! places the calling thread on the list of threads
 		// waiting for the condition and unlocks the mutex. This closes the window between
 		// the time that the condition is checked and the time that the thread goes to sleep
 		// waiting for the condition to change, so that the thread doesn’t miss a change in
@@ -50,6 +50,9 @@ public:
 		// pthread_cond_broadcast will wake up all threads waiting on a condition.
 		assert(pthread_cond_signal(&condition_) == 0);
 	}
+	// Because a broadcast will awaken all waiting threads, it should generally
+	// be used to indicate state change rather than resource availability; otherwise
+	// cause thundering herd.
 	void NotifyAll() // TODO: how to use?
 	{
 		assert(pthread_cond_broadcast(&condition_) == 0);
