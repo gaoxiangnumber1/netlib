@@ -9,13 +9,10 @@ CountDownLatch::CountDownLatch(int number):
 	count_(number)
 {}
 
-void CountDownLatch::Wait()
+int CountDownLatch::count() const
 {
 	MutexLockGuard lock(mutex_);
-	while(count_ > 0)
-	{
-		condition_.Wait();
-	}
+	return count_;
 }
 
 void CountDownLatch::CountDown()
@@ -24,14 +21,17 @@ void CountDownLatch::CountDown()
 	--count_;
 	if(count_ == 0)
 	{
-		// broadcast should be used to indicate state change
-		// rather than resource availability.
+		// Broadcast indicates state change rather than resource availability.
 		condition_.NotifyAll();
 	}
 }
 
-int CountDownLatch::count() const
+void CountDownLatch::Wait()
 {
+	// Must first get lock and then Wait() on condition.
 	MutexLockGuard lock(mutex_);
-	return count_;
+	while(count_ > 0)
+	{
+		condition_.Wait();
+	}
 }

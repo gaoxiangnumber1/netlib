@@ -2,6 +2,8 @@
 #include <netlib/thread_pool.h>
 #include <netlib/count_down_latch.h>
 
+#include <unistd.h> // sleep()
+
 using std::bind;
 using netlib::Thread;
 using netlib::ThreadPool;
@@ -9,34 +11,27 @@ using netlib::CountDownLatch;
 
 void InitialTask()
 {
-	printf("%d: initial task\n", Thread::ThreadId());
+	printf("%d: 0.\n", Thread::ThreadId());
+	sleep(1);
 }
 
-void Print()
+void Print(int number)
 {
-	printf("tid=%d task\n", Thread::ThreadId());
+	printf("%d: %d\n", Thread::ThreadId(), number);
 }
 
-void PrintString(const char *str)
+void Test(int max_queue_size, int thread_number = 5)
 {
-	printf("%s\n", str);
-}
-
-void Test(int max_queue_size)
-{
-	printf("Test ThreadPool with max queue size = %d\n", max_queue_size);
-	ThreadPool pool(5, InitialTask);
+	printf("ThreadPool: thread_number = %d, max_queue_size = %d\n",
+			thread_number, max_queue_size);
+	ThreadPool pool(thread_number, InitialTask);
 	pool.set_max_queue_size(max_queue_size);
 	pool.Start();
 
 	printf("Adding\n");
-	pool.RunOrAddTask(Print);
-	pool.RunOrAddTask(Print);
-	for(int index = 0; index < 100; ++index)
+	for(int index = 1; index <= 100; ++index)
 	{
-		char buf[32];
-		snprintf(buf, sizeof buf, "task %d", index);
-		pool.RunOrAddTask(bind(PrintString, buf));
+		pool.RunOrAddTask(bind(Print, index));
 	}
 	printf("Done\n");
 
@@ -49,8 +44,8 @@ void Test(int max_queue_size)
 int main()
 {
 	Test(0);
-	Test(5);
 	Test(10);
-	Test(30);
-	Test(100);
+	Test(20);
+	Test(40);
+	Test(60);
 }

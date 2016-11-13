@@ -1,13 +1,13 @@
 #ifndef NETLIB_NETLIB_THREAD_POOL_H_
 #define NETLIB_NETLIB_THREAD_POOL_H_
 
+#include <deque>
 #include <functional>
 #include <vector>
-#include <deque>
 
-#include <netlib/non_copyable.h>
-#include <netlib/mutex.h>
 #include <netlib/condition.h>
+#include <netlib/mutex.h>
+#include <netlib/non_copyable.h>
 
 namespace netlib
 {
@@ -17,7 +17,7 @@ class ThreadPool: public NonCopyable
 public:
 	using Task = std::function<void()>;
 
-	explicit ThreadPool(int thread_number, const Task &initial_task);
+	explicit ThreadPool(const int thread_number, const Task &initial_task);
 	~ThreadPool();
 
 	// Must be called before Start().
@@ -37,26 +37,25 @@ public:
 	// if we don't RunOrAddTask().
 	void RunOrAddTask(const Task &task);
 	// TODO: C++11 `void RunOrAddTask(Task &&task);`
-	// Stop all threads and call Join() for all threads.
-	// After this function call, all threads can't run again.
+	// Stop all threads and call Join() for all threads(all threads can't run again).
 	void Stop();
 
 private:
 	// The start function of thread. Start() -> RunInThread().
 	void RunInThread();
-	// Get task from task queue and remove the got task.
-	// Called in RunInThread()'s while(running_) loop since we should assign
-	// new task to thread after current task() return when the thread is running.
+	// Get task from task queue and remove the gotten task.
+	// Called in RunInThread() `while(running_)` loop since we should assign
+	// new task to thread after current task() return.
 	Task GetAndRemoveTask();
 	// Check whether task_queue_ is full, that is, task_queue_.size() >= max_queue_size_.
 	// max_queue_size_ is set by user. Called in RunOrAddTask() when adding task.
-	bool IsFull() const;
+	bool IsTaskQueueFull() const;
 
 	const int thread_number_; // The number of threads in thread pool.
 	std::vector<Thread*> thread_pool_; // Store thread_number_ threads' pointer.
-	Task initial_task_; // The first task(i.e., function) that thread will finish.
+	const Task initial_task_; // The first task(i.e., function) that thread will run.
 	bool running_; // Indicate the status of all threads.
-	mutable MutexLock mutex_; // Protect Condition and task queue.
+	MutexLock mutex_; // Protect Condition and task queue.
 	std::deque<Task> task_queue_;
 	int max_queue_size_;
 	// These two condition variables control the add/remove task into/from
@@ -65,8 +64,8 @@ private:
 	// 2.	RunOrAddTask(): `not_full_.Wait()` -> `not_empty_.Notify()`
 	// 3.	~Dtor() -> Stop(): `not_empty_.NotifyAll()`. Wakeup all threads that
 	//		`not_empty_.Wait()` in GetAndRemoveTask() and stop them.
-	Condition not_empty_; // Wait() when task_queue_ is empty.
-	Condition not_full_; // Wait() when task_queue_ if full.
+	Condition not_empty_; // Wait when task_queue_ is empty.
+	Condition not_full_; // Wait when task_queue_ if full.
 };
 
 }

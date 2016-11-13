@@ -23,25 +23,20 @@ namespace netlib
 //		};
 class MutexLock: public NonCopyable
 {
-	friend class Condition; // TODO: why class Condition uses UnassignHolder?
+	friend class Condition; // Use private member class UnassignHolder.
 	friend class MutexLockGuard; // Use private: Lock(), Unlock().
-	// Me: Since we use MuetxLock private member(UnassignHolderGuard) in
-	// Condition::Wait(), friend class can access the private member.
-	// Class can allow another class or function to access its nonpublic members
-	// by making that class or function a friend.
-	// private member: base class itself and friend can access.
-	// protected members: base class itself, friend and derived classes can access.
+	// Private member: base class itself and friend can access.
+	// Protected member: base class itself, friend and derived classes can access.
 
 public:
-	MutexLock(): holder_(0) // pthread_mutex_init
+	MutexLock(): holder_(0)
 	{
-		//```
 		// int pthread_mutexattr_init(pthread_mutexattr_t *attr);
 		// int pthread_mutexattr_destroy(pthread_mutexattr_t *attr);
 		// Both return: 0 if OK, error number on failure
-		//```
 		// pthread_mutexattr_init will initialize the pthread_mutexattr_t structure
 		// with the default mutex attributes.
+		// It is not necessary to use non-debug assert since I won't release build.
 		assert(pthread_mutexattr_init(&mutex_attribute_) == 0);
 		// int pthread_mutexattr_settype(pthread_mutexattr_t *attr, int type);
 		// Return: 0 if OK, error number on failure
@@ -53,10 +48,9 @@ public:
 		// Both return: 0 if OK, error number on failure
 		assert(pthread_mutex_init(&mutex_, &mutex_attribute_) == 0);
 	}
-	~MutexLock() // pthread_mutex_destroy
+	~MutexLock()
 	{
 		assert(holder_ == 0);
-		// TODO: Use non-debug assert().
 		assert(pthread_mutexattr_destroy(&mutex_attribute_) == 0);
 		assert(pthread_mutex_destroy(&mutex_) == 0);
 	}
@@ -66,13 +60,25 @@ public:
 	{
 		return holder_ == Thread::ThreadId();
 	}
-	void AssertLockedByThisThread() const // TODO: Used in ThreadPool class.
+	// Used in ThreadPool::IsTaskQueueFull(). Though it is not essential to check,
+	// it is better if it checks invariant.
+	void AssertLockedByThisThread() const
 	{
 		assert(IsLockedByThisThread());
 	}
 
 private:
-	void Lock() // Can be used only by MutexLockGuard.
+	void AssignHolder() // Called when get the lock.
+	{
+		holder_ = Thread::ThreadId();
+	}
+	void UnassignHolder() // Called when release the lock.
+	{
+		holder_ = 0;
+	}
+
+	// Lock() and Unlock() can be used only by MutexLockGuard class.
+	void Lock()
 	{
 		// int pthread_mutex_lock(pthread_mutex_t *mutex);
 		// int pthread_mutex_unlock(pthread_mutex_t *mutex);
@@ -80,31 +86,26 @@ private:
 		assert(pthread_mutex_lock(&mutex_) == 0);
 		AssignHolder();
 	}
-	void Unlock() // Can be used only by MutexLockGuard.
+	void Unlock()
 	{
 		UnassignHolder();
 		assert(pthread_mutex_unlock(&mutex_) == 0);
 	}
 
-	// Used in `pthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);` to get
+	// get_pthread_mutex_t() and UnassignHolderGuard class
+	// can be used only by Condition class.
+	// Used in `pthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);` to get the
 	// condition_'s mutex_ object's pthread_mutex_t attribute.
-	// Note this getter is non-const since we will change the value of mutex_
-	// in pthread_cond_wait().
-	pthread_mutex_t *get_pthread_mutex_t() // Can be used only by Condition.
+	// This getter is non-const since pthread_cond_wait() changes the value of mutex_.
+	pthread_mutex_t *get_pthread_mutex_t()
 	{
 		return &mutex_;
 	}
-
-	void AssignHolder()
-	{
-		holder_ = Thread::ThreadId();
-	}
-	void UnassignHolder()
-	{
-		holder_ = 0;
-	}
-
-	class UnassignHolderGuard: public NonCopyable // TODO: Used in Condition class.
+	// Called in Condition::Wait() just before calling `pthread_cond_wait()` because
+	// this system call atomically puts the calling thread in the condition's waiting
+	// queue and unlock the mutex, thus the calling thread doesn't own the lock of mutex,
+	// thus we should un-assign the holder of mutex_ before `pthread_cond_wait()`.
+	class UnassignHolderGuard: public NonCopyable
 	{
 	public:
 		UnassignHolderGuard(MutexLock &owner): owner_(owner)
@@ -117,17 +118,27 @@ private:
 		}
 
 	private:
-		// Note: Since we use this class to guard the calling class's MutexLock
-		// object is assign/un-assign, we should use `MutexLock&` as data member,
-		// not `MutexLock` because the former will change calling class's MutexLock,
-		// which is we expected, the latter will copy and change the copied, not original
-		// MutexLock, thus it is wrong.
+		// NOTE: must use `MutexLock&` not `MutexLock` because the former changes
+		// the calling thread's MutexLock, which is expected, the latter will copy and
+		// change the copied, not original MutexLock, thus is wrong.
 		MutexLock &owner_;
 	};
 
 	pthread_mutex_t mutex_;
 	pthread_mutexattr_t mutex_attribute_;
-	pid_t holder_; // TODO: Used in implementing ThreadPool class.
+	// The thread id of thread that holds this mutex_ lock.
+	// 1.	Initialize to 0 in constructor.
+	// 2.	Assign value by AssignHolder() each time we get the mutex_ lock.
+	//		(1).	Lock(): by `MutexLockGuard lock(mutex_)`.
+	//		(2).	~UnassignHolderGuard(): when Condition::Wait() returns.
+	// 3.	Un-assign value by UnassignHolder() each time we release the mutex_ lock.
+	//		(1).	Unlock(): by `~MutexLockGuard()`.
+	//		(2).	UnassignHolderGuard(): when in Condition::Wait() just before calling
+	//				pthread_cond_wait(), because this system call will atomically put calling
+	//				thread into the condition wait queue and unlock mutex_, so the calling
+	//				thread doesn't own this mutex_ lock, thus UnassignHolder().
+	// 4.	Use for assertion: ~MutexLock() and IsLockedByThisThread().
+	int holder_;
 };
 
 // Use as a stack variable, for example:
@@ -139,6 +150,7 @@ private:
 class MutexLockGuard: public NonCopyable
 {
 public:
+	// The constructor must pass argument by Reference!
 	explicit MutexLockGuard(MutexLock &mutex): mutex_(mutex)
 	{
 		mutex_.Lock();
@@ -154,8 +166,9 @@ private:
 
 }
 
-// Prevent misuse like: `MutexLockGuard(mutex_);`
-// A temporary object doesn't hold the lock for long! We should use stack object.
+// Prevent misusing like this: `MutexLockGuard(mutex_);` A temporary object
+// is created and destroyed immediately after this expression, so we don't get the
+// lock for the critical section. We should use stack object.
 #define MutexLockGuard(name) error "Missing guard object name"
 
 #endif  // NETLIB_NETLIB_MUTEX_H_

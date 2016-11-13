@@ -4,7 +4,6 @@
 #include <sys/syscall.h> // syscall()
 #include <unistd.h> // syscall()
 
-using std::move;
 using std::atomic;
 using netlib::Thread;
 
@@ -17,11 +16,11 @@ namespace detail
 struct ThreadData // Store the arguments that need passed to pthread_create.
 {
 	using ThreadFunction = netlib::Thread::ThreadFunction;
+	// All data members are references: bind to the data member in Thread object.
+	const ThreadFunction &function_; // Thread's start function.
+	int &thread_id_;
 
-	ThreadFunction function_; // Thread's start function.
-	pid_t &thread_id_;
-
-	ThreadData(const ThreadFunction &function, pid_t &thread_id)
+	ThreadData(const ThreadFunction &function, int &thread_id)
 		: function_(function),
 		  thread_id_(thread_id)
 	{}
@@ -39,7 +38,7 @@ void *StartThread(void *object) // Thread start function passed to pthread_creat
 {
 	ThreadData *data = static_cast<ThreadData*>(object);
 	data->RunInThread();
-	delete data;
+	delete data; // NOTE: delete data!
 	return nullptr;
 }
 
@@ -51,7 +50,7 @@ using netlib::Thread;
 using netlib::detail::ThreadData;
 
 // Every thread has it own instance of __thread variable.
-__thread pid_t t_cached_thread_id = 0; // The thread id in the kernel, not the pthread_t.
+__thread int t_cached_thread_id = 0; // The thread id in the kernel, not the pthread_t.
 
 // The child fork handler for pthread_atfork().
 // Since we cache the thread id in t_cached_thread_id, after fork(2), the child
@@ -63,7 +62,6 @@ void ChildForkHandler()
 	t_cached_thread_id = 0;
 	Thread::ThreadId();
 }
-
 class ThreadIdInitializer
 {
 public:
@@ -78,27 +76,16 @@ public:
 		assert(pthread_atfork(NULL, NULL, &ChildForkHandler) == 0);
 	}
 };
-
 ThreadIdInitializer thread_id_initializer_object; // Global object.
 
-atomic<int32_t> Thread::created_number_(0);
+atomic<int> Thread::created_number_(0);
 
 Thread::Thread(const ThreadFunction &function)
 	: started_(false),
 	  joined_(false),
 	  pthread_id_(0),
-	  thread_id_(0),
+	  thread_id_(0), // Set after pthread_create().
 	  function_(function)
-{
-	++created_number_;
-}
-
-Thread::Thread(ThreadFunction &&function)
-	: started_(false),
-	  joined_(false),
-	  pthread_id_(0),
-	  thread_id_(0),
-	  function_(move(function))
 {
 	++created_number_;
 }
@@ -112,12 +99,10 @@ Thread::~Thread()
 		// on termination if the thread has been detached. After a thread is detached,
 		// we can't use pthread_join to wait for its termination status, because calling
 		// pthread_join for a detached thread results in undefined behavior.
-		//```
 		// #include <pthread.h>
 		// int pthread_detach(pthread_t tid);
 		// Return 0 if OK, error number on failure.
-		//```
-		pthread_detach(pthread_id_);
+		assert(pthread_detach(pthread_id_) == 0);
 	}
 	// When this Thread object destructs, it doesn't destroy its pthread_t handle,
 	// pthread_id_, that is, the destruction of Thread object won't wait the termination
@@ -127,7 +112,7 @@ Thread::~Thread()
 	// we have no chance to destroy pthread_t.
 }
 
-int Thread::Join()
+void Thread::Join()
 {
 	assert(started_ == true && joined_ == false);
 	joined_ = true;
@@ -138,17 +123,12 @@ int Thread::Join()
 	//  1. Return from the start routine. The return value is the thread's exit code.
 	//  2. Be canceled by another thread in the same process.
 	//  3. Call pthread_exit.
-	// ```
 	// #include <pthread.h>
 	// void pthread_exit(void *rval_ptr);
-	// ```
 	// rval_ptr is available to other threads in the process by calling pthread_join().
-	//
-	// ```
-	// #include <pthread.h>
+
 	// int pthread_join(pthread_t thread, void **rval_ptr);
 	// Return 0 if OK, error number on failure
-	// ```
 	// The calling thread will block until the specified thread calls pthread_exit,
 	// returns from its start routine, or is canceled. If the thread returned from its
 	// start routine, rval_ptr will contain the return code. If the thread was canceled,
@@ -159,14 +139,14 @@ int Thread::Join()
 	// If we're not interested in a thread's return value, we can set rval_ptr to NULL.
 	// In this case, calling pthread_join allows us to wait for the specified thread,
 	// but does not retrieve the thread's termination status.
-	return pthread_join(pthread_id_, NULL);
+	assert(pthread_join(pthread_id_, NULL) == 0);
 }
 
 void Thread::Start()
 {
 	assert(started_ == false);
 	started_ = true;
-	// TODO: move(function_)
+	// TODO: C++11 move(function_)
 	ThreadData *data = new ThreadData(function_, thread_id_);
 	// int pthread_create(pthread_t *ptid, const pthread_attr_t *attr,
 	//                    void* (*fun) (void*), void *arg);
@@ -179,17 +159,18 @@ void Thread::Start()
 	if(pthread_create(&pthread_id_, NULL, &detail::StartThread, data) != 0)
 	{
 		started_ = false;
-		delete data;
+		delete data; // NOTE: delete data!
 		// TODO: how to use different log LEVEL???
 		// LOG_FATAL("Failed in pthread_create");
 	}
 }
 
-pid_t Thread::ThreadId() // Return the cached thread-id.
+int Thread::ThreadId() // Return the cached thread-id.
 {
 	if(t_cached_thread_id == 0) // If not cached yet.
 	{
-		t_cached_thread_id = static_cast<pid_t>(::syscall(SYS_gettid));
+		// The return type of syscall() is long int.
+		t_cached_thread_id = static_cast<int>(::syscall(SYS_gettid));
 	}
 	return t_cached_thread_id;
 }
