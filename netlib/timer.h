@@ -16,44 +16,40 @@ class Timer: public NonCopyable
 public:
 	Timer(const TimerCallback &fun, TimeStamp expired_time, double time):
 		callback_(fun),
-		expiration_(expired_time), // TODO: how to set expiration_ and interval_?
+		expiration_(expired_time),
 		interval_(time),
 		repeat_(interval_ > 0.0),
-		sequence_(++create_number_) // Increment and get.
+		sequence_(++created_number_) // Increment and get.
 	{}
+	// TODO: Timer(TimerCallback &&).
 	// Getter
-	int64_t sequence() const
-	{
-		return sequence_;
-	}
 	TimeStamp expiration() const
 	{
 		return expiration_;
-	}
-	double interval() const
-	{
-		return interval_;
 	}
 	bool repeat() const // true if interval_ > 0.0
 	{
 		return repeat_;
 	}
+	int64_t sequence() const
+	{
+		return sequence_;
+	}
 
+	void Restart(TimeStamp now); // Restart timer from now on if interval_ > 0.0.
 	void Run() const // Run the event callback.
 	{
 		callback_();
 	}
-	void Restart(TimeStamp now); // Restart timer from now on if interval_ > 0.0.
 
 private:
 	const TimerCallback callback_; // Called in TimerQueue::HandleRead().
-	TimeStamp expiration_; // The absolute expiration time for this timer.
-	// The time "length" of expiration time, should equal to `expiration_ - Now()`
+	TimeStamp expiration_; // The absolute expiration time.
+	// The time difference between each two expiration time for RunEvery().
 	const double interval_;
 	const bool repeat_; // true if interval_ > 0.0; false otherwise.
-	const int64_t sequence_;
-
-	static std::atomic<int64_t> create_number_;
+	const int64_t sequence_; // The global unique number to identify this timer.
+	static std::atomic<int64_t> created_number_;
 };
 
 }

@@ -16,20 +16,25 @@ class SocketAddress: public Copyable
 {
 public:
 	// Construct an endpoint with given port number. Mostly used in server listening.
-	explicit SocketAddress(int port);
+	explicit SocketAddress(int port = 0);
+	// Construct an endpoint with given ip and port. ip should be "1.2.3.4".
+	SocketAddress(std::string ip, int port);
 	// Construct an endpoint with given `struct sockaddr_in`.
 	// Mostly used when accepting new connections.
-	SocketAddress(const struct sockaddr_in &address): address_(address) {}
-	const struct sockaddr_in &get_socket_address() const
+	explicit SocketAddress(const struct sockaddr_in &address): address_(address) {}
+
+	sa_family_t socket_family() const
 	{
-		return address_;
+		return address_.sin_family;
 	}
+	const struct sockaddr *socket_address() const;
 	void set_socket_address(const struct sockaddr_in &address)
 	{
 		address_ = address;
 	}
 
-	std::string ToHostPort() const;
+	// Convert the address to string representation: `IP:Port`.
+	std::string ToIpPortString() const;
 
 private:
 	struct sockaddr_in address_;

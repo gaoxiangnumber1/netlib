@@ -4,6 +4,8 @@
 #include <sys/syscall.h> // syscall()
 #include <unistd.h> // syscall()
 
+#include <netlib/logging.h>
+
 using std::atomic;
 using netlib::Thread;
 
@@ -160,8 +162,7 @@ void Thread::Start()
 	{
 		started_ = false;
 		delete data; // NOTE: delete data!
-		// TODO: how to use different log LEVEL???
-		// LOG_FATAL("Failed in pthread_create");
+		LOG_FATAL("Failed in pthread_create");
 	}
 }
 

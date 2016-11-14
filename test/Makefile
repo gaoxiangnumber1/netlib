@@ -12,20 +12,30 @@ SOURCE =	mutex_test.cc \
 					$(SRC)/count_down_latch.cc \
 					thread_test.cc thread_bench.cc $(SRC)/thread.cc \
 					thread_pool_test.cc $(SRC)/thread_pool.cc\
-					$(SRC)/time_stamp.cc
+					time_stamp_test.cc $(SRC)/time_stamp.cc \
+					$(SRC)/timer.cc \
+					logging_test.cc $(SRC)/logging.cc \
+					$(SRC)/socket.cc \
+					$(SRC)/socket_address.cc \
+					$(SRC)/socket_operation.cc
 OBJECT = $(SOURCE:.cc=.o)
 
 MUTEX_TEST = mutex_test
-MUTEX_OBJ = mutex_test.o $(SRC)/thread.o $(SRC)/time_stamp.o
+MUTEX_OBJ = mutex_test.o $(SRC)/thread.o $(SRC)/time_stamp.o $(SRC)/logging.o
 THREAD_TEST = thread_test
-THREAD_OBJ = thread_test.o $(SRC)/thread.o
+THREAD_OBJ = thread_test.o $(SRC)/thread.o $(SRC)/logging.o
 THREAD_BENCH = thread_bench
-THREAD_BENCH_OBJ = thread_bench.o $(SRC)/thread.o $(SRC)/time_stamp.o
+THREAD_BENCH_OBJ = thread_bench.o $(SRC)/thread.o $(SRC)/time_stamp.o $(SRC)/logging.o
 THREAD_POOL_TEST = thread_pool_test
-THREAD_POOL_OBJ =		thread_pool_test.o $(SRC)/thread_pool.o \
+THREAD_POOL_OBJ =		thread_pool_test.o $(SRC)/thread_pool.o $(SRC)/logging.o \
 											$(SRC)/thread.o $(SRC)/count_down_latch.o
+TIME_STAMP_TEST = time_stamp_test
+TIME_STAMP_OBJ = time_stamp_test.o $(SRC)/time_stamp.o
+LOG_TEST = logging_test
+LOG_OBJ = logging_test.o $(SRC)/logging.o $(SRC)/thread.o
 TEST =	$(MUTEX_TEST) $(THREAD_TEST) $(THREAD_BENCH) \
-				$(THREAD_POOL_TEST)
+				$(THREAD_POOL_TEST) $(TIME_STAMP_TEST) \
+				$(LOG_TEST)
 
 all: $(OBJECT) $(TEST)
 
@@ -39,6 +49,12 @@ $(THREAD_BENCH): $(THREAD_BENCH_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 $(THREAD_POOL_TEST): $(THREAD_POOL_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(TIME_STAMP_TEST): $(TIME_STAMP_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(LOG_TEST): $(LOG_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 .cc.o:

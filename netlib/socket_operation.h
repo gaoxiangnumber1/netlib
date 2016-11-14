@@ -1,7 +1,7 @@
 #ifndef NETLIB_NETLIB_SOCKET_OPERATION_H_
 #define NETLIB_NETLIB_SOCKET_OPERATION_H_
 
-#include <arpa/inet.h> // htonl, htons, ntohl, ntohs.
+#include <netinet/in.h> // struct sockaddr_in: sa_family_t
 
 namespace netlib
 {
@@ -9,42 +9,25 @@ namespace netlib
 namespace socket_operation
 {
 
-// #include <arpa/inet.h>
-// uint16_t htons(uint16_t hostshort)
-// uint32_t htonl(uint32_t hostlong);
-// uint16_t ntohs(uint16_t netshort);
-// uint32_t ntohl(uint32_t netlong);
-
-inline uint16_t HostToNetwork16(int host16)
+const struct sockaddr *CastToConstsockaddr(const struct sockaddr_in *address)
 {
-	return htons(static_cast<uint16_t>(host16));
+	return static_cast<const struct sockaddr*>(static_cast<const void*>(address));
 }
-inline uint32_t HostToNetwork32(int host32)
+struct sockaddr *CastToNonConstsockaddr(struct sockaddr_in *address)
 {
-	return htonl(static_cast<uint32_t>(host32));
-}
-inline uint16_t NetworkToHost16(int net16)
-{
-	return ntohs(static_cast<uint16_t>(net16));
+	return static_cast<struct sockaddr*>(static_cast<void*>(address));
 }
 
-// `struct sockaddr_in` is the IPv4 socket address structure.
-// Return a nonnegative file descriptor for the accepted socket on success.
-int Accept(int socket_fd, struct sockaddr_in *address);
-// Assign the address of `address` to the socket `socket_fd`.
-void BindOrDie(int socket_fd, const struct sockaddr_in &address);
 // Close the `socket_fd` file descriptor.
 void Close(int socket_fd);
 // Create an IPv4, nonblocking, and TCP socket file descriptor, abort if any error.
-int CreateNonblockingOrDie();
-// Mark the socket `socket_fd` as a passive socket(i.e., accept connections)
-void ListenOrDie(int socket_fd);
-// Convert the address to string representation: `IP:Port`.
-void ToHostPort(char *buffer, size_t size, const struct sockaddr_in &address);
+// Called in Acceptor class and Connector class.
+int CreateNonblockingOrDie(sa_family_t family);
 // Return the address to which the socket socket_fd is bound.
+// Called in TcpServer class and TcpClient class.
 struct sockaddr_in GetLocalAddress(int socket_fd);
+// Used in `TcpConnection::HandleError()` and Connector class.
 int GetSocketError(int socket_fd);
-void ShutdownWrite(int socket_fd);
 
 }
 

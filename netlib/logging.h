@@ -1,71 +1,61 @@
 #ifndef NETLIB_NETLIB_LOGGING_H_
 #define NETLIB_NETLIB_LOGGING_H_
 
-#include <stdint.h> // int64_t
-
-#include <atomic> // atomic
-#include <string> // string
+#include <errno.h> // errno
+#include <stdio.h> // *printf()
 
 #include <netlib/copyable.h> // Copyable
 
 #define LOG(level, ...) do \
 { \
-	if(level <= netlib::Logger::logger().log_level()) \
+	if(level >= netlib::Logger::log_level()) \
 	{ \
 		::snprintf(0, 0, __VA_ARGS__); \
-		netlib::Logger::logger().Log(level, __FILE__, __LINE__, __VA_ARGS__); \
+		netlib::Logger::Log(level, errno, __VA_ARGS__); \
 	} \
 } \
 while(false);
 
-#define LOG_FATAL(...) LOG(netlib::Logger::FATAL, __VA_ARGS__)
-#define LOG_ERROR(...) LOG(netlib::Logger::ERROR, __VA_ARGS__)
-#define LOG_WARN(...) LOG(netlib::Logger::WARN, __VA_ARGS__)
-#define LOG_INFO(...) LOG(netlib::Logger::INFO, __VA_ARGS__)
-#define LOG_DEBUG(...) LOG(netlib::Logger::DEBUG, __VA_ARGS__)
 #define LOG_TRACE(...) LOG(netlib::Logger::TRACE, __VA_ARGS__)
+#define LOG_DEBUG(...) LOG(netlib::Logger::DEBUG, __VA_ARGS__)
+#define LOG_INFO(...) LOG(netlib::Logger::INFO, __VA_ARGS__)
+#define LOG_WARN(...) LOG(netlib::Logger::WARN, __VA_ARGS__)
+#define LOG_ERROR(...) LOG(netlib::Logger::ERROR, __VA_ARGS__)
+#define LOG_FATAL(...) LOG(netlib::Logger::FATAL, __VA_ARGS__)
 
-#define SetLogLevel(level) netlib::Logger::logger().set_log_level(netlib::Logger::level)
-#define SetLogFile(file) netlib::Logger::logger().set_file_name(file)
+#define SetLogLevel(level) netlib::Logger::set_log_level(netlib::Logger::level)
 
 namespace netlib
 {
 
-class Logger: public netlib::Copyable
+class Logger: public Copyable
 {
 public:
 	enum LogLevel
 	{
-		FATAL = 0, ERROR, WARN, INFO, DEBUG, TRACE, ALL,
+		ALL = 0,
+		TRACE,
+		DEBUG,
+		INFO,
+		WARN,
+		ERROR,
+		FATAL,
+		OFF
 	};
 
-	Logger();
-	~Logger();
-
-	LogLevel log_level() const
+	static LogLevel log_level()
 	{
 		return log_level_;
 	}
-	void set_log_level(LogLevel level)
+	static void set_log_level(LogLevel level)
 	{
-		log_level_ = (level <= FATAL ? FATAL : (level <= ALL ? level : ALL));
+		log_level_ = level;
 	}
-	void set_file_name(const std::string &file_name);
-
-	void Log(int level, const char *file, int line, const char *fmt ...);
-
-	static Logger &logger(); // Get Logger object.
+	static void Log(LogLevel level, int saved_errno, const char * ...);
 
 private:
-	static const char *log_level_string_[ALL + 1];
-
-	void Rotate();
-
-	LogLevel log_level_;
-	std::string file_name_;
-	int fd_;
-	std::atomic<int64_t> rotate_time_;
-	int64_t rotate_interval_;
+	static const char *log_level_string_[OFF];
+	static LogLevel log_level_;
 };
 
 const char *ThreadSafeStrError(int saved_errno);
