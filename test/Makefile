@@ -17,7 +17,8 @@ SOURCE =	mutex_test.cc \
 					logging_test.cc $(SRC)/logging.cc \
 					$(SRC)/socket.cc \
 					$(SRC)/socket_address.cc \
-					$(SRC)/socket_operation.cc
+					$(SRC)/socket_operation.cc \
+					$(SRC)/epoller.cc
 OBJECT = $(SOURCE:.cc=.o)
 
 MUTEX_TEST = mutex_test

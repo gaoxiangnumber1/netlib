@@ -17,7 +17,7 @@ namespace netlib
 {
 
 class Channel;
-class Poller;
+class Epoller;
 class TimerQueue;
 
 class EventLoop: public NonCopyable
@@ -84,7 +84,7 @@ private:
 	// Only one unique_ptr at a time can point to a given object. The object to which a
 	// unique_ptr points is destroyed when the unique_ptr is destroyed.
 	TimeStamp poll_return_time_; // Time when poll returns, usually means data arrival.
-	std::unique_ptr<Poller> poller_;
+	std::unique_ptr<Epoller> poller_;
 	ChannelVector active_channel_;
 	std::unique_ptr<TimerQueue> timer_queue_;
 	int wakeup_fd_; // A Linux eventfd.

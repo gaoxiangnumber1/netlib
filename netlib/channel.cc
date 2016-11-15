@@ -21,7 +21,7 @@ Channel::Channel(EventLoop *loop, int file_descriptor):
 	fd_(file_descriptor),
 	requested_event_(kNoneEvent),
 	returned_event_(kNoneEvent),
-	index_(-1),
+	state_in_epoller_(-1), // Epoller::kRaw.
 	event_handling_(false)
 {}
 
@@ -67,5 +67,5 @@ void Channel::HandleEvent(TimeStamp receive_time)
 void Channel::Update()
 {
 	owner_loop_->UpdateChannel(this);
-	// Invoke `void Poller::UpdateChannel(Channel*)`
+	// Invoke `void Epoller::UpdateChannel(Channel*)`
 }

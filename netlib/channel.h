@@ -29,9 +29,9 @@ public:
 	{
 		return requested_event_;
 	}
-	int index() const // Used by Poller.
+	int state_in_epoller() const // Used by Epoller.
 	{
-		return index_;
+		return state_in_epoller_;
 	}
 	// Setter: Since Channel's member functions can be invoked in only IO threads,
 	// thus, we don't need set/release lock before/after updating data members.
@@ -63,9 +63,9 @@ public:
 	{
 		returned_event_ = returned_event;
 	}
-	void set_index(int new_index) // Used by Poller.
+	void set_state_in_epoller(int new_state) // Used by Epoller.
 	{
-		index_ = new_index;
+		state_in_epoller_ = new_state;
 	}
 	void set_read_callback(const ReadEventCallback &callback)
 	{
@@ -85,17 +85,18 @@ public:
 	}
 	// Call different callbacks based on returned_event_.
 	void HandleEvent(TimeStamp receive_time);
-	bool IsNoneEvent() const
+	bool IsNoneRequestedEvent() const
 	{
 		return requested_event_ == kNoneEvent;
 	}
+	char *RequestedEventToString();
 
 private:
 	static const int kNoneEvent; // 0
 	static const int kReadEvent; // POLLIN, POLLPRI
 	static const int kWriteEvent; // POLLOUT
 
-	// -> EventLoop::UpdateChannel(Channel*) -> Poller::UpdateChannel(Channel*)
+	// -> EventLoop::UpdateChannel(Channel*) -> Epoller::UpdateChannel(Channel*)
 	// Add new Channel(O(logN)) or update already existing Channel(O(1))
 	// in `vector<struct pollfd> pollfd_vector_`
 	void Update();
@@ -111,11 +112,8 @@ private:
 	const int fd_;
 	int requested_event_; // Interested IO event, set by user.
 	int returned_event_; // Active event, set by EventLoop::poller_.
-	// `vector<struct pollfd> Poller::pollfd_vector_[index_]` stores the `struct pollfd
-	// {int fd; short events; /*requested events*/ short revents; /*returned events*/};`
-	// that represents this Channel object's monitoring file descriptor.
-	int index_;
 	bool event_handling_; // Whether is handing event? If it is, we shouldn't destruct.
+	int state_in_epoller_; // This Channel object's state in the Epoller class.
 	// Different callbacks called when corresponding event happens.
 	ReadEventCallback read_callback_;
 	EventCallback write_callback_;

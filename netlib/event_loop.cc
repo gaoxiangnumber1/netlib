@@ -41,7 +41,7 @@ EventLoop::EventLoop():
 	looping_(false),
 	quit_(false),
 	thread_id_(Thread::ThreadId()),
-	poller_(new Poller(this)), // Set poller_'s owner_loop_ to this EventLoop.
+	poller_(new Epoller(this)), // Set poller_'s owner_loop_ to this EventLoop.
 	timer_queue_(new TimerQueue(this)),
 	wakeup_fd_(CreateWakeupFd()),
 	wakeup_fd_channel_(new Channel(this, wakeup_fd_)),
