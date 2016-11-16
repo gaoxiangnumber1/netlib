@@ -11,7 +11,7 @@
 	if(level >= netlib::Logger::log_level()) \
 	{ \
 		::snprintf(0, 0, __VA_ARGS__); \
-		netlib::Logger::Log(level, errno, __VA_ARGS__); \
+		netlib::Logger::Log(level, __FILE__, __func__, __LINE__, errno, __VA_ARGS__); \
 	} \
 } \
 while(false);
@@ -51,7 +51,7 @@ public:
 	{
 		log_level_ = level;
 	}
-	static void Log(LogLevel level, int saved_errno, const char * ...);
+	static void Log(LogLevel, const char*, const char*, const int, int, const char* ...);
 
 private:
 	static const char *log_level_string_[OFF];

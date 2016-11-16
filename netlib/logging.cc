@@ -26,7 +26,12 @@ const char *Logger::log_level_string_[OFF] =
 Logger::LogLevel Logger::log_level_ = Logger::INFO;
 
 // Print to stdout. Don't need buffer.
-void Logger::Log(LogLevel level, int saved_errno, const char *format ...)
+void Logger::Log(LogLevel level,
+                 const char *file,
+                 const char *fun,
+                 const int line,
+                 int saved_errno,
+                 const char *format ...)
 {
 	struct timeval tv;
 	::gettimeofday(&tv, NULL);
@@ -36,11 +41,11 @@ void Logger::Log(LogLevel level, int saved_errno, const char *format ...)
 	       tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec, static_cast<int>(tv.tv_usec),
 	       Thread::ThreadId(),
 	       log_level_string_[level],
-	       __FILE__, __LINE__);
+	       file, line);
 
 	if(level <= DEBUG) // For TRACE and DEBUG.
 	{
-		printf("%s(): ", __func__);
+		printf("%s(): ", fun);
 	}
 
 	// #include <stdarg.h>

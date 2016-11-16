@@ -1,11 +1,12 @@
 #include <netlib/thread.h>
 
-#include <stdio.h>
 #include <unistd.h> // sleep()
+
+#include <netlib/logging.h>
 
 using std::bind;
 using netlib::Thread;
-
+/*
 void Fun1()
 {
 	printf("Thread 1: thread_id=%d\n", Thread::ThreadId());
@@ -24,10 +25,11 @@ public:
 		printf("Thread 3: thread_id=%d, dou=%f\n", Thread::ThreadId(), dou);
 	}
 };
-
+*/
 int main()
 {
-	printf("main: pid=%d, thread_id=%d\n", getpid(), Thread::ThreadId());
+	LOG_INFO("Enter main()");
+	/*printf("main: pid=%d, thread_id=%d\n", getpid(), Thread::ThreadId());
 
 	Thread thread1(Fun1);
 	thread1.Start();
@@ -53,5 +55,6 @@ int main()
 	if(pid == 0)
 	{
 		printf("child process: pid=%d, thread_id=%d\n", getpid(), Thread::ThreadId());
-	}
+	}*/
+	LOG_INFO("Leave main()");
 }

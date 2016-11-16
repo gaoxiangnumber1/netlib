@@ -50,7 +50,7 @@ private:
 	int thread_id_;
 	// TODO: why muduo use shared_ptr to manage thread id? I think it is not
 	// necessary, so I simply use int(same as pid_t).
-	ThreadFunction function_; // Start function.
+	ThreadFunction function_; // Start function. Not `ThreadFunction&`
 	static std::atomic<int> created_number_; // The number of created threads.
 };
 }

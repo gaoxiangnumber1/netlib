@@ -69,7 +69,8 @@ class ThreadIdInitializer
 public:
 	ThreadIdInitializer()
 	{
-		Thread::ThreadId();
+		// Thread::ThreadId(); // There is no use to cache the main thread's id since
+		// we may not use it at all. Call Thread::ThreadId() only when needed.
 		// #include <pthread.h>
 		// int pthread_atfork(void(*prepare)(void), void(*parent)(void), void(*child)(void));
 		// Return 0 if OK, error number on failure.
@@ -78,6 +79,7 @@ public:
 		assert(pthread_atfork(NULL, NULL, &ChildForkHandler) == 0);
 	}
 };
+// C++ guarantee that the global object's constructs is finished before enter main().
 ThreadIdInitializer thread_id_initializer_object; // Global object.
 
 atomic<int> Thread::created_number_(0);
@@ -170,6 +172,8 @@ int Thread::ThreadId() // Return the cached thread-id.
 {
 	if(t_cached_thread_id == 0) // If not cached yet.
 	{
+
+		LOG_INFO("ThreadId(): == 0");
 		// The return type of syscall() is long int.
 		t_cached_thread_id = static_cast<int>(::syscall(SYS_gettid));
 	}

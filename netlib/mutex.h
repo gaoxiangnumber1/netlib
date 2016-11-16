@@ -23,6 +23,7 @@ namespace netlib
 //		};
 class MutexLock: public NonCopyable
 {
+	// NOTE: friend class declaration!
 	friend class Condition; // Use private member class UnassignHolder.
 	friend class MutexLockGuard; // Use private: Lock(), Unlock().
 	// Private member: base class itself and friend can access.
@@ -97,7 +98,7 @@ private:
 	// Used in `pthread_cond_wait(pthread_cond_t*, pthread_mutex_t*);` to get the
 	// condition_'s mutex_ object's pthread_mutex_t attribute.
 	// This getter is non-const since pthread_cond_wait() changes the value of mutex_.
-	pthread_mutex_t *get_pthread_mutex_t()
+	pthread_mutex_t *get_pthread_mutex_t() // NOTE: Used by Condition::Wait()
 	{
 		return &mutex_;
 	}
@@ -150,7 +151,8 @@ private:
 class MutexLockGuard: public NonCopyable
 {
 public:
-	// The constructor must pass argument by Reference!
+	// NOTE: Must use `explicit` for MutexLockGuard constructor!
+	// NOTE: The constructor must pass argument by Reference!
 	explicit MutexLockGuard(MutexLock &mutex): mutex_(mutex)
 	{
 		mutex_.Lock();

@@ -3,17 +3,11 @@
 using netlib::CountDownLatch;
 using netlib::MutexLockGuard;
 
-CountDownLatch::CountDownLatch(int number):
+CountDownLatch::CountDownLatch(int count):
 	mutex_(),
 	condition_(mutex_),
-	count_(number)
+	count_(count)
 {}
-
-int CountDownLatch::count() const
-{
-	MutexLockGuard lock(mutex_);
-	return count_;
-}
 
 void CountDownLatch::CountDown()
 {
@@ -30,6 +24,7 @@ void CountDownLatch::Wait()
 {
 	// Must first get lock and then Wait() on condition.
 	MutexLockGuard lock(mutex_);
+	// NOTE: `while(count_ != 0)` is wrong since we only wait for initial count_ times.
 	while(count_ > 0)
 	{
 		condition_.Wait();

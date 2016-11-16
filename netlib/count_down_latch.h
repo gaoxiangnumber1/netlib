@@ -11,8 +11,7 @@ namespace netlib
 class CountDownLatch: public NonCopyable
 {
 public:
-	explicit CountDownLatch(int number);
-	int count() const;
+	explicit CountDownLatch(int count);
 
 	void CountDown(); // Get lock -> --count_.
 	void Wait(); // Wait until count_ reaches 0.
@@ -20,9 +19,8 @@ public:
 private:
 	// Data member sequence: mutex_ Must come first and then condition_
 	// since we use mutex_ to construct condition_ variable.
-	// Since we need first get lock and then return the count_ value in `int count() const`,
-	// the mutex_ should be `mutable` because getting the lock changes its value.
-	mutable MutexLock mutex_;
+	// NOTE: CountDownLatch owns one MutexLock, so its data member isn't `ML&`.
+	MutexLock mutex_;
 	Condition condition_;
 	int count_; // The number of count down before Wait() return.
 };

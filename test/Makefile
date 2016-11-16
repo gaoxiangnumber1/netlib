@@ -24,7 +24,7 @@ OBJECT = $(SOURCE:.cc=.o)
 MUTEX_TEST = mutex_test
 MUTEX_OBJ = mutex_test.o $(SRC)/thread.o $(SRC)/time_stamp.o $(SRC)/logging.o
 THREAD_TEST = thread_test
-THREAD_OBJ = thread_test.o $(SRC)/thread.o $(SRC)/logging.o
+THREAD_OBJ = thread_test.o $(SRC)/logging.o $(SRC)/thread.o
 THREAD_BENCH = thread_bench
 THREAD_BENCH_OBJ = thread_bench.o $(SRC)/thread.o $(SRC)/time_stamp.o $(SRC)/logging.o
 THREAD_POOL_TEST = thread_pool_test
