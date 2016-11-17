@@ -6,14 +6,16 @@
 
 using std::bind;
 using netlib::Thread;
-/*
+
 void Fun1()
 {
+	printf("Thread 1: thread_id=%d\n", Thread::ThreadId());
 	printf("Thread 1: thread_id=%d\n", Thread::ThreadId());
 }
 
 void Fun2(int num)
 {
+	printf("Thread 2: thread_id=%d, num=%d\n", Thread::ThreadId(), num);
 	printf("Thread 2: thread_id=%d, num=%d\n", Thread::ThreadId(), num);
 }
 
@@ -23,13 +25,14 @@ public:
 	void Fun3(double dou)
 	{
 		printf("Thread 3: thread_id=%d, dou=%f\n", Thread::ThreadId(), dou);
+		printf("Thread 3: thread_id=%d, dou=%f\n", Thread::ThreadId(), dou);
 	}
 };
-*/
+
 int main()
 {
 	LOG_INFO("Enter main()");
-	/*printf("main: pid=%d, thread_id=%d\n", getpid(), Thread::ThreadId());
+	printf("main: pid=%d, thread_id=%d\n", getpid(), Thread::ThreadId());
 
 	Thread thread1(Fun1);
 	thread1.Start();
@@ -55,6 +58,6 @@ int main()
 	if(pid == 0)
 	{
 		printf("child process: pid=%d, thread_id=%d\n", getpid(), Thread::ThreadId());
-	}*/
+	}
 	LOG_INFO("Leave main()");
 }

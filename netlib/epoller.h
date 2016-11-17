@@ -31,13 +31,13 @@ public:
 	// Must be called in the loop thread.
 	TimeStamp EpollWait(int timeout, ChannelVector *active_channel);
 
-	// Called by EventLoop::HasChannel() for assertion.
+	// Called: Channel::~Dtor()(for assertion) -> EventLoop::HasChannel() -> here.
 	bool HasChannel(Channel *channel) const;
 	// Add new Channel(O(logN)) or update already existing Channel(O(1))
 	// in `vector<struct epoll_event> returned_epoll_event_vector_`
-	// `void Channel::Update()` -> `void EventLoop::UpdateChannel(Channel*)` -> here.
+	// `void Channel::Update()` -> `void EventLoop::AddOrUpdateChannel(Channel*)` -> here.
 	// Must be called in the loop thread.
-	void UpdateChannel(Channel *channel);
+	void AddOrUpdateChannel(Channel *channel);
 	// Remove the channel when it destructs. Must be called in the loop thread.
 	void RemoveChannel(Channel *channel);
 
@@ -64,7 +64,7 @@ private:
 	EventLoop *owner_loop_;
 	// Epoller doesn't own Channel, so Channel object must unregister by itself calling
 	// `EventLoop::RemoveChannel()` to avoid dangling pointer.
-	// 1.	UpdateChannel(): add new <fd:channel> pair if before state is kRaw, that is,
+	// 1.	AddOrUpdateChannel(): add new <fd:channel> pair if before state is kRaw, that is,
 	//		kRaw->kAdded.
 	// 2.	RemoveChannel(): erase <fd:channel> pair. The before state must be either
 	//		kAdded or kDeleted, that is, kAdded/kDeleted -> kRaw.

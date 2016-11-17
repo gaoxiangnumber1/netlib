@@ -53,14 +53,12 @@ const struct sockaddr *SocketAddress::socket_address() const
 
 string SocketAddress::ToIpPortString() const
 {
-	char host[INET_ADDRSTRLEN] = ""; // Defined <netinet/in.h>, 16
+	char ip[INET_ADDRSTRLEN] = ""; // Defined <netinet/in.h>, 16
 	// #include <arpa/inet.h>
 	// const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
-	::inet_ntop(AF_INET, &address_.sin_addr, host, sizeof host);
-	// uint16_t be16toh(uint16_t)
-	uint16_t port = be16toh(address_.sin_port);
-
+	::inet_ntop(AF_INET, &address_.sin_addr, ip, static_cast<socklen_t>(sizeof ip));
 	char buffer[32] = "";
-	::snprintf(buffer, sizeof buffer, "%s:%u", host, port);
+	// uint16_t be16toh(uint16_t)
+	::snprintf(buffer, sizeof buffer, "%s:%u", ip, be16toh(address_.sin_port));
 	return buffer;
 }

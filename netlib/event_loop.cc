@@ -153,12 +153,12 @@ TimerId EventLoop::RunEvery(const TimerCallback &callback, double interval)
 	return timer_queue_->AddTimer(callback, time_stamp, interval);
 }
 
-void EventLoop::UpdateChannel(Channel *channel)
+void EventLoop::AddOrUpdateChannel(Channel *channel)
 {
 	// Only can update channel that this EventLoop owns.
 	assert(channel->owner_loop() == this);
 	AssertInLoopThread();
-	poller_->UpdateChannel(channel);
+	poller_->AddOrUpdateChannel(channel);
 }
 
 void EventLoop::RemoveChannel(Channel *channel)

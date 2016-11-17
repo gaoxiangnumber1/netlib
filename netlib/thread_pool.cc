@@ -1,5 +1,4 @@
 #include <netlib/thread_pool.h>
-#include <stdio.h>
 #include <netlib/thread.h>
 
 using std::bind;
@@ -48,7 +47,6 @@ void ThreadPool::Start()
 // by `not_empty_.Notify();`.
 void ThreadPool::RunOrAddTask(const Task &task)
 {
-	//printf("Enter RunOrAddTask: %d\n", netlib::Thread::ThreadId());
 	assert(running_ == true); // NOTE: Use assertion for invariant.
 	if(thread_number_ == 0) // If thread_number_ = 0, run task() directly.
 	{
@@ -59,7 +57,6 @@ void ThreadPool::RunOrAddTask(const Task &task)
 		MutexLockGuard lock(mutex_);
 		while(IsTaskQueueFull() == true) // The task queue is full, can't add task.
 		{
-			//printf("Wait in RunOrAddTask: %d\n", netlib::Thread::ThreadId());
 			not_full_.Wait(); // Wait until remove task from task_queue_.
 		}
 		assert(IsTaskQueueFull() == false);
@@ -69,14 +66,13 @@ void ThreadPool::RunOrAddTask(const Task &task)
 		// task_queue_.size() change from 0 to 1 for efficiency.
 		not_empty_.Notify();
 	}
-	//printf("Leave RunOrAddTask: %d\n", netlib::Thread::ThreadId());
 }
 
 // Stop all threads and call Join() for all threads.
 void ThreadPool::Stop()
 {
-	printf("Enter Stop: %d\n", netlib::Thread::ThreadId());
 	// NOTE: Use as short critical section as possible. {critical section;} non-critical;
+	// NOTE: Always use Condition with MutexLock!
 	{
 		MutexLockGuard lock(mutex_);
 		// Once set running_ to false, we can't set it to true.
@@ -108,7 +104,6 @@ void ThreadPool::Stop()
 	{
 		thread_pool_[index]->Join();
 	}
-	printf("Leave Stop: %d\n", netlib::Thread::ThreadId());
 }
 
 // The start function of thread: first call initial_task if any; then indefinitely get

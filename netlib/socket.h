@@ -26,7 +26,7 @@ public:
 
 	// Assign local_address object's address_ to this Socket's object's socket_fd_.
 	// Abort if address already in use.
-	void BindAddress(const SocketAddress &local_address);
+	void Bind(const SocketAddress &local_address);
 	// Mark socket_fd_ as a passive socket(i.e., accept connections).
 	// Abort if address already in use.
 	void Listen();
@@ -36,7 +36,7 @@ public:
 	int Accept(SocketAddress &peer_address);
 
 	// SHUT_WR: further transmissions will be disallowed.
-	void ShutdownWrite();
+	void ShutdownOnWrite();
 
 	// Enable/Disable SO_REUSEADDR.
 	void SetReuseAddress(bool on);

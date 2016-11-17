@@ -52,9 +52,10 @@ public:
 	// Run callback every `interval` seconds. Safe to call from other threads.
 	TimerId RunEvery(const TimerCallback &callback, double interval);
 
-	// Invoke its poller_'s UpdateChannel()
-	void UpdateChannel(Channel *channel);
+	// Invoke its poller_'s AddOrUpdateChannel()
+	void AddOrUpdateChannel(Channel *channel);
 	void RemoveChannel(Channel *channel);
+	bool HasChannel(Channel *channel);
 
 	// Create a wakeup_fd_ by calling `eventfd()`
 	int CreateWakeupFd();

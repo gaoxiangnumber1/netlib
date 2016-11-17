@@ -22,11 +22,8 @@ public:
 	// Construct an endpoint with given `struct sockaddr_in`.
 	// Mostly used when accepting new connections.
 	explicit SocketAddress(const struct sockaddr_in &address): address_(address) {}
-
-	sa_family_t socket_family() const
-	{
-		return address_.sin_family;
-	}
+	// For future support for IPv6
+	// sa_family_t socket_family() const {return address_.sin_family;}
 	const struct sockaddr *socket_address() const;
 	void set_socket_address(const struct sockaddr_in &address)
 	{

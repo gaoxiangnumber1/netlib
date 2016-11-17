@@ -14,18 +14,18 @@ namespace netlib
 class Timer: public NonCopyable
 {
 public:
-	Timer(const TimerCallback &fun, TimeStamp expired_time, double time):
-		callback_(fun),
-		expiration_(expired_time),
-		interval_(time),
+	Timer(const TimerCallback &callback, TimeStamp expired_time, double interval):
+		callback_(callback),
+		expired_time_(expired_time),
+		interval_(interval),
 		repeat_(interval_ > 0.0),
-		sequence_(++created_number_) // Increment and get.
+		sequence_(++created_timer_number_) // Increment and get.
 	{}
 	// TODO: Timer(TimerCallback &&).
 	// Getter
-	TimeStamp expiration() const
+	TimeStamp expired_time() const
 	{
-		return expiration_;
+		return expired_time_;
 	}
 	bool repeat() const // true if interval_ > 0.0
 	{
@@ -44,12 +44,12 @@ public:
 
 private:
 	const TimerCallback callback_; // Called in TimerQueue::HandleRead().
-	TimeStamp expiration_; // The absolute expiration time.
+	TimeStamp expired_time_; // The absolute expiration time.
 	// The time difference between each two expiration time for RunEvery().
 	const double interval_;
 	const bool repeat_; // true if interval_ > 0.0; false otherwise.
 	const int64_t sequence_; // The global unique number to identify this timer.
-	static std::atomic<int64_t> created_number_;
+	static std::atomic<int64_t> created_timer_number_;
 };
 
 }

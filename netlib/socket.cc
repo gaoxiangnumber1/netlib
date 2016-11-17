@@ -15,16 +15,16 @@ Socket::~Socket()
 	nso::Close(socket_fd_);
 }
 
+// int bind(int sockfd, const struct sockaddr *address, socklen_t address_length);
+// When a socket is created with socket(2), it has no address assigned to it.
+// bind() assigns the address specified by address to the socket referred to by
+// the file descriptor sockfd. address_length specifies the size, in bytes, of the
+// address structure pointed to by address.
+// On success, 0 is returned. On error, -1 is returned, and errno is set.
 // Assign local_address object's address_ to this Socket's object's socket_fd_.
-void Socket::BindAddress(const SocketAddress &local_address)
+void Socket::Bind(const SocketAddress &local_address)
 {
 	const struct sockaddr *address = local_address.socket_address();
-	// int bind(int sockfd, const struct sockaddr *address, socklen_t address_length);
-	// When a socket is created with socket(2), it has no address assigned to it.
-	// bind() assigns the address specified by address to the socket referred to by
-	// the file descriptor sockfd. address_length specifies the size, in bytes, of the
-	// address structure pointed to by address.
-	// On success, 0 is returned. On error, -1 is returned, and errno is set.
 	int ret = ::bind(socket_fd_, address, static_cast<socklen_t>(sizeof address));
 	if(ret == -1)
 	{
@@ -32,18 +32,18 @@ void Socket::BindAddress(const SocketAddress &local_address)
 	}
 }
 
+// int listen(int sockfd, int backlog);
+// listen() marks the socket `sockfd` as a passive socket, that is, as a socket that will
+// be used to accept incoming connection requests using accept(2).
+// backlog defines the maximum length to which the queue of pending connections
+// for sockfd may grow. If a connection request arrives when the queue is full,
+// the client may receive an error with an indication of ECONNREFUSED or, if
+// the underlying protocol supports retransmission, the request may be ignored so
+// that a later reattempt at connection succeeds.
+// On success, 0 is returned. On error, -1 is returned and errno is set.
 // Mark socket_fd_ as a passive socket(i.e., accept connections).
 void Socket::Listen()
 {
-	// int listen(int sockfd, int backlog);
-	// listen() marks the socket `sockfd` as a passive socket, that is, as a socket that will
-	// be used to accept incoming connection requests using accept(2).
-	// backlog defines the maximum length to which the queue of pending connections
-	// for sockfd may grow. If a connection request arrives when the queue is full,
-	// the client may receive an error with an indication of ECONNREFUSED or, if
-	// the underlying protocol supports retransmission, the request may be ignored so
-	// that a later reattempt at connection succeeds.
-	// On success, 0 is returned. On error, -1 is returned and errno is set.
 	// SOMAXCONN: Maximum queue length specifiable by listen.
 	if(::listen(socket_fd_, SOMAXCONN) == -1)
 	{
@@ -51,54 +51,81 @@ void Socket::Listen()
 	}
 }
 
+// int accept4(int sockfd, struct sockaddr *address, socklen_t *addrlen, int flags);
+// accept() extracts the first connection request on the queue of pending connections
+// for the listening socket, sockfd, creates a new connected socket, and returns a new
+// file descriptor referring to that socket. sockfd is unaffected by this call.
+// sockfd is a socket that has been created with socket(2), bound to a local address
+// with bind(2), and is listening for connections after a listen(2).
+// address is a pointer to a sockaddr structure. This structure is filled in with the
+// address of the peer socket. When address is NULL, nothing is filled in and
+// addrlen should be NULL.
+// addrlen is a value-result argument: the caller must initialize it to contain the size
+// (in bytes) of the structure pointed to by address; on return it will contain the size
+// of the peer address.
+// Return a nonnegative integer that is a descriptor for the accepted socket on success.
+// On error, -1 is returned, and errno is set.
 // Return the file descriptor for the new accepted connection.
 // Store the peer's address to `*peer_address` object.
 int Socket::Accept(SocketAddress &peer_address)
 {
-	// int accept4(int sockfd, struct sockaddr *address, socklen_t *addrlen, int flags);
-	// accept() extracts the first connection request on the queue of pending connections
-	// for the listening socket, sockfd, creates a new connected socket, and returns a new
-	// file descriptor referring to that socket. sockfd is unaffected by this call.
-	// sockfd is a socket that has been created with socket(2), bound to a local address
-	// with bind(2), and is listening for connections after a listen(2).
-	// address is a pointer to a sockaddr structure. This structure is filled in with the
-	// address of the peer socket. When address is NULL, nothing is filled in and
-	// addrlen should be NULL.
-	// addrlen is a value-result argument: the caller must initialize it to contain the size
-	// (in bytes) of the structure pointed to by address; on return it will contain the size
-	// of the peer address.
-	// Return a nonnegative integer that is a descriptor for the accepted socket on success.
-	// On error, -1 is returned, and errno is set.
 	struct sockaddr_in address;
 	bzero(&address, sizeof address);
 	socklen_t address_length = static_cast<socklen_t>(sizeof address);
 	int connected_fd = ::accept4(socket_fd_,
-	                              nso::CastToNonConstsockaddr(&address),
-	                              &address_length,
-	                              SOCK_NONBLOCK | SOCK_CLOEXEC);
+	                             nso::CastToNonConstsockaddr(&address),
+	                             &address_length,
+	                             SOCK_NONBLOCK | SOCK_CLOEXEC);
 	if(connected_fd == -1)
 	{
 		int saved_errno = errno;
 		LOG_ERROR("Socket::Accept error");
 		switch(saved_errno)
 		{
+		// EAGAIN or EWOULDBLOCK
+		// The socket is marked nonblocking and no connections are present to be accepted.
+		// A portable application should check for both possibilities.
 		case EAGAIN:
+		// case EWOULDBLOCK: // socket.cc:89:3: error: duplicate case value
+		// accept()/accept4() passes pending network errors on the new socket as an error
+		// code from accept(). The application should detect the network errors defined
+		// for the protocol after accept() and treat them like EAGAIN by retrying. For
+		// TCP/IP: ENETDOWN, EPROTO, ENOPROTOOPT, EHOSTDOWN,
+		// ENONET, EHOSTUNREACH, EOPNOTSUPP, and ENETUNREACH.
+		case ENETDOWN:
+		case EPROTO: // Protocol error.
+		case ENOPROTOOPT:
+		case EHOSTDOWN:
+		case ENONET:
+		case EHOSTUNREACH:
+		case EOPNOTSUPP: // The socket is not of type SOCK_STREAM.
+		case ENETUNREACH:
+		// A connection has been aborted.
 		case ECONNABORTED:
+		// accept() was interrupted by a signal that was caught before a connection arrived.
 		case EINTR:
-		case EPROTO:
+		// Firewall rules forbid connection.
 		case EPERM:
-		case EMFILE: // per-process limit of open file descriptor
+		// The per-process limit of open file descriptors has been reached.
+		case EMFILE:
 			// Temporary errors: ignore error.
 			errno = saved_errno;
 			break;
+		// The descriptor is invalid.
 		case EBADF:
+		// The addr argument is not in a writable part of the user address space.
 		case EFAULT:
+		// `socket` is not listening, `addrlen` is invalid, or `flags` is invalid.
 		case EINVAL:
+		// The system limit on the total number of open files has been reached.
 		case ENFILE:
+		// ENOBUFS, ENOMEM
+		// Not enough free memory. This often means that the memory allocation is
+		// limited by the socket buffer limits, not by the system memory.
 		case ENOBUFS:
 		case ENOMEM:
+		// The descriptor references a file, not a socket.
 		case ENOTSOCK:
-		case EOPNOTSUPP:
 			LOG_FATAL("unexpected error of ::accept");
 			break;
 		default:
@@ -113,10 +140,10 @@ int Socket::Accept(SocketAddress &peer_address)
 	return connected_fd;
 }
 
-void Socket::ShutdownWrite()
+// int shutdown(int sockfd, int how);
+// On success, 0 is returned. On error, -1 is returned and errno is set.
+void Socket::ShutdownOnWrite()
 {
-	// int shutdown(int sockfd, int how);
-	// On success, 0 is returned. On error, -1 is returned and errno is set.
 	if(::shutdown(socket_fd_, SHUT_WR) == -1)
 	{
 		LOG_ERROR("nso::ShutdownWrite error");

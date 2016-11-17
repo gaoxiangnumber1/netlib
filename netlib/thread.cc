@@ -172,8 +172,6 @@ int Thread::ThreadId() // Return the cached thread-id.
 {
 	if(t_cached_thread_id == 0) // If not cached yet.
 	{
-
-		LOG_INFO("ThreadId(): == 0");
 		// The return type of syscall() is long int.
 		t_cached_thread_id = static_cast<int>(::syscall(SYS_gettid));
 	}

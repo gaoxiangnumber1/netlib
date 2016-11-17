@@ -24,10 +24,10 @@ const int kAdded = 1;
 const int kDeleted = 0;
 // Total SIX kinds of states conversions:
 // kRaw ->
-// 1.	kAdded: in UpdateChannel(); add new <fd:channel> into channel_map_ -> ADD.
+// 1.	kAdded: in AddOrUpdateChannel(); add new <fd:channel> into channel_map_ -> ADD.
 // kAdded ->
 // 1.	kRaw: in RemoveChannel(); channel_map_.erase(fd) -> DEL.
-// 2.	kAdded: in UC(); if(IsNoneRequestedEvent() == false), then MOD.
+// 2.	kAdded: in UC(); if(IsRequestedNoneEvent() == false), then MOD.
 // 3.	kDeleted: in UC(); if(INRE == true), then DEL.
 // kDeleted ->
 // 1.	kRaw: in RC(); channel_map_.erase(fd).
@@ -133,11 +133,10 @@ bool Epoller::HasChannel(Channel *channel) const
 	return it != channel_map_.end() && it->second == channel;
 }
 
-// Add new Channel(O(logN)) or update already existing Channel(O(1))
-// in `vector<struct epoll_event> returned_epoll_event_vector_`
+// Add new Channel(O(logN)) or update already existing Channel(O(1)).
 // Called: `void Channel::set_requested_event_*()` -> `void Channel::Update()` ->
-// `void EventLoop::UpdateChannel(Channel*)` -> here.
-void Epoller::UpdateChannel(Channel *channel)
+// `void EventLoop::AddOrUpdateChannel(Channel*)` -> here.
+void Epoller::AddOrUpdateChannel(Channel *channel)
 {
 	AssertInLoopThread();
 	int fd = channel->fd(), channel_state = channel->state_in_epoller();
@@ -167,7 +166,7 @@ void Epoller::UpdateChannel(Channel *channel)
 		assert(channel_map_[fd] == channel);
 		assert(channel_state = kAdded);
 		// If this channel doesn't interest in any events.
-		if(channel->IsNoneRequestedEvent() == true)
+		if(channel->IsRequestedNoneEvent() == true)
 		{
 			channel->set_state_in_epoller(kDeleted);
 			// Remove its file descriptor from this epoll instance(referred to by epoll_fd_).
@@ -194,7 +193,7 @@ void Epoller::RemoveChannel(Channel *channel)
 	assert(channel_map_.find(fd) != channel_map_.end());
 	assert(channel_map_[fd] == channel);
 	// Always `channel->set_requested_event_none()` before RemoveChannel().
-	assert(channel->IsNoneRequestedEvent() == true);
+	assert(channel->IsRequestedNoneEvent() == true);
 	assert(channel_state == kAdded || channel_state == kDeleted);
 	// Remove this Channel from channel_map_:
 	assert(channel_map_.erase(fd) == 1);
@@ -252,7 +251,7 @@ void Epoller::EpollCtl(int operation, Channel *channel)//
 	event.data.ptr = channel;
 	int fd = channel->fd();
 	LOG_TRACE("epoll_ctl operation = %s, fd = %d, requested_event = {%s}",
-	          OperationToString(operation), fd, channel->RequestedEventToString());
+	          OperationToString(operation), fd, channel->RequestedEventToString().c_str());
 	// #include <sys/epoll.h>
 	// int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
 	// Perform the operation `op` on the epoll(7) instance referred to by `epfd`

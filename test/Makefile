@@ -16,9 +16,10 @@ SOURCE =	mutex_test.cc \
 					$(SRC)/timer.cc \
 					logging_test.cc $(SRC)/logging.cc \
 					$(SRC)/socket.cc \
-					$(SRC)/socket_address.cc \
+					socket_address_test.cc $(SRC)/socket_address.cc \
 					$(SRC)/socket_operation.cc \
-					$(SRC)/epoller.cc
+					$(SRC)/epoller.cc \
+					$(SRC)/channel.cc
 OBJECT = $(SOURCE:.cc=.o)
 
 MUTEX_TEST = mutex_test
@@ -34,9 +35,12 @@ TIME_STAMP_TEST = time_stamp_test
 TIME_STAMP_OBJ = time_stamp_test.o $(SRC)/time_stamp.o
 LOG_TEST = logging_test
 LOG_OBJ = logging_test.o $(SRC)/logging.o $(SRC)/thread.o
+SOCKET_ADDRESS_TEST = socket_address_test
+SOCKET_ADDRESS_OBJ =	socket_address_test.o $(SRC)/socket_address.o $(SRC)/logging.o \
+												 $(SRC)/thread.o
 TEST =	$(MUTEX_TEST) $(THREAD_TEST) $(THREAD_BENCH) \
 				$(THREAD_POOL_TEST) $(TIME_STAMP_TEST) \
-				$(LOG_TEST)
+				$(LOG_TEST) $(SOCKET_ADDRESS_TEST)
 
 all: $(OBJECT) $(TEST)
 
@@ -56,6 +60,9 @@ $(TIME_STAMP_TEST): $(TIME_STAMP_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 $(LOG_TEST): $(LOG_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(SOCKET_ADDRESS_TEST): $(SOCKET_ADDRESS_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 .cc.o:
