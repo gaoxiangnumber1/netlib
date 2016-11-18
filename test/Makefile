@@ -19,7 +19,8 @@ SOURCE =	mutex_test.cc \
 					socket_address_test.cc $(SRC)/socket_address.cc \
 					$(SRC)/socket_operation.cc \
 					$(SRC)/epoller.cc \
-					$(SRC)/channel.cc
+					$(SRC)/channel.cc \
+					$(SRC)/timer_queue.cc
 OBJECT = $(SOURCE:.cc=.o)
 
 MUTEX_TEST = mutex_test

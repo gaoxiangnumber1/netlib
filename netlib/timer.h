@@ -14,9 +14,9 @@ namespace netlib
 class Timer: public NonCopyable
 {
 public:
-	Timer(const TimerCallback &callback, TimeStamp expired_time, double interval):
+	Timer(const TimerCallback &callback, TimeStamp time_stamp, double interval):
 		callback_(callback),
-		expired_time_(expired_time),
+		expired_time_(time_stamp),
 		interval_(interval),
 		repeat_(interval_ > 0.0),
 		sequence_(++created_timer_number_) // Increment and get.

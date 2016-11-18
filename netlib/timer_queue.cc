@@ -14,6 +14,7 @@
 #include <netlib/timer_id.h>
 
 using std::bind;
+using std::pair;
 using netlib::Channel;
 using netlib::EventLoop;
 using netlib::TimerId;
@@ -25,16 +26,17 @@ TimerQueue::TimerQueue(EventLoop *owner_loop):
 	timer_fd_channel_(owner_loop_, timer_fd_),
 	calling_expired_timer_callback_(false)
 {
-	timer_fd_channel_.set_requested_event(READ); // Monitor IO read event.
+	timer_fd_channel_.set_requested_event(Channel::READ); // Monitor IO read event.
 	// TODO: HandleRead() should be `HandleRead(TimeStamp)`???
+	// TODO: Study `function` and `bind` rules!
 	timer_fd_channel_.set_event_callback(bind(&TimerQueue::HandleRead, this),
-	                                     READ_CALLBACK);
+	                                     Channel::READ_CALLBACK);
 }
 
 TimerQueue::~TimerQueue()
 {
 	// Always set requested event to none before RemoveChannel().
-	timer_fd_channel_.set_requested_event(NONE);
+	timer_fd_channel_.set_requested_event(Channel::NONE);
 	timer_fd_channel_.RemoveChannel();
 	::close(timer_fd_);
 	// TODO: What's mean `Do not remove channel, since we're in EventLoop::dtor();`?

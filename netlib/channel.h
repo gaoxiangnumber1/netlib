@@ -97,7 +97,7 @@ private:
 	// -> EventLoop::AddOrUpdateChannel(Channel*) ->
 	// Epoller::AddOrUpdateChannel(Channel*)
 	// Add new Channel(O(logN)) or update already existing Channel(O(1))
-	// in `map<int, Channel*> channel_map_`.
+	// in `map<int, Channel*> channel_set_`.
 	void AddOrUpdateChannel();
 	// Called by RequestedEventToString() and ReturnedEventToString().
 	static std::string EventToString(int fd, int event);

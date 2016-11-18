@@ -115,7 +115,7 @@ void EventLoop::Loop()
 		active_channel_.clear(); // Clear old active channel vector.
 		// Invoke ::poll() to get the number of active IO events and
 		// invoke FillActiveChannel to fill active_channel_.
-		poll_return_time_ = poller_->Poll(kPollTimeout, &active_channel_);
+		poll_return_time_ = poller_->Poll(kPollTimeout, active_channel_);
 		// Now, each channel in active_channel_ has IO events happened.
 		for(ChannelVector::iterator it = active_channel_.begin();
 		        it != active_channel_.end(); ++it)
