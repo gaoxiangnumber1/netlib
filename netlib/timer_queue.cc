@@ -26,17 +26,15 @@ TimerQueue::TimerQueue(EventLoop *owner_loop):
 	timer_fd_channel_(owner_loop_, timer_fd_),
 	calling_expired_timer_callback_(false)
 {
-	timer_fd_channel_.set_requested_event(Channel::READ); // Monitor IO read event.
-	// TODO: HandleRead() should be `HandleRead(TimeStamp)`???
-	// TODO: Study `function` and `bind` rules!
-	timer_fd_channel_.set_event_callback(bind(&TimerQueue::HandleRead, this),
-	                                     Channel::READ_CALLBACK);
+	timer_fd_channel_.set_requested_event(Channel::READ_EVENT);
+	timer_fd_channel_.set_event_callback(Channel::READ_CALLBACK,
+	                                     bind(&TimerQueue::HandleRead, this));
 }
 
 TimerQueue::~TimerQueue()
 {
 	// Always set requested event to none before RemoveChannel().
-	timer_fd_channel_.set_requested_event(Channel::NONE);
+	timer_fd_channel_.set_requested_event(Channel::NONE_EVENT);
 	timer_fd_channel_.RemoveChannel();
 	::close(timer_fd_);
 	// TODO: What's mean `Do not remove channel, since we're in EventLoop::dtor();`?
@@ -109,7 +107,7 @@ void TimerQueue::GetExpiredTimer(TimeStamp now)
 {
 	// 1. Clear the old expired timer vector.
 	assert(active_timer_set_by_expiration_.size() == active_timer_set_by_address_.size());
-	expired_timer_.clear();
+	expired_timer_vector_.clear();
 
 	// 2. Set sentry to search the set and get the first not expired timer iterator.
 	// sentry is the biggest timer-pair whose time-stamp value is `now`.
@@ -124,11 +122,11 @@ void TimerQueue::GetExpiredTimer(TimeStamp now)
 	       now < first_not_expired->first);
 
 	// 3. Copy all the expired timer's pointer from active_timer_set_by_expiration_
-	// to expired_timer_.
+	// to expired_timer_vector_.
 	for(ExpirationTimerPairSet::iterator it = active_timer_set_by_expiration_.begin();
 	        it != first_not_expired; ++it)
 	{
-		expired_timer_.push_back(it->second); // Pass by value: copy a pointer.
+		expired_timer_vector_.push_back(it->second); // Pass by value: copy a pointer.
 	}
 
 	// 4.	Erase the expired timers in the active_timer_set_by_expiration_, this don't
@@ -139,7 +137,7 @@ void TimerQueue::GetExpiredTimer(TimeStamp now)
 	// 5.	Erase the expired timers in the active_timer_set_by_address_. We must do
 	//		this since two different object's may have the same address but have different
 	//		sequence value. We always make the by_expiration the same as by_address.
-	for(TimerVector::iterator it = expired_timer_.begin(); it != expired_timer_.end(); ++it)
+	for(TimerVector::iterator it = expired_timer_vector_.begin(); it != expired_timer_vector_.end(); ++it)
 	{
 		TimerSequencePair timer(*it, (*it)->sequence());
 		assert(active_timer_set_by_address_.erase(timer) == 1);
@@ -186,7 +184,7 @@ void TimerQueue::HandleRead()
 	GetExpiredTimer(now);
 	calling_expired_timer_callback_ = true;
 	canceling_timer_set_.clear(); // TODO: What use?
-	for(TimerVector::iterator it = expired_timer_.begin(); it != expired_timer_.end(); ++it)
+	for(TimerVector::iterator it = expired_timer_vector_.begin(); it != expired_timer_vector_.end(); ++it)
 	{
 		(*it)->Run(); // Timer_Pointer->Run() runs timer object's callback_.
 	}
@@ -219,7 +217,7 @@ void TimerQueue::Refresh(TimeStamp now)
 	// 1. For expired timer:
 	//		(1). Restart if it can repeat and not be canceled.
 	//		(2). Delete it otherwise.
-	for(TimerVector::iterator it = expired_timer_.begin(); it != expired_timer_.end(); ++it)
+	for(TimerVector::iterator it = expired_timer_vector_.begin(); it != expired_timer_vector_.end(); ++it)
 	{
 		TimerSequencePair timer(*it, (*it)->sequence());
 		assert(canceling_timer_set_.empty() == false);
@@ -234,7 +232,7 @@ void TimerQueue::Refresh(TimeStamp now)
 		{
 			delete (*it); // This timer can't repeat, delete it explicitly.
 			(*it) = nullptr;
-			// Since we always `expired_timer_.clear()` before GetExpiredTimer(),
+			// Since we always `expired_timer_vector_.clear()` before GetExpiredTimer(),
 			// we don't need erase this deleted Timer* in expired_time_ vector.
 		}
 	}
@@ -296,12 +294,12 @@ void TimerQueue::SetExpiredTime(TimeStamp expiration)
 	}
 }
 
-void TimerQueue::Cancel(TimerId timer_id)
+void TimerQueue::CancelTimer(TimerId timer_id)
 {
-	owner_loop_->RunInLoop(bind(&TimerQueue::CancelInLoop, this, timer_id));
+	owner_loop_->RunInLoop(bind(&TimerQueue::CancelTimerInLoop, this, timer_id));
 }
 
-void TimerQueue::CancelInLoop(TimerId timer_id)
+void TimerQueue::CancelTimerInLoop(TimerId timer_id)
 {
 	owner_loop_->AssertInLoopThread();
 	assert(active_timer_set_by_expiration_.size() == active_timer_set_by_address_.size());

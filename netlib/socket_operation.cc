@@ -1,20 +1,9 @@
 #include <netlib/socket_operation.h>
 
 #include <sys/socket.h> // socket(), getsockname()
-#include <unistd.h> // close()
 #include <strings.h> // bzero()
 
 #include <netlib/logging.h>
-
-void nso::Close(int socket_fd)
-{
-	// int close(int fd);
-	// 0 on success. -1 on error and errno is set.
-	if(::close(socket_fd) == -1)
-	{
-		LOG_ERROR("sockets::close error");
-	}
-}
 
 // Create an IPv4, nonblocking, and TCP socket file descriptor, abort if any error.
 int nso::CreateNonblockingOrDie(sa_family_t family)

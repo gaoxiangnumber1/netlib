@@ -1,15 +1,11 @@
 #ifndef NETLIB_NETLIB_EVENTLOOP_H_
 #define NETLIB_NETLIB_EVENTLOOP_H_
 
-#include <sys/types.h> // pid_t
-
-#include <memory> // unique_ptr<>
 #include <vector> // vector<>
 
 #include <netlib/callback.h>
 #include <netlib/non_copyable.h>
 #include <netlib/time_stamp.h>
-#include <netlib/timer_id.h>
 #include <netlib/mutex.h>
 #include <netlib/timer_id.h>
 
@@ -20,6 +16,22 @@ class Channel;
 class Epoller;
 class TimerQueue;
 
+// Interface:
+// Ctor -> -CreateWakeupFd -> -HandleRead.
+// Dtor.
+// IsInLoopThread.
+// AssertInLoopThread -> +IsInLoopThread. Called in: Loop, AOU/R/H-Channel.
+// Loop -> +AssertInLoopThread -> -PrintActiveChannel -> -DoPendingFunctor.
+// Quit.
+// RunAt.
+// RunAfter -> +RunAt.
+// RunEvery.
+// AddOrUpdateChannel -> +AssertInLoopThread.
+// RemoveChannel -> +AssertInLoopThread.
+// HasChannel -> +AssertInLoopThread.
+// RunInLoop -> +QueueInLoop.
+// QueueInLoop -> -Wakeup.
+// CancelTimer.
 class EventLoop: public NonCopyable
 {
 public:
@@ -28,14 +40,7 @@ public:
 	EventLoop(); // Check whether satisfy `one loop per thread`.
 	~EventLoop(); // Force out-line dtor, for unique_ptr members.
 
-	// Getter. Return the object that hold by current thread.
-	static EventLoop *GetEventLoopOfCurrentThread();
-	TimeStamp poll_return_time() const
-	{
-		return poll_return_time_;
-	}
-	// Setter.
-	void Quit(); // set_quit(true);
+	void Quit();
 
 	void AssertInLoopThread();
 	// Loop forever. Must be called in the same thread as creation of the object.
@@ -52,15 +57,10 @@ public:
 	// Run callback every `interval` seconds. Safe to call from other threads.
 	TimerId RunEvery(const TimerCallback &callback, double interval);
 
-	// Invoke its poller_'s AddOrUpdateChannel()
+	// Invoke its epoller_'s AddOrUpdateChannel()
 	void AddOrUpdateChannel(Channel *channel);
 	void RemoveChannel(Channel *channel);
 	bool HasChannel(Channel *channel);
-
-	// Create a wakeup_fd_ by calling `eventfd()`
-	int CreateWakeupFd();
-	// Wakeup the IO thread by writing to the wakeup_fd_.
-	void Wakeup();
 
 	// Run callback immediately in the loop thread.
 	// 1.	If called in the same loop thread: callback is run within the function.
@@ -71,31 +71,41 @@ public:
 	// Safe to call from other threads.
 	void QueueInLoop(const Functor &callback);
 
-	void Cancel(TimerId timer_id);
+	void CancelTimer(TimerId timer_id);
 
 private:
 	using ChannelVector = std::vector<Channel*>;
 
+	// Create a wakeup_fd_ by calling `eventfd()`
+	int CreateWakeupFd();
+	void HandleRead();
 	void DoPendingFunctor();
-	void HandleWakeupFd();
+	// Wakeup the IO thread by writing to the wakeup_fd_.
+	void Wakeup();
+	void PrintActiveChannel() const;
 
 	bool looping_; // Atomic.
 	bool quit_; // Atomic.
-	const pid_t thread_id_;
+	// Used for assertion in RemoveChannel() which is called by: TimerQueue::Dtor() ->
+	// Channel::RemoveChannel() -> EventLoop::RemoveChannel().
+	bool event_handling_;
+	// Set in DoPendingFunctor(); Used in QueueInLoop().
+	bool calling_pending_functor_; // Atomic.
+	const int thread_id_; // The loop thread's id.
+	TimeStamp poll_return_time_; // Time when poll returns, usually means data arrival.
 	// Only one unique_ptr at a time can point to a given object. The object to which a
 	// unique_ptr points is destroyed when the unique_ptr is destroyed.
-	TimeStamp poll_return_time_; // Time when poll returns, usually means data arrival.
-	std::unique_ptr<Epoller> poller_;
-	ChannelVector active_channel_;
+	std::unique_ptr<Epoller> epoller_;
 	std::unique_ptr<TimerQueue> timer_queue_;
-	int wakeup_fd_; // A Linux eventfd.
-	// wakeup_fd_channel_ monitors the IO events(readable) of wakeup_fd_,
-	// and dispatch these IO events to HandleWakeupFd().
+	int wakeup_fd_; // An eventfd.
+	// wakeup_fd_channel_ monitor the IO events(readable) of wakeup_fd_,
+	// and dispatch these IO events to HandleRead().
 	std::unique_ptr<Channel> wakeup_fd_channel_;
-	MutexLock mutex_; // An object encapsulates pthread_mutex_t.
-	// Only pending_functor_ is exposed to other threads, so we protect it by mutex_.
-	std::vector<Functor> pending_functor_; // Guard by mutex_.
-	bool calling_pending_functor_; // Atomic.
+	ChannelVector active_channel_vector_;
+	Channel *current_active_channel_; // Used for assertion.
+	MutexLock mutex_; // Encapsulate pthread_mutex_t.
+	// Since p_f_v_ is exposed to other threads, protect it by mutex_.
+	std::vector<Functor> pending_functor_vector_;
 };
 
 }

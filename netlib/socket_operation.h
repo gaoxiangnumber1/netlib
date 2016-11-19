@@ -18,8 +18,6 @@ struct sockaddr *CastToNonConstsockaddr(struct sockaddr_in *address)
 	return static_cast<struct sockaddr*>(static_cast<void*>(address));
 }
 
-// Close the `socket_fd` file descriptor.
-void Close(int socket_fd);
 // Create an IPv4, nonblocking, and TCP socket file descriptor, abort if any error.
 // Called in Acceptor class and Connector class.
 int CreateNonblockingOrDie(sa_family_t family);

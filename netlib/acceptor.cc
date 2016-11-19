@@ -1,7 +1,7 @@
+#include <unistd.h>
 #include <netlib/acceptor.h>
 #include <netlib/event_loop.h>
 #include <netlib/socket_address.h>
-#include <netlib/socket_operation.h>
 
 namespace nso = netlib::socket_operation;
 using std::bind;
@@ -57,7 +57,7 @@ void Acceptor::HandleRead()
 		}
 		else
 		{
-			nso::Close(connection_fd);
+			::close(connection_fd);
 		}
 	}
 }

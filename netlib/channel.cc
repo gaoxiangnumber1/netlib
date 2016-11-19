@@ -1,6 +1,6 @@
 #include <netlib/channel.h>
 
-#include <poll.h> // POLL*
+#include <sys/epoll.h> // EPOLL*
 
 #include <netlib/event_loop.h> // EventLoop
 #include <netlib/logging.h> // Log
@@ -10,12 +10,33 @@ using std::shared_ptr;
 using netlib::EventLoop;
 using netlib::Channel;
 
-const int Channel::kNoneEvent = 0;
-// POLLIN: Data other than high-priority data can be read.
-// POLLPRI: High-priority data can be read.
-const int Channel::kReadEvent = POLLIN | POLLPRI;
-// POLLOUT: Normal data can be written.
-const int Channel::kWriteEvent = POLLOUT;
+// EPOLLIN
+// fd is available for read(2): data other than high-priority data can be read.
+// EPOLLPRI
+// There is urgent data available for read(2): high-priority data can be read.
+// EPOLLRDHUP
+// Stream socket peer closes connection, or shut down writing half of connection.
+// This flag is useful to detect peer shutdown when using Edge Triggered.
+// EPOLLOUT
+// fd is available for write(2): normal data can be read.
+// EPOLLET
+// Set the Edge Triggered behavior for fd. Default is Level Triggered.
+// EPOLLONESHOT
+// Set the one-shot behavior for the fd(Disable monitoring after event notification).
+// After an event is pulled out with epoll_wait(2), the associated fd is disabled and
+// no other events will be reported by the epoll interface. The user must call epoll_ctl()
+// with EPOLL_CTL_MOD to rearm the fd with a new event mask.
+// EPOLLERR
+// Error condition happened on the fd. epoll_wait(2) always wait for this event,
+// it is not necessary to set it in events.
+// EPOLLHUP
+// Hang up happened on the fd. epoll_wait(2) always wait for this event;
+// it is not necessary to set it in events.
+const int kNoneEvent = 0;
+const int kReadEvent = EPOLLIN | EPOLLPRI | EPOLLRDHUP;
+const int kWriteEvent = EPOLLOUT;
+const int kCloseEvent = EPOLLHUP;
+const int kErrorEvent = EPOLLERR;
 
 // declaration of ‘fd’ shadows a member of 'this' [-Werror=shadow]
 Channel::Channel(EventLoop *loop, int file_descriptor):
@@ -43,24 +64,36 @@ void Channel::set_requested_event(RequestedEventType type)
 {
 	switch(type)
 	{
-	case READ:
+	case READ_EVENT:
 		requested_event_ |= kReadEvent;
 		break;
 	case NOT_READ:
 		requested_event_ &= ~kReadEvent;
 		break;
-	case WRITE:
+	case WRITE_EVENT:
 		requested_event_ |= kWriteEvent;
 		break;
 	case NOT_WRITE:
 		requested_event_ &= ~kWriteEvent;
 		break;
-	case NONE:
+	case NONE_EVENT:
 		requested_event_ = kNoneEvent;
 	}
 	AddOrUpdateChannel();
 }
-void Channel::set_event_callback(const EventCallback &callback, EventCallbackType type)
+void Channel::AddOrUpdateChannel()
+{
+	added_to_loop_ = true;
+	owner_loop_->AddOrUpdateChannel(this);
+	// Invoke `void Epoller::AddOrUpdateChannel(Channel*)`
+}
+
+void Channel::set_tie(const shared_ptr<void> &object)
+{
+	tie_ = object;
+	tied_ = true;
+}
+void Channel::set_event_callback(EventCallbackType type, const EventCallback &callback)
 {
 	switch(type)
 	{
@@ -77,15 +110,25 @@ void Channel::set_event_callback(const EventCallback &callback, EventCallbackTyp
 		error_callback_ = callback;
 	}
 }
-void Channel::set_tie(const shared_ptr<void> &object)
+
+bool Channel::IsRequestedArgumentEvent(RequestedEventType type)
 {
-	tie_ = object;
-	tied_ = true;
+	switch(type)
+	{
+	case READ_EVENT:
+		return requested_event_ & kReadEvent;
+	case WRITE_EVENT:
+		return requested_event_ & kWriteEvent;
+	case NONE_EVENT:
+		return requested_event_ == kNoneEvent;
+	default:
+		return true;
+	}
 }
 
 void Channel::HandleEvent(TimeStamp receive_time)
 {
-	if(tied_)
+	if(tied_ == true)
 	{
 		shared_ptr<void> guard = tie_.lock();
 		if(guard)
@@ -98,7 +141,6 @@ void Channel::HandleEvent(TimeStamp receive_time)
 		HandleEventWithGuard(receive_time);
 	}
 }
-
 // Call different callbacks based on the value of returned_event_.
 // Invoked by EventLoop::Loop().
 void Channel::HandleEventWithGuard(TimeStamp receive_time)
@@ -106,46 +148,30 @@ void Channel::HandleEventWithGuard(TimeStamp receive_time)
 	event_handling_ = true;
 	LOG_TRACE("%s", ReturnedEventToString().c_str());
 
-	// POLLNVAL: file descriptor is not open.
-	if(returned_event_ & POLLNVAL)
-	{
-		LOG_WARN("fd = %d, Channel::handle_event() POLLNVAL.", fd_);
-	}
-
-	// POLLRDHUP: Shutdown on peer socket.
-	if((returned_event_ & (POLLIN | POLLPRI | POLLRDHUP)) && read_callback_)
+	if((returned_event_ & kReadEvent) && read_callback_)
 	{
 		read_callback_(receive_time);
 	}
-	if((returned_event_ & POLLOUT) && write_callback_)
+	if((returned_event_ & kWriteEvent) && write_callback_)
 	{
 		write_callback_(receive_time);
 	}
-	// POLLHUP: hangup has occurred.
-	if((returned_event_ & POLLHUP) &&
-	        !(returned_event_ & POLLIN) &&
+	if((returned_event_ & kCloseEvent) &&
+	        !(returned_event_ & EPOLLIN) &&
 	        close_callback_)
 	{
 		close_callback_(receive_time);
 	}
-	// POLLERR: An error has occurred.
-	if((returned_event_ & (POLLERR | POLLNVAL)) && error_callback_)
+	if((returned_event_ & kErrorEvent ) && error_callback_)
 	{
 		error_callback_(receive_time);
 	}
 	event_handling_ = false;
 }
 
-void Channel::AddOrUpdateChannel()
-{
-	added_to_loop_ = true;
-	owner_loop_->AddOrUpdateChannel(this);
-	// Invoke `void Epoller::AddOrUpdateChannel(Channel*)`
-}
-
 void Channel::RemoveChannel()
 {
-	assert(IsRequestedNoneEvent() == true);
+	assert(IsRequestedArgumentEvent(NONE_EVENT) == true);
 	added_to_loop_ = false;
 	owner_loop_->RemoveChannel(this);
 }
@@ -165,33 +191,29 @@ string Channel::EventToString(int fd, int event)
 	char buffer[32] = "";
 	char *ptr = buffer, *buffer_end = buffer + sizeof buffer;
 	ptr += snprintf(ptr, buffer_end - ptr, "%d: ", fd);
-	if(event & POLLIN)
+	if(event & EPOLLIN)
 	{
 		ptr += snprintf(ptr, buffer_end - ptr, "%s", "IN ");
 	}
-	if(event & POLLPRI)
+	if(event & EPOLLPRI)
 	{
 		ptr += snprintf(ptr, buffer_end - ptr, "%s", "PRI ");
 	}
-	if(event & POLLOUT)
+	if(event & EPOLLOUT)
 	{
 		ptr += snprintf(ptr, buffer_end - ptr, "%s", "OUT ");
 	}
-	if(event & POLLHUP)
+	if(event & EPOLLHUP)
 	{
 		ptr += snprintf(ptr, buffer_end - ptr, "%s", "HUP ");
 	}
-	if(event & POLLRDHUP)
+	if(event & EPOLLRDHUP)
 	{
 		ptr += snprintf(ptr, buffer_end - ptr, "%s", "RDHUP ");
 	}
-	if(event & POLLERR)
+	if(event & EPOLLERR)
 	{
 		ptr += snprintf(ptr, buffer_end - ptr, "%s", "ERR ");
-	}
-	if(event & POLLNVAL)
-	{
-		ptr += snprintf(ptr, buffer_end - ptr, "%s", "NVAL ");
 	}
 	return buffer;
 }

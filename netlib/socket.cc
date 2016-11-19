@@ -2,6 +2,7 @@
 
 #include <netinet/tcp.h> // TCP_NODELAY
 #include <strings.h> // bzero()
+#include <unistd.h> // close()
 #include <sys/socket.h> // setsockopt(), accept4(), listen(), bind(), shutdown()
 
 #include <netlib/logging.h>
@@ -12,7 +13,7 @@ using netlib::Socket;
 
 Socket::~Socket()
 {
-	nso::Close(socket_fd_);
+	::close(socket_fd_);
 }
 
 // int bind(int sockfd, const struct sockaddr *address, socklen_t address_length);
