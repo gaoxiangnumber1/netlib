@@ -304,5 +304,5 @@ void EventLoop::Wakeup()
 
 void EventLoop::CancelTimer(TimerId timer_id)
 {
-	timer_queue_->Cancel(timer_id);
+	timer_queue_->CancelTimer(timer_id);
 }
