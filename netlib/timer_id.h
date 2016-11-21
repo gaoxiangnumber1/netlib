@@ -27,6 +27,8 @@ private:
 	// time(malloc -> free -> malloc). So we add a sequence number that increases
 	// by 1 every time we create a new Timer object.
 	Timer *timer_;
+	// TODO: If two different Timer object have same address, then one must be deleted,
+	// the other is alive. How to differentiate them if not use sequence_?
 	int64_t sequence_;
 };
 

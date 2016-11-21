@@ -33,7 +33,7 @@ public:
 	~Epoller();
 
 	// Invoke ::epoll_wait to get the active fds and fill active_channel.
-	TimeStamp EpollWait(int timeout, ChannelVector &active_channel);
+	TimeStamp EpollWait(int timeout_in_millisecond, ChannelVector &active_channel);
 
 	// Add new Channel*(O(logN)) or update existing Channel*(O(1)) in channel_set_.
 	// `Channel::AOUC(this)` -> `EventLoop::AOUC(Channel*)` -> here.

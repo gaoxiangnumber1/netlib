@@ -30,54 +30,6 @@ TimerQueue::TimerQueue(EventLoop *owner_loop):
 	timer_fd_channel_.set_event_callback(Channel::READ_CALLBACK,
 	                                     bind(&TimerQueue::HandleRead, this));
 }
-
-TimerQueue::~TimerQueue()
-{
-	// Always set requested event to none before RemoveChannel().
-	timer_fd_channel_.set_requested_event(Channel::NONE_EVENT);
-	timer_fd_channel_.RemoveChannel();
-	::close(timer_fd_);
-	// TODO: What's mean `Do not remove channel, since we're in EventLoop::dtor();`?
-	// Me: This means don't `delete channel_`, otherwise double free?
-	// TODO: If we don't use shared_ptr(since it cost too much) or unique_ptr
-	// (since the const property of set element), we should use what to avoid
-	// `delete Timer*;` by ourself?
-	for(ExpirationTimerPairSet::iterator it = active_timer_set_by_expiration_.begin();
-	        it != active_timer_set_by_expiration_.end(); ++it)
-	{
-		delete it->second;
-		// it->second = nullptr; error: assignment of member ‘pair<TimeStamp, Timer*>
-		// ::second’ in read-only object
-	}
-}
-
-// Construct a new timer and Call RunInLoop to add timer to set in the lop thread.
-// Return a TimerId object that encapsulates this timer.
-TimerId TimerQueue::AddTimer(const TimerCallback &callback,
-                             TimeStamp expiration,
-                             double interval)
-{
-	// 1. Create a Timer object based on arguments.
-	Timer *timer = new Timer(callback, expiration, interval);
-	// 2. Add this new timer in loop thread by calling RunInLoop().
-	owner_loop_->RunInLoop(bind(&TimerQueue::AddTimerInLoop, this, timer));
-	// 3. Return the inserted timer as a TimerId object.
-	return TimerId(timer, timer->sequence());
-}
-
-// Add timer in the loop thread. Always as a functor passed to RunInLoop().
-void TimerQueue::AddTimerInLoop(Timer *timer)
-{
-	owner_loop_->AssertInLoopThread();
-	// 1. Insert this timer into timer set. Return true if this timer will expire first.
-	bool is_first_expired = InsertIntoActiveTimerSet(timer);
-	// 2. If this timer will expire first, update timer_fd_'s expiration time.
-	if(is_first_expired)
-	{
-		SetExpiredTime(timer->expired_time());
-	}
-}
-
 // #include <sys/timerfd.h>
 // int timerfd_create(int clockid, int flags);
 // timerfd_create() creates a new timer object, and returns a file descriptor that refers to
@@ -89,8 +41,6 @@ void TimerQueue::AddTimerInLoop(Timer *timer)
 // 1. TFD_NONBLOCK: Set `O_NONBLOCK` file status flag on the new file descriptor.
 // 2. TFD_CLOEXEC: Set `close-on-exec(FD_CLOEXEC)` flag.
 // Return a new file descriptor on success. -1 on error and errno is set.
-
-// Create a new timer fd. Called by TimerQueue::TimerQueue(EventLoop *loop).
 int TimerQueue::CreateTimerFd()
 {
 	int timer_fd = ::timerfd_create(CLOCK_MONOTONIC,
@@ -101,77 +51,6 @@ int TimerQueue::CreateTimerFd()
 	}
 	return timer_fd;
 }
-
-// Get the expired timers relative to `now` and store them in expired_time_ vector.
-void TimerQueue::GetExpiredTimer(TimeStamp now)
-{
-	// 1. Clear the old expired timer vector.
-	assert(active_timer_set_by_expiration_.size() == active_timer_set_by_address_.size());
-	expired_timer_vector_.clear();
-
-	// 2. Set sentry to search the set and get the first not expired timer iterator.
-	// sentry is the biggest timer-pair whose time-stamp value is `now`.
-	ExpirationTimerPair sentry(now, reinterpret_cast<Timer*>(UINTPTR_MAX));
-	ExpirationTimerPairSet::iterator first_not_expired =
-	    active_timer_set_by_expiration_.lower_bound(sentry);
-	//(1)	Not find the iterator that we can insert sentry into timer set, that is, all timers
-	//		in timer set are already expired.
-	//(2)	If can find, the first not expired timer's expiration time must be greater than
-	//		`now` since sentry is the biggest timer whose expiration time is `now`.
-	assert(first_not_expired == active_timer_set_by_expiration_.end() ||
-	       now < first_not_expired->first);
-
-	// 3. Copy all the expired timer's pointer from active_timer_set_by_expiration_
-	// to expired_timer_vector_.
-	for(ExpirationTimerPairSet::iterator it = active_timer_set_by_expiration_.begin();
-	        it != first_not_expired; ++it)
-	{
-		expired_timer_vector_.push_back(it->second); // Pass by value: copy a pointer.
-	}
-
-	// 4.	Erase the expired timers in the active_timer_set_by_expiration_, this don't
-	//		destruct the timer. TODO: what happens when set.erase(iterator)?
-	active_timer_set_by_expiration_.erase(
-	    active_timer_set_by_expiration_.begin(), first_not_expired);
-
-	// 5.	Erase the expired timers in the active_timer_set_by_address_. We must do
-	//		this since two different object's may have the same address but have different
-	//		sequence value. We always make the by_expiration the same as by_address.
-	for(TimerVector::iterator it = expired_timer_vector_.begin(); it != expired_timer_vector_.end(); ++it)
-	{
-		TimerSequencePair timer(*it, (*it)->sequence());
-		assert(active_timer_set_by_address_.erase(timer) == 1);
-	}
-	assert(active_timer_set_by_expiration_.size() == active_timer_set_by_address_.size());
-}
-
-// Insert the specified timer into timer set. Return true if this timer will expire first.
-bool TimerQueue::InsertIntoActiveTimerSet(Timer *timer)
-{
-	owner_loop_->AssertInLoopThread();
-	assert(active_timer_set_by_expiration_.size() == active_timer_set_by_address_.size());
-
-	bool is_first_expired = false;
-	TimeStamp expired_time = timer->expired_time();
-	ExpirationTimerPairSet::iterator it = active_timer_set_by_expiration_.begin();
-	// When one of the following conditions satisfies, this timer expires first:
-	// 1. Timer set has no timer.
-	// 2. This timer's expiration time is less than the smallest expiration time in timer set.
-	if(it == active_timer_set_by_expiration_.end() || expired_time < it->first)
-	{
-		is_first_expired = true;
-	}
-
-	// Make a new pair for this timer and insert it to the timer set.
-	pair<ExpirationTimerPairSet::iterator, bool> insert_result1 =
-	    active_timer_set_by_expiration_.insert(ExpirationTimerPair(expired_time, timer));
-	pair<TimerSequencePairSet::iterator, bool> insert_result2 =
-	    active_timer_set_by_address_.insert(TimerSequencePair(timer, timer->sequence()));
-	assert(insert_result1.second == true && insert_result2.second == true);
-	assert(active_timer_set_by_expiration_.size() == active_timer_set_by_address_.size());
-	return is_first_expired;
-}
-
 // The callback for IO read event, in this case, the timer fd alarms.
 void TimerQueue::HandleRead()
 {
@@ -179,12 +58,14 @@ void TimerQueue::HandleRead()
 	// 1. Get now time and Invoke `ReadTimerFd()` to read form timer_fd_.
 	TimeStamp now(TimeStamp::Now());
 	ReadTimerFd(now);
-	// 2.	Get the expired timers relative to `now` and store them in expired_time_ vector.
+	// 2.	Get the expired timers relative to `now` and store them in expired_time_vector_.
 	//		Run each timer's callback_.
-	GetExpiredTimer(now);
+	GetAndRemoveExpiredTimer(now);
+	canceling_timer_sequence_set_.clear(); // Clear before calling expired timer callback.
 	calling_expired_timer_callback_ = true;
-	canceling_timer_set_.clear(); // TODO: What use?
-	for(TimerVector::iterator it = expired_timer_vector_.begin(); it != expired_timer_vector_.end(); ++it)
+	for(TimerVector::iterator it = expired_timer_vector_.begin();
+	        it != expired_timer_vector_.end();
+	        ++it)
 	{
 		(*it)->Run(); // Timer_Pointer->Run() runs timer object's callback_.
 	}
@@ -192,7 +73,6 @@ void TimerQueue::HandleRead()
 	// 3. Refresh state for the next expiration.
 	Refresh(now);
 }
-
 // Call ::read to read from `timer_fd` at `time_stamp` time.
 void TimerQueue::ReadTimerFd(TimeStamp time_stamp)
 {
@@ -200,54 +80,109 @@ void TimerQueue::ReadTimerFd(TimeStamp time_stamp)
 	// timerfd_settime(), or since the last successful read(2), then the buffer given to read(2)
 	// returns an unsigned 8-byte integer(uint64_t) containing the number of expirations
 	// that have occurred. The returned value is in host byte order.
-	uint64_t expiration_number = 0;
-	int read_byte = static_cast<int>(::read(timer_fd_, &expiration_number, 8));
-	LOG_TRACE("expiration number = %d, time = %s",
-	          static_cast<int>(expiration_number),
+	uint64_t expired_number = 0;
+	int read_byte = static_cast<int>(::read(timer_fd_, &expired_number, 8));
+	LOG_TRACE("expired number = %d, time = %s",
+	          static_cast<int>(expired_number),
 	          time_stamp.ToFormattedTimeString().c_str());
 	if(read_byte != 8)
 	{
 		LOG_ERROR("TimerQueue::ReadTimerFd read %d bytes instead of 8.", read_byte);
 	}
 }
+// Get the expired timers relative to `now` and store them in expired_time_ vector.
+void TimerQueue::GetAndRemoveExpiredTimer(TimeStamp now)
+{
+	// 1. Clear the old expired timer vector.
+	expired_timer_vector_.clear();
 
+	// 2. Set sentry to search the set and get the first not expired timer iterator.
+	// sentry is the biggest timer-pair whose time-stamp value is `now`.
+	ExpirationTimerPair sentry(now, reinterpret_cast<Timer*>(UINTPTR_MAX));
+	ExpirationTimerPairSet::iterator first_not_expired =
+	    active_timer_set_.lower_bound(sentry);
+	//(1)	Not find the iterator that we can insert sentry into timer set, that is, all timers
+	//		in timer set are already expired.
+	//(2)	If can find, the first not expired timer's expiration time must be greater than
+	//		`now` since sentry is the biggest timer whose expiration time is `now`.
+	assert(first_not_expired == active_timer_set_.end() ||
+	       now < first_not_expired->first);
+
+	// 3. Copy all the expired timer's pointer from active_timer_set_
+	// to expired_timer_vector_.
+	for(ExpirationTimerPairSet::iterator it = active_timer_set_.begin();
+	        it != first_not_expired; ++it)
+	{
+		expired_timer_vector_.push_back(it->second); // Pass by value: copy a pointer.
+	}
+
+	// 4.	Erase the expired timers in the active_timer_set_, this don't
+	//		destruct the timer. TODO: what happens when set.erase(iterator)?
+	active_timer_set_.erase(active_timer_set_.begin(), first_not_expired);
+}
 // Restart or delete expired timer and update timer_fd_'s expiration time.
 void TimerQueue::Refresh(TimeStamp now)
 {
+	bool is_first_expired = false;
 	// 1. For expired timer:
 	//		(1). Restart if it can repeat and not be canceled.
 	//		(2). Delete it otherwise.
-	for(TimerVector::iterator it = expired_timer_vector_.begin(); it != expired_timer_vector_.end(); ++it)
+	for(TimerVector::iterator it = expired_timer_vector_.begin();
+	        it != expired_timer_vector_.end();
+	        ++it)
 	{
-		TimerSequencePair timer(*it, (*it)->sequence());
-		assert(canceling_timer_set_.empty() == false);
-		// Can repeat: restart timer and insert the updated Timer* into timer pair set again.
+		// NOTE: Only not canceled timer can be inserted again!
 		if((*it)->repeat() &&
-		        canceling_timer_set_.find(timer) == canceling_timer_set_.end())
+		        canceling_timer_sequence_set_.find((*it)->sequence()) ==
+		        canceling_timer_sequence_set_.end())
 		{
+			// Restart timer and insert the updated Timer* into timer pair set again.
 			(*it)->Restart(now);
-			InsertIntoActiveTimerSet(*it);
+			is_first_expired = InsertIntoActiveTimerSet(*it) ? true : is_first_expired;
 		}
 		else
 		{
 			delete (*it); // This timer can't repeat, delete it explicitly.
 			(*it) = nullptr;
-			// Since we always `expired_timer_vector_.clear()` before GetExpiredTimer(),
+			// Since `expired_timer_vector_.clear()` at the begin of GARET(),
 			// we don't need erase this deleted Timer* in expired_time_ vector.
 		}
 	}
 	// 2. Set next expiration time.
-	TimeStamp next_expiration;
-	if(active_timer_set_by_expiration_.empty() == false)
+	if(is_first_expired == true)
 	{
-		next_expiration = active_timer_set_by_expiration_.begin()->second->expired_time();
-	}
-	if(next_expiration.IsValid() == true)
-	{
-		SetExpiredTime(next_expiration);
+		SetExpiredTime(active_timer_set_.begin()->second->expired_time());
 	}
 }
+// Insert the specified timer into timer set. Return true if this timer will expire first.
+bool TimerQueue::InsertIntoActiveTimerSet(Timer *timer)
+{
+	owner_loop_->AssertInLoopThread();
 
+	bool is_first_expired = false;
+	TimeStamp expired_time = timer->expired_time();
+	// When one of the following conditions satisfies, this timer expires first:
+	// 1. Timer set is empty.
+	// 2. This timer's expiration time is less than the smallest expiration time in timer set.
+	if(active_timer_set_.empty() == true ||
+	        expired_time < active_timer_set_.begin()->first)
+	{
+		is_first_expired = true;
+	}
+
+	// Make a new pair for this timer and insert it to the timer set.
+	pair<ExpirationTimerPairSet::iterator, bool> insert_result =
+	    active_timer_set_.insert(ExpirationTimerPair(expired_time, timer));
+	assert(insert_result.second == true);
+	return is_first_expired;
+	// We don't call `SetExpiredTime()` in this function when `is_first_expired` is true.
+	// Assume we insert 100 timers that each expired_time is smaller than the before
+	// one, if we do SetExpiredTime() in this function, we will call timerfd_settime()
+	// for 100 times, which costs too much. Instead, this function only return a flag
+	// that indicates whether we need update expired time and leave the real update
+	// decision to the caller. When we insert many timers, this can reduce the calling
+	// of system call `timerfd_settime()` and improve performance.
+}
 // Set the expiration time to `expiration - Now()`. The argument `expiration` is the
 // absolute expiration time, that is, there will have timers that expire at `expiration`
 // seconds since Epoch.
@@ -294,28 +229,70 @@ void TimerQueue::SetExpiredTime(TimeStamp expiration)
 	}
 }
 
+TimerQueue::~TimerQueue()
+{
+	// Always set requested event to none before RemoveChannel().
+	timer_fd_channel_.set_requested_event(Channel::NONE_EVENT);
+	timer_fd_channel_.RemoveChannel();
+	::close(timer_fd_);
+	// TODO: What's mean `Do not remove channel, since we're in EventLoop::dtor();`?
+	// Me: This means don't `delete channel_`, otherwise double free?
+	// TODO: If we don't use shared_ptr(since it cost too much) or unique_ptr
+	// (since the const property of set element), we should use what to avoid
+	// `delete Timer*;` by ourself?
+	for(ExpirationTimerPairSet::iterator it = active_timer_set_.begin();
+	        it != active_timer_set_.end(); ++it)
+	{
+		delete it->second;
+		// it->second = nullptr; error: assignment of member ‘pair<TimeStamp, Timer*>
+		// ::second’ in read-only object
+	}
+}
+
+// Construct a new timer and Call RunInLoop to add timer to set in the lop thread.
+// Return a TimerId object that encapsulates this timer.
+TimerId TimerQueue::AddTimer(const TimerCallback &callback,
+                             TimeStamp expired_time,
+                             double interval)
+{
+	// 1. Create a Timer object based on arguments.
+	Timer *timer = new Timer(callback, expired_time, interval);
+	// 2. Add this new timer in loop thread by calling RunInLoop().
+	owner_loop_->RunInLoop(bind(&TimerQueue::AddTimerInLoop, this, timer));
+	// 3. Return the inserted timer as a TimerId object.
+	return TimerId(timer, timer->sequence());
+}
+// Add timer in the loop thread. Always as a functor passed to RunInLoop().
+void TimerQueue::AddTimerInLoop(Timer *timer)
+{
+	owner_loop_->AssertInLoopThread();
+	// 1. Insert this timer into timer set. Return true if this timer will expire first.
+	bool is_first_expired = InsertIntoActiveTimerSet(timer);
+	// 2. If this timer will expire first, update timer_fd_'s expiration time.
+	if(is_first_expired == true)
+	{
+		SetExpiredTime(timer->expired_time());
+	}
+}
+
 void TimerQueue::CancelTimer(TimerId timer_id)
 {
 	owner_loop_->RunInLoop(bind(&TimerQueue::CancelTimerInLoop, this, timer_id));
 }
-
 void TimerQueue::CancelTimerInLoop(TimerId timer_id)
 {
 	owner_loop_->AssertInLoopThread();
-	assert(active_timer_set_by_expiration_.size() == active_timer_set_by_address_.size());
+	Timer *timer = timer_id.timer_;
 
-	TimerSequencePair timer(timer_id.timer_, timer_id.sequence_);
-	TimerSequencePairSet::iterator it = active_timer_set_by_address_.find(timer);
-	if(it != active_timer_set_by_address_.end())
+	ExpirationTimerPair timer_pair(timer->expired_time(), timer);
+	ExpirationTimerPairSet::iterator it = active_timer_set_.find(timer_pair);
+	if(it != active_timer_set_.end())
 	{
-		assert(active_timer_set_by_expiration_.erase(
-		           ExpirationTimerPair(it->first->expired_time(), it->first)) == 1);
-		delete it->first;
-		active_timer_set_by_address_.erase(it);
+		active_timer_set_.erase(it);
+		delete it->second; // NOTE: `delete Timer*;`!
 	}
-	else if(calling_expired_timer_callback_) // TODO: what's meaning?
+	else if(calling_expired_timer_callback_ == true)
 	{
-		canceling_timer_set_.insert(timer);
+		canceling_timer_sequence_set_.insert(timer->sequence());
 	}
-	assert(active_timer_set_by_expiration_.size() == active_timer_set_by_address_.size());
 }

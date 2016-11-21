@@ -4,10 +4,10 @@
 #include <vector> // vector<>
 
 #include <netlib/callback.h>
-#include <netlib/non_copyable.h>
-#include <netlib/time_stamp.h>
 #include <netlib/mutex.h>
+#include <netlib/non_copyable.h>
 #include <netlib/timer_id.h>
+#include <netlib/time_stamp.h>
 
 namespace netlib
 {
@@ -22,7 +22,7 @@ class TimerQueue;
 // IsInLoopThread.
 // AssertInLoopThread -> +IsInLoopThread. Called in: Loop, AOU/R/H-Channel.
 // Loop -> +AssertInLoopThread -> -PrintActiveChannel -> -DoPendingFunctor.
-// Quit.
+// Quit -> -Wakeup.
 // RunAt.
 // RunAfter -> +RunAt.
 // RunEvery.
@@ -36,6 +36,7 @@ class EventLoop: public NonCopyable
 {
 public:
 	using Functor = std::function<void()>;
+	using FunctorVector = std::vector<Functor>;
 
 	EventLoop(); // Check whether satisfy `one loop per thread`.
 	~EventLoop(); // Force out-line dtor, for unique_ptr members.
@@ -80,16 +81,14 @@ private:
 	int CreateWakeupFd();
 	void HandleRead();
 	void DoPendingFunctor();
-	// Wakeup the IO thread by writing to the wakeup_fd_.
+	// Wakeup the loop thread by writing to the wakeup_fd_.
+	// Called: Quit(), QueueInLoop().
 	void Wakeup();
 	void PrintActiveChannel() const;
 
 	bool looping_; // Atomic.
 	bool quit_; // Atomic.
-	// Used for assertion in RemoveChannel() which is called by: TimerQueue::Dtor() ->
-	// Channel::RemoveChannel() -> EventLoop::RemoveChannel().
-	bool event_handling_;
-	// Set in DoPendingFunctor(); Used in QueueInLoop().
+	// Set in DoPendingFunctor(); Used for judge in QueueInLoop().
 	bool calling_pending_functor_; // Atomic.
 	const int thread_id_; // The loop thread's id.
 	TimeStamp poll_return_time_; // Time when poll returns, usually means data arrival.
@@ -97,15 +96,21 @@ private:
 	// unique_ptr points is destroyed when the unique_ptr is destroyed.
 	std::unique_ptr<Epoller> epoller_;
 	std::unique_ptr<TimerQueue> timer_queue_;
-	int wakeup_fd_; // An eventfd.
+	int wakeup_fd_; // An eventfd. Closed in Dtor().
 	// wakeup_fd_channel_ monitor the IO events(readable) of wakeup_fd_,
 	// and dispatch these IO events to HandleRead().
 	std::unique_ptr<Channel> wakeup_fd_channel_;
 	ChannelVector active_channel_vector_;
-	Channel *current_active_channel_; // Used for assertion.
+	// Following two data members are set in `Loop()`, used for assertion in
+	// `RemoveChannel()`. `RemoveChannel()` is called by
+	// `RemovedChannelOwner::Dtor()` -> `RemovedChannel::RemoveChannel()`
+	// -> here -> `Epoller::RemoveChannel()`.
+	// TODO: What's the use of these two data members?
+	bool event_handling_;
+	Channel *current_active_channel_;
 	MutexLock mutex_; // Encapsulate pthread_mutex_t.
 	// Since p_f_v_ is exposed to other threads, protect it by mutex_.
-	std::vector<Functor> pending_functor_vector_;
+	FunctorVector pending_functor_vector_;
 };
 
 }

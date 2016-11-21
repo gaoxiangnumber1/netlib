@@ -16,6 +16,14 @@ class EventLoop;
 class Timer;
 class TimerId;
 
+// Interface:
+// Ctor -> -CreateTimerFd -> -HandleRead.
+//		-HandleRead -> -ReadTimerFd -> -GetAndRemoveExpiredTimer -> -Refresh.
+//			-Refresh -> -InsertIntoActiveTimerSet -> -SetExpiredTime.
+// Dtor.
+// AddTimer -> -AddTimerInLoop -> -InsertIntoActiveTimerSet -> SetExpiredTime.
+// Cancel -> -CancelInLoop.
+
 // A best effort timer queue. No guarantee that the callback will be on time.
 class TimerQueue: public NonCopyable
 {
@@ -38,25 +46,23 @@ private:
 	using TimerVector = std::vector<Timer*>;
 	using ExpirationTimerPair = std::pair<TimeStamp, Timer*>;
 	using ExpirationTimerPairSet = std::set<ExpirationTimerPair>;
-	using TimerSequencePair = std::pair<Timer*, int64_t>;
-	using TimerSequencePairSet = std::set<TimerSequencePair>;
 
-	// Add timer in the loop thread. Always as a functor passed to RunInLoop().
-	void AddTimerInLoop(Timer *timer);
 	// Create a new timer fd. Called by TimerQueue::TimerQueue(EventLoop *loop).
 	int CreateTimerFd();
-	// Get the expired timers relative to `now` and store them in expired_timer_vector_ vector.
-	void GetExpiredTimer(TimeStamp now);
-	// Insert the specified timer into timer set. Return true if this timer will expire first.
-	bool InsertIntoActiveTimerSet(Timer *timer);
 	// The callback for IO read event, in this case, the timer fd alarms.
 	void HandleRead();
 	// Call ::read to read from `timer_fd` at `time_stamp` time.
 	void ReadTimerFd(TimeStamp time_stamp);
+	// Get the expired timers relative to `now` and store them in expired_timer_vector_ vector.
+	void GetAndRemoveExpiredTimer(TimeStamp now);
 	// Restart or delete expired timer and update timer_fd_'s expiration time.
 	void Refresh(TimeStamp now);
+	// Insert the specified timer into timer set. Return true if this timer will expire first.
+	bool InsertIntoActiveTimerSet(Timer *timer);
 	// Set timer_fd_'s expiration time to be `expiration` argument.
 	void SetExpiredTime(TimeStamp expiration);
+	// Add timer in the loop thread. Always as a functor passed to RunInLoop().
+	void AddTimerInLoop(Timer *timer);
 	void CancelTimerInLoop(TimerId timer_id);
 
 	EventLoop *owner_loop_;
@@ -67,15 +73,10 @@ private:
 	// Active Timer set sorted by <timer_expired_time, timer_object_address>:
 	// first sorted by the expired time; if two or more timers have the same
 	// expired time, distinguish them by their object's address.
-	ExpirationTimerPairSet active_timer_set_by_expiration_;
+	ExpirationTimerPairSet active_timer_set_;
 	// For CancelTimer():
 	bool calling_expired_timer_callback_; // Atomic.
-	// Active timer set sorted by <timer_object_address, sequence_number>:
-	// first sorted by timer object's address, if two objects have same address value,
-	// then sorted by sequence number.
-	TimerSequencePairSet active_timer_set_by_address_;
-	// Timer set that stores the canceled timer.
-	TimerSequencePairSet canceling_timer_set_;
+	std::set<int64_t> canceling_timer_sequence_set_;
 };
 
 // Don't use unique_ptr<Timer>:

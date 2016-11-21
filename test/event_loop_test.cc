@@ -1,45 +1,35 @@
-#include <event_loop.h>
-#include <thread.h>
-#include <logging.h>
+#include <sys/types.h>
+#include <unistd.h> // getpid()
+
+#include <netlib/logging.h>
+#include <netlib/event_loop.h>
+#include <netlib/thread.h>
 
 using netlib::EventLoop;
 using netlib::Thread;
 
-EventLoop *g_loop = nullptr;
-
-void Fun1()
+void Callback()
 {
-	LOG_INFO("Fun: pid = %d, tid = %d", getpid(), Thread::ThreadId());
-	EventLoop loop;
-	loop.Loop();
+	LOG_INFO("Callback(): pid = %d", getpid());
+	EventLoop another_loop;
 }
 
-void Fun2()
+void ThreadFunction()
 {
-	g_loop->Loop();
+	LOG_INFO("ThreadFunction(): pid = %d", getpid());
+
+	EventLoop loop;
+	loop.RunAfter(Callback, 1.0);
+	loop.Loop();
 }
 
 int main()
 {
-	// Test1.
-	/*
-	LOG_INFO("main: pid = %d, tid = %d", getpid(), Thread::ThreadId());
-	EventLoop loop; // Create in main thread.
-	Thread thread(Fun1); // Create in child thread.
+	LOG_INFO("main(): pid = %d", getpid());
+
+	EventLoop loop;
+	Thread thread(ThreadFunction);
 	thread.Start();
+
 	loop.Loop();
-	pthread_exit(NULL);
-	*/
-	// Test2
-	/*
-	LOG_INFO("main: pid = %d, tid = %d", getpid(), Thread::ThreadId());
-	EventLoop loop; // Create in main thread.
-	g_loop = &loop;
-	Thread thread(Fun2); // Create in child thread.
-	thread.Start();
-	thread.Join();
-	*/
-	LOG_INFO("main: pid = %d, tid = %d", getpid(), Thread::ThreadId());
-	EventLoop loop1;
-	EventLoop loop2;
 }

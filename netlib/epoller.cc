@@ -94,7 +94,7 @@ Epoller::~Epoller()
 // The data of each returned structure contains the same data the user set with an
 // epoll_ctl(2)(EPOLL_CTL_ADD, EPOLL_CTL_MOD);
 // the events member contains the returned event bit field.
-TimeStamp Epoller::EpollWait(int timeout, ChannelVector &active_channel)
+TimeStamp Epoller::EpollWait(int timeout_in_millisecond, ChannelVector &active_channel)
 {
 	AssertInLoopThread();
 	LOG_TRACE("total added channel number = %lu", channel_set_.size());
@@ -104,7 +104,7 @@ TimeStamp Epoller::EpollWait(int timeout, ChannelVector &active_channel)
 	int event_number = ::epoll_wait(epoll_fd_,
 	                                returned_epoll_event_vector_.data(),
 	                                static_cast<int>(returned_epoll_event_vector_.size()),
-	                                timeout);
+	                                timeout_in_millisecond);
 	TimeStamp now(TimeStamp::Now());
 	int saved_errno = errno; // NOTE: Must handle error.
 	if(event_number > 0)

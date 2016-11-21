@@ -14,7 +14,6 @@
 #include <netlib/thread.h>
 #include <netlib/timer_queue.h>
 
-using std::vector;
 using std::bind;
 using netlib::EventLoop;
 using netlib::Thread;
@@ -22,6 +21,7 @@ using netlib::TimerId;
 using netlib::TimerCallback;
 using netlib::TimeStamp;
 
+// Signal `SIGPIPE`: write to pipe with no readers. Default action: terminate.
 class IgnoreSigPipe
 {
 public:
@@ -39,13 +39,13 @@ const int kTimeoutInMillisecond = 10 * 1000;
 EventLoop::EventLoop():
 	looping_(false),
 	quit_(false),
-	event_handling_(false),
 	calling_pending_functor_(false),
 	thread_id_(Thread::ThreadId()),
 	epoller_(new Epoller(this)),
 	timer_queue_(new TimerQueue(this)),
 	wakeup_fd_(CreateWakeupFd()),
 	wakeup_fd_channel_(new Channel(this, wakeup_fd_)),
+	event_handling_(false),
 	current_active_channel_(nullptr)
 {
 	LOG_DEBUG("EventLoop created %p in thread %d", this, thread_id_);
@@ -111,7 +111,7 @@ EventLoop::~EventLoop()
 
 void EventLoop::AssertInLoopThread()
 {
-	if(IsInLoopThread() == false) // Must run Loop in IO thread.
+	if(IsInLoopThread() == false) // Must run Loop in loop thread.
 	{
 		LOG_FATAL("EventLoop %p was created in thread = %d, current thread = %d",
 		          this, thread_id_, Thread::ThreadId());
@@ -122,21 +122,18 @@ void EventLoop::Loop()
 {
 	// Check invariants by assert().
 	assert(looping_ == false); // Not in looping.
-	AssertInLoopThread(); // Must run Loop in IO thread.
+	AssertInLoopThread(); // Must run Loop in loop thread.
 
 	looping_ = true;
 	quit_ = false; // FIXME: what if someone calls quit() before loop() ?
 	LOG_TRACE("EventLoop %p start looping.", this);
-	// Loop forever unless quit_ is set to `true` by current IO thread or other thread.
+	// Loop forever unless quit_ is set to `true` by current loop thread or other thread.
 	while(quit_ == false)
 	{
 		active_channel_vector_.clear(); // Clear old active channel vector.
 		poll_return_time_ =
 		    epoller_->EpollWait(kTimeoutInMillisecond, active_channel_vector_);
-		if(Logger::LogLevel() <= Logger::TRACE)
-		{
-			PrintActiveChannel();
-		}
+		PrintActiveChannel();
 		// TODO sort channel by priority
 		event_handling_ = true;
 		for(ChannelVector::iterator it = active_channel_vector_.begin();
@@ -163,7 +160,7 @@ void EventLoop::PrintActiveChannel() const
 }
 void EventLoop::DoPendingFunctor()
 {
-	vector<Functor> pending_functor; // Local variable.
+	FunctorVector pending_functor; // Local variable.
 	calling_pending_functor_ = true;
 
 	// Critical Section: Swap this empty local vector and pending_functor_vector_.
@@ -178,15 +175,15 @@ void EventLoop::DoPendingFunctor()
 	// 1.	Shorten the length of critical section, so we won't block other threads calling
 	//		QueueInLoop(). Since we use one mutex `mutex_` to guard
 	//		`pending_functor_vector_`, when we are in this critical section, the mutex_ is
-	//		locked, so the threads that calls QueueInLoop() will block in its critical section.
+	//		locked, so the threads that calls QueueInLoop() will block.
 	// 2.	Avoid deadlock. Because the calling functor may call QueueInLoop() again, and
 	//		in QueueInLoop(), we lock the mutex_ again, that is, we have locked a mutex,
 	//		but we still request ourself mutex, this will cause a deadlock.
 
-	int functor_number = static_cast<int>(pending_functor.size());
-	for(int index = 0; index < functor_number; ++index)
+	for(FunctorVector::iterator it = pending_functor.begin();
+	        it != pending_functor.end(); ++it)
 	{
-		pending_functor[index]();
+		(*it)();
 	}
 	// We don't repeat above loop until the pending_functor is empty, otherwise the loop
 	// thread may go into infinite loop, can't handle IO events.
@@ -195,17 +192,17 @@ void EventLoop::DoPendingFunctor()
 
 // Quit() set quit_ to be true to terminate loop. But the actual quit happen when
 // EventLoop::Loop() check `while(quit_ == false)`. If Quit() happens in other threads
-// (not in IO thread), we wakeup the IO thread and it will check `while(quit_ == false)`,
+// (not in loop thread), we wakeup the loop thread and it will check `while(quit_ == false)`,
 // so it stops looping instantly.
 void EventLoop::Quit()
 {
 	quit_ = true;
-	// There is a chance that Loop() just executes `while(quit_ == true)` and exits,
+	// TODO: There is a chance that Loop() just executes `while(quit_ == true)` and exits,
 	// then EventLoop destructs, then we are accessing an invalid object.
 	// Can be fixed using mutex_ in both places.
 	if(IsInLoopThread() == false)
 	{
-		Wakeup(); // Wakeup IO thread when we want to quit in other threads.
+		Wakeup(); // Wakeup loop thread when we want to quit in other threads.
 	}
 }
 
@@ -231,7 +228,7 @@ TimerId EventLoop::RunEvery(const TimerCallback &callback, double interval)
 
 void EventLoop::AddOrUpdateChannel(Channel *channel)
 {
-	// Only can update channel that this EventLoop owns.
+	// NOTE: Only can update channel that this EventLoop owns.
 	assert(channel->owner_loop() == this);
 	AssertInLoopThread();
 	epoller_->AddOrUpdateChannel(channel);
@@ -240,7 +237,12 @@ void EventLoop::RemoveChannel(Channel *channel)
 {
 	assert(channel->owner_loop() == this);
 	AssertInLoopThread();
-	// TODO: What's meaning?
+	// TODO: What's meaning? What's use???
+	// Me: If `RemoveChannel()` while `Loop()` is in `for(;;) HandleEvent();`, then the
+	// channel to be removed must be:
+	// 1.	Not in active channel vector.
+	// 2.	In active channel vector: it must be current_active_channel_, can't be
+	//		any other active channel.
 	if(event_handling_ == true)
 	{
 		assert(current_active_channel_ == channel ||
@@ -276,15 +278,15 @@ void EventLoop::QueueInLoop(const Functor &callback)
 		pending_functor_vector_.push_back(callback); // Add this functor to functor queue.
 		// lock is about to destruct, its destructor calls `mutex_.Unlock()`.
 	}
-	// Wakeup IO thread when either of following conditions satisfy:
-	//		1. This thread(i.e., the calling thread) is not the IO thread.
-	//		2. This thread is IO thread, but now it is calling pending functor.
-	//			`calling_pending_functor_` is true only in DoPendingFunctor() when
-	//			we call each pending functor. When the pending functor calls QueueInLoop()
-	//			again, we must Wakeup() IO thread, otherwise the newly added callbacks
-	//			won't be called on time.
-	// That is, only calling QueueInLoop in the EventCallback(s) of IO thread, can
-	// we not Wakeup IO thread.
+	// Wakeup loop thread when either of the following conditions satisfy:
+	//	1. This thread(i.e., the calling thread) is not the loop thread.
+	//	2. This thread is loop thread, but now it is calling pending functor.
+	//		`calling_pending_functor_` is true only in DoPendingFunctor() when
+	//		we call each pending functor. When the pending functor calls QueueInLoop()
+	//		again, we must Wakeup() loop thread, otherwise the newly added callbacks
+	//		won't be called on time.
+	// That is, only calling QueueInLoop in the EventCallback(s) of loop thread, can
+	// we not Wakeup loop thread.
 	if(IsInLoopThread() == false || calling_pending_functor_ == true)
 	{
 		Wakeup();

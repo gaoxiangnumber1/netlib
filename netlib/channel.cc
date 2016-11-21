@@ -32,11 +32,11 @@ using netlib::Channel;
 // EPOLLHUP
 // Hang up happened on the fd. epoll_wait(2) always wait for this event;
 // it is not necessary to set it in events.
-const int kNoneEvent = 0;
-const int kReadEvent = EPOLLIN | EPOLLPRI | EPOLLRDHUP;
-const int kWriteEvent = EPOLLOUT;
-const int kCloseEvent = EPOLLHUP;
-const int kErrorEvent = EPOLLERR;
+const int Channel::kNoneEvent = 0;
+const int Channel::kReadEvent = EPOLLIN | EPOLLPRI | EPOLLRDHUP;
+const int Channel::kWriteEvent = EPOLLOUT;
+const int Channel::kCloseEvent = EPOLLHUP;
+const int Channel::kErrorEvent = EPOLLERR;
 
 // declaration of ‘fd’ shadows a member of 'this' [-Werror=shadow]
 Channel::Channel(EventLoop *loop, int file_descriptor):
