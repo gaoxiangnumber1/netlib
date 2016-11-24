@@ -21,7 +21,8 @@ SOURCE =	mutex_test.cc \
 					$(SRC)/epoller.cc \
 					$(SRC)/channel.cc \
 					$(SRC)/timer_queue.cc \
-					event_loop_test.cc $(SRC)/event_loop.cc
+					event_loop_test.cc $(SRC)/event_loop.cc \
+					buffer_test.cc $(SRC)/buffer.cc
 OBJECT = $(SOURCE:.cc=.o)
 
 MUTEX_TEST = mutex_test
@@ -44,9 +45,12 @@ EVENT_LOOP_TEST = event_loop_test
 EVENT_LOOP_OBJ =	event_loop_test.o $(SRC)/event_loop.o $(SRC)/thread.o $(SRC)/logging.o \
 										$(SRC)/epoller.o $(SRC)/timer_queue.o $(SRC)/channel.o \
 										$(SRC)/time_stamp.o $(SRC)/timer.o
+BUFFER_TEST = buffer_test
+BUFFER_OBJ = buffer_test.o $(SRC)/buffer.o
 TEST =	$(MUTEX_TEST) $(THREAD_TEST) $(THREAD_BENCH) \
 				$(THREAD_POOL_TEST) $(TIME_STAMP_TEST) \
-				$(LOG_TEST) $(SOCKET_ADDRESS_TEST) $(EVENT_LOOP_TEST)
+				$(LOG_TEST) $(SOCKET_ADDRESS_TEST) $(EVENT_LOOP_TEST) \
+				$(BUFFER_TEST)
 
 all: $(OBJECT) $(TEST)
 
@@ -72,6 +76,9 @@ $(SOCKET_ADDRESS_TEST): $(SOCKET_ADDRESS_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 $(EVENT_LOOP_TEST): $(EVENT_LOOP_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(BUFFER_TEST): $(BUFFER_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 .cc.o:
