@@ -1,9 +1,10 @@
 #ifndef NETLIB_NETLIB_EVENT_LOOP_THREAD_POOL_H_
 #define NETLIB_NETLIB_EVENT_LOOP_THREAD_POOL_H_
 
-#include <netlib/non_copyable.h>
-#include <netlib/logging.h>
 #include <vector>
+#include <functional>
+
+#include <netlib/non_copyable.h>
 
 namespace netlib
 {
@@ -14,21 +15,21 @@ class EventLoopThread;
 class EventLoopThreadPool: public NonCopyable
 {
 public:
-	EventLoopThreadPool(EventLoop *base_loop);
+	using InitialTask = std::function<void(EventLoop*)>;
+
+	explicit EventLoopThreadPool(EventLoop *base_loop,
+	                             const int thread_number,
+	                             const InitialTask &initial_task = InitialTask());
 	~EventLoopThreadPool();
-	void set_thread_number(int thread_number)
-	{
-		thread_number_ = thread_number;
-		LOG_INFO("thread_number_ = %d", thread_number_);
-	}
 	void Start();
 	EventLoop *GetNextLoop();
 
 private:
 	EventLoop *base_loop_;
+	const int thread_number_;
+	InitialTask initial_task_;
 	bool started_;
-	int thread_number_;
-	int next_; // Always in loop thread.
+	int next_loop_index_; // Always in loop thread.
 	std::vector<EventLoopThread*> thread_pool_;
 	std::vector<EventLoop*> loop_pool_;
 };

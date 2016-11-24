@@ -20,7 +20,7 @@ struct sockaddr *CastToNonConstsockaddr(struct sockaddr_in *address)
 
 // Create an IPv4, nonblocking, and TCP socket file descriptor, abort if any error.
 // Called in Acceptor class and Connector class.
-int CreateNonblockingOrDie(sa_family_t family);
+int CreateNonblockingSocket(sa_family_t family);
 // Return the address to which the socket socket_fd is bound.
 // Called in TcpServer class and TcpClient class.
 struct sockaddr_in GetLocalAddress(int socket_fd);

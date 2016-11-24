@@ -14,7 +14,9 @@ class EventLoop;
 class EventLoopThread: public NonCopyable
 {
 public:
-	EventLoopThread();
+	using InitialTask = std::function<void(EventLoop*)>;
+
+	EventLoopThread(const InitialTask &task = InitialTask());
 	~EventLoopThread();
 	EventLoop *StartLoop();
 
@@ -22,10 +24,11 @@ private:
 	void ThreadFunction();
 
 	EventLoop *loop_;
-	bool exiting_;
+	bool exiting_; // May have no use.
 	Thread thread_;
 	MutexLock mutex_;
 	Condition condition_;
+	InitialTask initial_task_;
 };
 
 }

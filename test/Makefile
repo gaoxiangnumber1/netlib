@@ -19,10 +19,13 @@ SOURCE =	mutex_test.cc \
 					socket_address_test.cc $(SRC)/socket_address.cc \
 					$(SRC)/socket_operation.cc \
 					$(SRC)/epoller.cc \
-					$(SRC)/channel.cc \
-					$(SRC)/timer_queue.cc \
+					channel_test.cc $(SRC)/channel.cc \
+					timer_queue_test.cc $(SRC)/timer_queue.cc \
 					event_loop_test.cc $(SRC)/event_loop.cc \
-					buffer_test.cc $(SRC)/buffer.cc
+					event_loop_thread_test.cc $(SRC)/event_loop_thread.cc \
+					event_loop_thread_pool_test.cc $(SRC)/event_loop_thread_pool.cc \
+					buffer_test.cc $(SRC)/buffer.cc\
+					$(SRC)/acceptor.cc
 OBJECT = $(SOURCE:.cc=.o)
 
 MUTEX_TEST = mutex_test
@@ -42,15 +45,29 @@ SOCKET_ADDRESS_TEST = socket_address_test
 SOCKET_ADDRESS_OBJ =	socket_address_test.o $(SRC)/socket_address.o $(SRC)/logging.o \
 												 $(SRC)/thread.o
 EVENT_LOOP_TEST = event_loop_test
-EVENT_LOOP_OBJ =	event_loop_test.o $(SRC)/event_loop.o $(SRC)/thread.o $(SRC)/logging.o \
+EVENT_LOOP_OBJ =	$(SRC)/event_loop.o $(SRC)/thread.o $(SRC)/logging.o \
 										$(SRC)/epoller.o $(SRC)/timer_queue.o $(SRC)/channel.o \
 										$(SRC)/time_stamp.o $(SRC)/timer.o
+EVENT_LOOP_TEST_OBJ = event_loop_test.o $(EVENT_LOOP_OBJ)
 BUFFER_TEST = buffer_test
 BUFFER_OBJ = buffer_test.o $(SRC)/buffer.o
+CHANNEL_TEST = channel_test
+CHANNEL_OBJ =	channel_test.o $(EVENT_LOOP_OBJ)
+TIMER_QUEUE_TEST = timer_queue_test
+TIMER_QUEUE_OBJ =	timer_queue_test.o $(SRC)/event_loop_thread.o $(EVENT_LOOP_OBJ)
+EVENT_LOOP_THREAD_TEST = event_loop_thread_test
+EVENT_LOOP_THREAD_OBJ =	event_loop_thread_test.o $(SRC)/event_loop_thread.o \
+														$(EVENT_LOOP_OBJ)
+EVENT_LOOP_THREAD_POOL_TEST = event_loop_thread_pool_test
+EVENT_LOOP_THREAD_POOL_OBJ =	event_loop_thread_pool_test.o \
+																	$(SRC)/event_loop_thread_pool.o \
+																	$(SRC)/event_loop_thread.o \
+																	$(EVENT_LOOP_OBJ)
 TEST =	$(MUTEX_TEST) $(THREAD_TEST) $(THREAD_BENCH) \
 				$(THREAD_POOL_TEST) $(TIME_STAMP_TEST) \
 				$(LOG_TEST) $(SOCKET_ADDRESS_TEST) $(EVENT_LOOP_TEST) \
-				$(BUFFER_TEST)
+				$(BUFFER_TEST) $(CHANNEL_TEST) $(TIMER_QUEUE_TEST) \
+				$(EVENT_LOOP_THREAD_TEST) $(EVENT_LOOP_THREAD_POOL_TEST)
 
 all: $(OBJECT) $(TEST)
 
@@ -75,10 +92,22 @@ $(LOG_TEST): $(LOG_OBJ)
 $(SOCKET_ADDRESS_TEST): $(SOCKET_ADDRESS_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
-$(EVENT_LOOP_TEST): $(EVENT_LOOP_OBJ)
+$(EVENT_LOOP_TEST): $(EVENT_LOOP_TEST_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 $(BUFFER_TEST): $(BUFFER_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(CHANNEL_TEST): $(CHANNEL_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(TIMER_QUEUE_TEST): $(TIMER_QUEUE_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(EVENT_LOOP_THREAD_TEST): $(EVENT_LOOP_THREAD_OBJ)
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+$(EVENT_LOOP_THREAD_POOL_TEST): $(EVENT_LOOP_THREAD_POOL_OBJ)
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 .cc.o:

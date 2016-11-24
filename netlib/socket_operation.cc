@@ -6,7 +6,7 @@
 #include <netlib/logging.h>
 
 // Create an IPv4, nonblocking, and TCP socket file descriptor, abort if any error.
-int nso::CreateNonblockingOrDie(sa_family_t family)
+int nso::CreateNonblockingSocket(sa_family_t family)
 {
 	// int socket(int domain, int type, int protocol);
 	// domain specifies a communication domain; this selects the protocol family which

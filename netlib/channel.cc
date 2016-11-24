@@ -19,6 +19,12 @@ using netlib::Channel;
 // This flag is useful to detect peer shutdown when using Edge Triggered.
 // EPOLLOUT
 // fd is available for write(2): normal data can be read.
+// EPOLLHUP
+// Hang up happened on the fd. epoll_wait(2) always wait for this event;
+// it is not necessary to set it in events.
+// EPOLLERR
+// Error condition happened on the fd. epoll_wait(2) always wait for this event,
+// it is not necessary to set it in events.
 // EPOLLET
 // Set the Edge Triggered behavior for fd. Default is Level Triggered.
 // EPOLLONESHOT
@@ -26,12 +32,6 @@ using netlib::Channel;
 // After an event is pulled out with epoll_wait(2), the associated fd is disabled and
 // no other events will be reported by the epoll interface. The user must call epoll_ctl()
 // with EPOLL_CTL_MOD to rearm the fd with a new event mask.
-// EPOLLERR
-// Error condition happened on the fd. epoll_wait(2) always wait for this event,
-// it is not necessary to set it in events.
-// EPOLLHUP
-// Hang up happened on the fd. epoll_wait(2) always wait for this event;
-// it is not necessary to set it in events.
 const int Channel::kNoneEvent = 0;
 const int Channel::kReadEvent = EPOLLIN | EPOLLPRI | EPOLLRDHUP;
 const int Channel::kWriteEvent = EPOLLOUT;
@@ -130,7 +130,7 @@ void Channel::HandleEvent(TimeStamp receive_time)
 {
 	if(tied_ == true)
 	{
-		shared_ptr<void> guard = tie_.lock();
+		shared_ptr<void> guard = tie_.lock(); // NOTE: Not `shared_ptr<void> &`
 		if(guard)
 		{
 			HandleEventWithGuard(receive_time);
@@ -199,6 +199,10 @@ string Channel::EventToString(int fd, int event)
 	{
 		ptr += snprintf(ptr, buffer_end - ptr, "%s", "PRI ");
 	}
+	if(event & EPOLLRDHUP)
+	{
+		ptr += snprintf(ptr, buffer_end - ptr, "%s", "RDHUP ");
+	}
 	if(event & EPOLLOUT)
 	{
 		ptr += snprintf(ptr, buffer_end - ptr, "%s", "OUT ");
@@ -206,10 +210,6 @@ string Channel::EventToString(int fd, int event)
 	if(event & EPOLLHUP)
 	{
 		ptr += snprintf(ptr, buffer_end - ptr, "%s", "HUP ");
-	}
-	if(event & EPOLLRDHUP)
-	{
-		ptr += snprintf(ptr, buffer_end - ptr, "%s", "RDHUP ");
 	}
 	if(event & EPOLLERR)
 	{

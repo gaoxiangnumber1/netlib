@@ -23,7 +23,10 @@ public:
 	// Mostly used when accepting new connections.
 	explicit SocketAddress(const struct sockaddr_in &address): address_(address) {}
 	// For future support for IPv6
-	// sa_family_t socket_family() const {return address_.sin_family;}
+	sa_family_t socket_family() const
+	{
+		return address_.sin_family;
+	}
 	const struct sockaddr *socket_address() const;
 	void set_socket_address(const struct sockaddr_in &address)
 	{

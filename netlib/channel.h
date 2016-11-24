@@ -105,7 +105,8 @@ private:
 	static const int kCloseEvent;
 	static const int kErrorEvent;
 
-	// -> EventLoop::AOUC(Channel*) -> Epoller::AOUC(Channel*)
+	// set_requested_event() -> here -> EventLoop::AOUC(Channel*) ->
+	// Epoller::AOUC(Channel*)
 	// Add new Channel(O(logN)) or update already existing Channel(O(1))
 	// in `channel_set_`.
 	void AddOrUpdateChannel();
@@ -131,9 +132,9 @@ private:
 	// HandEventWithGuard().
 	std::weak_ptr<void> tie_;
 	bool tied_;
-	// Set in HandleEventWithGuard(); Used for assertion in Dtor().
+	// NOTE: Set in HandleEventWithGuard(); Used for assertion in Dtor().
 	bool event_handling_;
-	// Set in AddOrUpdateChannel() and RemoveChannel(); Used for assertion in Dtor().
+	// NOTE: Set in AddOrUpdateC() and RemoveC(); Used for assertion in Dtor().
 	bool added_to_loop_;
 	// Different callbacks called when corresponding event happens.
 	EventCallback read_callback_;

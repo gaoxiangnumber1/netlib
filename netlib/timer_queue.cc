@@ -123,7 +123,6 @@ void TimerQueue::GetAndRemoveExpiredTimer(TimeStamp now)
 // Restart or delete expired timer and update timer_fd_'s expiration time.
 void TimerQueue::Refresh(TimeStamp now)
 {
-	bool is_first_expired = false;
 	// 1. For expired timer:
 	//		(1). Restart if it can repeat and not be canceled.
 	//		(2). Delete it otherwise.
@@ -138,7 +137,7 @@ void TimerQueue::Refresh(TimeStamp now)
 		{
 			// Restart timer and insert the updated Timer* into timer pair set again.
 			(*it)->Restart(now);
-			is_first_expired = InsertIntoActiveTimerSet(*it) ? true : is_first_expired;
+			InsertIntoActiveTimerSet(*it);
 		}
 		else
 		{
@@ -148,8 +147,8 @@ void TimerQueue::Refresh(TimeStamp now)
 			// we don't need erase this deleted Timer* in expired_time_ vector.
 		}
 	}
-	// 2. Set next expiration time.
-	if(is_first_expired == true)
+	// 2. NOTE: Set next expiration time if active timer set is not empty!
+	if(active_timer_set_.empty() == false)
 	{
 		SetExpiredTime(active_timer_set_.begin()->second->expired_time());
 	}
@@ -271,6 +270,7 @@ void TimerQueue::AddTimerInLoop(Timer *timer)
 	// 2. If this timer will expire first, update timer_fd_'s expiration time.
 	if(is_first_expired == true)
 	{
+		//printf("is_first_expired == true\n");
 		SetExpiredTime(timer->expired_time());
 	}
 }

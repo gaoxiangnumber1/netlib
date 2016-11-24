@@ -1,33 +1,35 @@
 #include <netlib/event_loop_thread.h>
 
-#include <assert.h> // assert()
-
-#include <functional> // bind<>
-
 #include <netlib/event_loop.h>
 
 using std::bind;
 using netlib::EventLoopThread;
 using netlib::EventLoop;
 
-EventLoopThread::EventLoopThread():
+EventLoopThread::EventLoopThread(const InitialTask &task):
 	loop_(nullptr),
 	exiting_(false),
 	thread_(bind(&EventLoopThread::ThreadFunction, this)),
 	mutex_(),
-	condition_(mutex_)
+	condition_(mutex_),
+	initial_task_(task)
 {}
 
 EventLoopThread::~EventLoopThread()
 {
 	exiting_ = true;
-	loop_->Quit();
-	thread_.Join();
+	// FIXME: Not 100% race-free, eg. ThreadFunction could be running callback_.
+	if(loop_ != nullptr)
+	{
+		// A little chance to call destructed object, if ThreadFunction exits just now.
+		// But when EventLoopThread destructs, usually programming is exiting anyway.
+		loop_->Quit();
+		thread_.Join();
+	}
 }
 
 EventLoop *EventLoopThread::StartLoop()
 {
-	assert(thread_.started() == false);
 	thread_.Start();
 	{
 		MutexLockGuard lock(mutex_);
@@ -44,10 +46,17 @@ void EventLoopThread::ThreadFunction()
 {
 	// Create object on stack.
 	EventLoop loop;
+	if(initial_task_)
+	{
+		initial_task_(&loop);
+	}
+
 	{
 		MutexLockGuard lock(mutex_);
 		loop_ = &loop; // Assign stack object's address to the data member.
 		condition_.Notify(); // Notify the condition -> Wakeup StartLoop().
 	}
+
 	loop.Loop();
+	loop_ = nullptr;
 }
