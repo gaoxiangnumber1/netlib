@@ -26,6 +26,7 @@ class TcpConnection: public NonCopyable,
 	public std::enable_shared_from_this<TcpConnection>
 {
 public:
+	// enum CallbackType {};
 	// Construct a TcpConnection with a connected socket.
 	// User should not create this object.
 	TcpConnection(EventLoop *event_loop,
