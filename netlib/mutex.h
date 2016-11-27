@@ -1,7 +1,7 @@
 #ifndef NETLIB_NETLIB_MUTEX_H_
 #define NETLIB_NETLIB_MUTEX_H_
 
-#include <assert.h> // assert()
+#include <assert.h> //  assert()
 #include <pthread.h> // pthread_*
 #include <sys/types.h> // pid_t
 
