@@ -12,7 +12,7 @@ namespace netlib
 class EventLoop;
 
 // Interface:
-// Ctor(EventLoop*, int).
+// Ctor.
 // Dtor.
 // Getter: owner_loop, fd, requested_event, state_in_channel.
 // Setter:	set_requested_event -> -AddOrUpdateChannel.
