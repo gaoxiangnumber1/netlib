@@ -25,7 +25,9 @@ SOURCE =	mutex_test.cc \
 					event_loop_thread_test.cc $(SRC)/event_loop_thread.cc \
 					event_loop_thread_pool_test.cc $(SRC)/event_loop_thread_pool.cc \
 					buffer_test.cc $(SRC)/buffer.cc\
-					$(SRC)/acceptor.cc
+					$(SRC)/acceptor.cc \
+					$(SRC)/tcp_connection.cc \
+					$(SRC)/tcp_server.cc
 OBJECT = $(SOURCE:.cc=.o)
 
 MUTEX_TEST = mutex_test
