@@ -43,6 +43,11 @@ public:
 	void Append(const std::string &data);
 
 	// Output API:
+	// The begin pointer of data to be read. Must be read-only.
+	const char *ReadableBegin() const
+	{
+		return BufferBegin() + read_index_;
+	}
 	std::string RetrieveAsString(int length);
 	std::string RetrieveAllAsString();
 	void Retrieve(int length);
@@ -56,11 +61,6 @@ private:
 	char *BufferBegin()
 	{
 		return &(*buffer_.begin());
-	}
-	// The begin pointer of data to be read. Must be read-only.
-	const char *ReadableBegin() const
-	{
-		return BufferBegin() + read_index_;
 	}
 	const char *WritableBegin() const
 	{
