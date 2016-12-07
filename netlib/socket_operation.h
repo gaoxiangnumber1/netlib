@@ -24,6 +24,7 @@ int CreateNonblockingSocket(sa_family_t family);
 // Return the address to which the socket socket_fd is bound.
 // Called in TcpServer class and TcpClient class.
 struct sockaddr_in GetLocalAddress(int socket_fd);
+struct sockaddr_in GetPeerAddress(int socket_fd);
 // Used in `TcpConnection::HandleError()` and Connector class.
 int GetSocketError(int socket_fd);
 
