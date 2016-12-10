@@ -1,15 +1,34 @@
 #include <netlib/tcp_connection.h>
 
+#include <unistd.h> // write()
+
+#include <netlib/channel.h>
 #include <netlib/event_loop.h>
 #include <netlib/logging.h>
 #include <netlib/socket.h>
 #include <netlib/socket_operation.h>
-#include <netlib/channel.h>
 
 using std::string;
 using std::bind;
 using std::placeholders::_1;
 using netlib::TcpConnection;
+
+void netlib::DefaultConnectionCallback(const TcpConnectionPtr &connection)
+{
+	LOG_TRACE("%s -> %s is %s",
+	          connection->local_address().ToIpPortString().c_str(),
+	          connection->peer_address().ToIpPortString().c_str(),
+	          (connection->Connected() ? "UP" : "DOWN"));
+	// Do not call connection->ForceClose() because some users
+	// want to register message callback only.
+}
+
+void netlib::DefaultMessageCallback(const TcpConnectionPtr&,
+                                    Buffer *buffer,
+                                    TimeStamp)
+{
+	buffer->RetrieveAll();
+}
 
 TcpConnection::TcpConnection(EventLoop *event_loop,
                              const string string_name,
@@ -23,20 +42,30 @@ TcpConnection::TcpConnection(EventLoop *event_loop,
 	channel_(new Channel(loop_, socket)),
 	local_address_(local),
 	peer_address_(peer),
-	high_water_mark_(64 * 1024 * 1024)
+	high_water_mark_(kInitialHighWaterMark)
 {
-	LOG_INFO("TcpConnection::ctor[%s] at %p fd=%d", name_.c_str(), this, socket);
-	channel_->set_read_callback(bind(&TcpConnection::HandleRead, this, _1));
-	channel_->set_write_callback(bind(&TcpConnection::HandleWrite, this));
-	channel_->set_close_callback(bind(&TcpConnection::HandleClose, this));
-	channel_->set_error_callback(bind(&TcpConnection::HandleError, this));
+	channel_->set_event_callback(Channel::READ_CALLBACK,
+	                             bind(&TcpConnection::HandleRead, this, _1));
+	channel_->set_event_callback(Channel::WRITE_CALLBACK,
+	                             bind(&TcpConnection::HandleWrite, this));
+	channel_->set_event_callback(Channel::CLOSE_CALLBACK,
+	                             bind(&TcpConnection::HandleClose, this));
+	channel_->set_event_callback(Channel::ERROR_CALLBACK,
+	                             bind(&TcpConnection::HandleError, this));
+	LOG_DEBUG("TcpConnection::ctor[%s] at %p fd=%d", name_.c_str(), this, socket);
 	socket_->SetTcpKeepAlive(true);
 }
 
 TcpConnection::~TcpConnection()
 {
-	LOG_INFO("TcpConnection::dtor[%s] at %p fd=%d",
-	         name_.c_str(), this, channel_->fd());
+	LOG_DEBUG("TcpConnection::dtor[%s] at %p fd = %d state = %s",
+	          name_.c_str(), this, channel_->fd(), StateToCString());
+	assert(state_ == DISCONNECTED);
+}
+
+void TcpConnection::SetTcpNoDelay(bool on)
+{
+	socket_->SetTcpNoDelay(on);
 }
 
 // Called by TcpServer::HandleNewConnection().
@@ -45,60 +74,106 @@ void TcpConnection::ConnectEstablished()
 	loop_->AssertInLoopThread();
 	assert(state_ == CONNECTING);
 	set_state(CONNECTED);
-	// Monitor the IO readable events on socket_.
-	channel_->set_requested_event_read();
-	// std::function<void(const TcpConnectionPtr&)>;
+	channel_->set_tie(shared_from_this());
+	channel_->set_requested_event(Channel::READ_EVENT);
 	connection_callback_(shared_from_this());
 }
 
-// This is the last member function called by TcpConnection object before destructing.
-// It notifies the user that the connection is down.
-void TcpConnection::ConnectDestroyed()
+void TcpConnection::Send(const string &message)
+{
+	if(state_ == CONNECTED)
+	{
+		if(loop_->IsInLoopThread() == true)
+		{
+			SendInLoop(message.data(), static_cast<int>(message.size()));
+		}
+		else
+		{
+			// TODO: Use C++11::move(string&&) to avoid the copy of string content.
+			loop_->RunInLoop(std::bind(&TcpConnection::SendInLoop,
+			                           this,
+			                           message.data(),
+			                           static_cast<int>(message.size())));
+		}
+	}
+}
+// FIXME efficiency!!!
+void TcpConnection::Send(Buffer *buffer)
+{
+	if(state_ == CONNECTED)
+	{
+		if(loop_->IsInLoopThread() == true)
+		{
+			SendInLoop(buffer->ReadableBegin(), buffer->ReadableByte());
+			buffer->RetrieveAll();
+		}
+		else
+		{
+			loop_->RunInLoop(bind(&TcpConnection::SendInLoop,
+			                      this,
+			                      buffer->ReadableBegin(),
+			                      buffer->ReadableByte()));
+		}
+	}
+}
+void TcpConnection::SendInLoop(const char *data, int length)
 {
 	loop_->AssertInLoopThread();
-	assert(state_ == CONNECTED || state_ == DISCONNECTING);
-	set_state(DISCONNECTED);
-	// This line is repeated as in HandleClose() since we may call ConnectDestroyed()
-	// directly, not through HandleClose().
-	channel_->set_requested_event_none();
-	connection_callback_(shared_from_this());
-	loop_->RemoveChannel(channel_.get());
-}
-
-// Called when socket_ is readable.
-void TcpConnection::HandleRead(TimeStamp receive_time)
-{
-	int saved_errno = 0;
-	int read_byte = input_buffer_.ReadFd(channel_->fd(), &saved_errno);
-	if(read_byte > 0)
+	if(state_ == DISCONNECTED)
 	{
-		message_callback_(shared_from_this(), &input_buffer_, receive_time);
+		LOG_WARN("Disconnected, Give up writing.");
+		return;
 	}
-	else if(read_byte == 0)
-	{
-		HandleClose();
-	}
-	else
-	{
-		errno = saved_errno;
-		HandleError();
-	}
-}
 
-void TcpConnection::HandleClose()
-{
-	loop_->AssertInLoopThread();
-	assert(state_ == CONNECTED || state_ == DISCONNECTING);
-	// We don't close fd, leave it to dtor, so we can find leaks easily.
-	channel_->set_requested_event_none();
-	close_callback_(shared_from_this());
-}
+	int write_byte = 0, remaining_byte = length;
+	bool has_error = false;
+	// If we are not writing and there is no data in the output buffer, try writing directly.
+	// Otherwise, the data may be out of order.
+	if(channel_->IsRequestedArgumentEvent(Channel::WRITE_EVENT) == false &&
+	        output_buffer_.ReadableByte() == 0)
+	{
+		write_byte = static_cast<int>(::write(channel_->fd(), data, length));
+		if(write_byte >= 0)
+		{
+			remaining_byte = length - write_byte;
+			if(remaining_byte == 0 && write_complete_callback_)
+			{
+				loop_->QueueInLoop(bind(write_complete_callback_, shared_from_this()));
+			}
+		}
+		else
+		{
+			write_byte = 0;
+			if(errno != EWOULDBLOCK)
+			{
+				LOG_ERROR("TcpConnection::SendInLoop");
+				if(errno == EPIPE || errno == ECONNRESET)
+				{
+					has_error = true;
+				}
+			}
+		}
+	}
 
-void TcpConnection::HandleError()
-{
-	int error = nso::GetSocketError(channel_->fd());
-	LOG_INFO("TcpConnection::handleError [%s] - SO_ERROR = %d %s",
-	         name_.c_str(), error, ThreadSafeStrError(error));
+	// Only send partial data, store left data in output buffer and monitor IO writable
+	// event. Send left data in HandleWrite().
+	if(has_error == false && remaining_byte > 0)
+	{
+		int buffered_byte = output_buffer_.ReadableByte();
+		if(buffered_byte + remaining_byte >= high_water_mark_ &&
+		        buffered_byte < high_water_mark_ &&
+		        high_water_mark_callback_)
+		{
+			loop_->QueueInLoop(bind(high_water_mark_callback_,
+			                        shared_from_this(),
+			                        buffered_byte + remaining_byte));
+		}
+		output_buffer_.Append(data + write_byte, remaining_byte);
+		if(channel_->IsRequestedArgumentEvent(Channel::WRITE_EVENT) == false)
+		{
+			channel_->set_requested_event(Channel::WRITE_EVENT);
+		}
+	}
 }
 
 void TcpConnection::Shutdown()
@@ -111,85 +186,91 @@ void TcpConnection::Shutdown()
 		loop_->RunInLoop(bind(&TcpConnection::ShutdownInLoop, this));
 	}
 }
-
 void TcpConnection::ShutdownInLoop()
 {
 	loop_->AssertInLoopThread();
-	if(channel_->IsWriting() == false)
+	if(channel_->IsRequestedArgumentEvent(Channel::WRITE_EVENT) == false)
 	{
-		socket_->ShutdownWrite();
+		socket_->ShutdownOnWrite();
 	}
 }
-
-void TcpConnection::Send(const std::string &message)
+void TcpConnection::ForceClose()
 {
-	if(state_ == CONNECTED)
+	if(state_ == CONNECTED || state_ == DISCONNECTING)
 	{
-		if(loop_->IsInLoopThread() == true)
-		{
-			SendInLoop(message);
-		}
-		else
-		{
-			// TODO: Use C++11::move(string&&) to avoid the copy of string content.
-			loop_->RunInLoop(bind(&TcpConnection::SendInLoop, this, message));
-		}
+		set_state(DISCONNECTING);
+		loop_->QueueInLoop(bind(&TcpConnection::ForceCloseInLoop, shared_from_this()));
 	}
 }
-
-void TcpConnection::SendInLoop(const std::string &message)
+void TcpConnection::ForceCloseInLoop()
 {
 	loop_->AssertInLoopThread();
-
-	int write_byte = 0, message_size = static_cast<int>(message.size());
-	// If we are not writing and there is no data in the output_buffer_,
-	// try writing directly. If we still send data when output_buffer_ is not empty,
-	// the data may be out of order.
-	if(channel_->IsWriting() == false && output_buffer_.ReadableByte() == 0)
+	if(state_ == CONNECTED || state_ == DISCONNECTING)
 	{
-		write_byte = static_cast<int>(::write(channel_->fd(), message.data(), message_size));
-		if(write_byte >= 0)
-		{
-			if (write_byte < message_size)
-			{
-				LOG_INFO("Not send all data.");
-			}
-			else if(write_complete_callback_)
-			{
-				loop_->QueueInLoop(bind(write_complete_callback_, shared_from_this()));
-			}
-		}
-		else
-		{
-			write_byte = 0;
-			if(errno != EWOULDBLOCK)
-			{
-				LOG_INFO("TcpConnection::SendInLoop error");
-			}
-		}
+		HandleClose(); // As if we received 0 byte in HandleRead().
 	}
-
-	assert(write_byte >= 0);
-	// Only send partial data, store left data in output_buffer_ and monitor
-	// IO writable events. Send left data in HandleWrite().
-	// TODO: Add HighWaterMarkCallback()!
-	if(write_byte < message_size)
+}
+// This is the last member function called by TcpConnection object before destructing.
+// It notifies the user that the connection is down.
+void TcpConnection::ConnectDestroyed()
+{
+	loop_->AssertInLoopThread();
+	if(state_ == CONNECTED)
 	{
-		output_buffer_.Append(message.data() + write_byte, message_size - write_byte);
-		if (channel_->IsWriting() == false)
-		{
-			channel_->set_requested_event_write();
-		}
+		set_state(DISCONNECTED);
+		// This line is repeated as in HandleClose() since we may call
+		// ConnectDestroyed() directly, not through HandleClose().
+		channel_->set_requested_event(Channel::NONE_EVENT);
+		connection_callback_(shared_from_this());
+	}
+	channel_->RemoveChannel();
+}
+
+const char *TcpConnection::StateToCString() const
+{
+	switch(state_)
+	{
+	case DISCONNECTED:
+		return "Disconnected";
+	case CONNECTING:
+		return "Connecting";
+	case CONNECTED:
+		return "Connected";
+	case DISCONNECTING:
+		return "Disconnecting";
+	default:
+		return "Unknown state";
 	}
 }
 
+// Called when socket_ is readable.
+void TcpConnection::HandleRead(TimeStamp receive_time)
+{
+	loop_->AssertInLoopThread();
+	int saved_errno = 0;
+	int read_byte = input_buffer_.ReadFd(channel_->fd(), saved_errno);
+	if(read_byte > 0)
+	{
+		message_callback_(shared_from_this(), &input_buffer_, receive_time);
+	}
+	else if(read_byte == 0)
+	{
+		HandleClose();
+	}
+	else
+	{
+		errno = saved_errno;
+		LOG_ERROR("TcpConnection::HandleRead");
+		HandleError();
+	}
+}
 void TcpConnection::HandleWrite()
 {
 	loop_->AssertInLoopThread();
-	if(channel_->IsWriting() == true)
+	if(channel_->IsRequestedArgumentEvent(Channel::WRITE_EVENT) == true)
 	{
 		int write_byte = static_cast<int>(::write(channel_->fd(),
-		                                  output_buffer_.Peek(),
+		                                  output_buffer_.ReadableBegin(),
 		                                  output_buffer_.ReadableByte()));
 		if(write_byte > 0)
 		{
@@ -197,9 +278,7 @@ void TcpConnection::HandleWrite()
 			// Have send all data in the output_buffer_.
 			if(output_buffer_.ReadableByte() == 0)
 			{
-				// TODO: Why in level trigger we need stop monitoring
-				// the writable events to avoid busy loop?
-				channel_->set_requested_event_not_write();
+				channel_->set_requested_event(Channel::NOT_WRITE);
 				if(write_complete_callback_)
 				{
 					loop_->QueueInLoop(bind(write_complete_callback_, shared_from_this()));
@@ -211,23 +290,32 @@ void TcpConnection::HandleWrite()
 					ShutdownInLoop();
 				}
 			}
-			else
-			{
-				LOG_INFO("Not send all data.");
-			}
 		}
 		else
 		{
-			LOG_INFO("HandleWrite write error.");
+			LOG_ERROR("TcpConnection::HandleWrite");
 		}
 	}
 	else
 	{
-		LOG_INFO("No need to write.");
+		LOG_TRACE("Connection fd = %d is down, no more writing.", channel_->fd());
 	}
 }
-
-void TcpConnection::SetTcpNoDelay(bool on)
+void TcpConnection::HandleClose()
 {
-	socket_->SetTcpNoDelay(on);
+	loop_->AssertInLoopThread();
+	LOG_TRACE("fd = %d, state = %s", channel_->fd(), StateToCString());
+	assert(state_ == CONNECTED || state_ == DISCONNECTING);
+	set_state(DISCONNECTED);
+	// We don't close fd, leave it to dtor, so we can find leaks easily.
+	channel_->set_requested_event(Channel::NONE_EVENT);
+	TcpConnectionPtr guard(shared_from_this());
+	connection_callback_(guard);
+	close_callback_(guard);
+}
+void TcpConnection::HandleError()
+{
+	int error = nso::GetSocketError(channel_->fd());
+	LOG_INFO("TcpConnection::handleError [%s] - SO_ERROR = %d %s",
+	         name_.c_str(), error, ThreadSafeStrError(error));
 }
