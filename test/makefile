@@ -27,7 +27,9 @@ SOURCE =	mutex_test.cc \
 					buffer_test.cc $(SRC)/buffer.cc\
 					$(SRC)/acceptor.cc \
 					$(SRC)/tcp_connection.cc \
-					$(SRC)/tcp_server.cc
+					$(SRC)/tcp_server.cc \
+					$(SRC)/connector.cc \
+					$(SRC)/tcp_client.cc
 OBJECT = $(SOURCE:.cc=.o)
 
 MUTEX_TEST = mutex_test
