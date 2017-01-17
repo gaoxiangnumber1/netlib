@@ -6,25 +6,6 @@
 
 #include <netlib/copyable.h> // Copyable
 
-#define LOG(level, ...) do \
-{ \
-	if(level >= netlib::Logger::log_level()) \
-	{ \
-		::snprintf(0, 0, __VA_ARGS__); \
-		netlib::Logger::Log(level, __FILE__, __func__, __LINE__, errno, __VA_ARGS__); \
-	} \
-} \
-while(false);
-
-#define LOG_TRACE(...) LOG(netlib::Logger::TRACE, __VA_ARGS__)
-#define LOG_DEBUG(...) LOG(netlib::Logger::DEBUG, __VA_ARGS__)
-#define LOG_INFO(...) LOG(netlib::Logger::INFO, __VA_ARGS__)
-#define LOG_WARN(...) LOG(netlib::Logger::WARN, __VA_ARGS__)
-#define LOG_ERROR(...) LOG(netlib::Logger::ERROR, __VA_ARGS__)
-#define LOG_FATAL(...) LOG(netlib::Logger::FATAL, __VA_ARGS__)
-
-#define SetLogLevel(level) netlib::Logger::set_log_level(netlib::Logger::level)
-
 namespace netlib
 {
 
@@ -51,7 +32,8 @@ public:
 	{
 		log_level_ = level;
 	}
-	static void Log(LogLevel, const char*, const char*, const int, int, const char* ...);
+	static void Log(LogLevel level, const char *file, const char *func, const int line,
+	                int saved_errno, const char *format ...);
 
 private:
 	static const char *log_level_string_[OFF];
@@ -60,11 +42,6 @@ private:
 
 const char *ThreadSafeStrError(int saved_errno);
 
-// Check the input is non null.  This is useful in constructor initializer lists.
-#define CHECK_NOT_NULL(val) \
-netlib::CheckNotNull("'" #val "' Must be non NULL", (val))
-
-// A helper for CHECK_NOTNULL().
 template <typename T>
 T *CheckNotNull(const char *name, T *ptr)
 {
@@ -75,6 +52,29 @@ T *CheckNotNull(const char *name, T *ptr)
 	return ptr;
 }
 
+// Check the input is not null.  This is useful in constructor initializer lists.
+#define CHECK_NOT_NULL(val) \
+netlib::CheckNotNull("'" #val "' Must not be NULL", (val))
+
 }
+
+#define LOG(level, ...) do \
+{ \
+	if(level >= netlib::Logger::log_level()) \
+	{ \
+		::snprintf(0, 0, __VA_ARGS__); /* Check whether the format is matched. */ \
+		netlib::Logger::Log(level, __FILE__, __func__, __LINE__, errno, __VA_ARGS__); \
+	} \
+} \
+while(false)
+
+#define LOG_TRACE(...) LOG(netlib::Logger::TRACE, __VA_ARGS__)
+#define LOG_DEBUG(...) LOG(netlib::Logger::DEBUG, __VA_ARGS__)
+#define LOG_INFO(...) LOG(netlib::Logger::INFO, __VA_ARGS__)
+#define LOG_WARN(...) LOG(netlib::Logger::WARN, __VA_ARGS__)
+#define LOG_ERROR(...) LOG(netlib::Logger::ERROR, __VA_ARGS__)
+#define LOG_FATAL(...) LOG(netlib::Logger::FATAL, __VA_ARGS__)
+
+#define SetLogLevel(level) netlib::Logger::set_log_level(netlib::Logger::level)
 
 #endif // NETLIB_NETLIB_LOGGING_H_
