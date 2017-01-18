@@ -25,10 +25,10 @@ const char *Logger::log_level_string_[OFF] =
 };
 Logger::LogLevel Logger::log_level_ = Logger::INFO;
 
-// Print to stdout. Don't need buffer.
+// Print to standard out. Don't need buffer.
 void Logger::Log(LogLevel level,
                  const char *file,
-                 const char *fun,
+                 const char *func,
                  const int line,
                  int saved_errno,
                  const char *format ...)
@@ -45,7 +45,7 @@ void Logger::Log(LogLevel level,
 
 	if(level <= DEBUG) // For TRACE and DEBUG.
 	{
-		printf("%s(): ", fun);
+		printf("%s(): ", func);
 	}
 
 	// #include <stdarg.h>

@@ -6,6 +6,19 @@
 
 #include <netlib/copyable.h> // Copyable
 
+// Interface:
+// log_level
+// set_log_level
+// Log
+// ThreadSafeStrError
+// CheckNotNull
+
+// Macros:
+// SetLogLevel -> +set_log_level
+// LOG -> +Log
+// LOG_XXX -> LOG(XXX, __VA_ARGS__)
+// CHECK_NOT_NULL -> CheckNotNull
+
 namespace netlib
 {
 
@@ -42,21 +55,9 @@ private:
 
 const char *ThreadSafeStrError(int saved_errno);
 
-template <typename T>
-T *CheckNotNull(const char *name, T *ptr)
-{
-	if(ptr == nullptr)
-	{
-		LOG_FATAL("%s", name);
-	}
-	return ptr;
 }
 
-// Check the input is not null.  This is useful in constructor initializer lists.
-#define CHECK_NOT_NULL(val) \
-netlib::CheckNotNull("'" #val "' Must not be NULL", (val))
-
-}
+#define SetLogLevel(level) netlib::Logger::set_log_level(netlib::Logger::level)
 
 #define LOG(level, ...) do \
 { \
@@ -75,6 +76,17 @@ while(false)
 #define LOG_ERROR(...) LOG(netlib::Logger::ERROR, __VA_ARGS__)
 #define LOG_FATAL(...) LOG(netlib::Logger::FATAL, __VA_ARGS__)
 
-#define SetLogLevel(level) netlib::Logger::set_log_level(netlib::Logger::level)
+template <typename T>
+T *CheckNotNull(const char *name, T *ptr)
+{
+	if(ptr == nullptr)
+	{
+		LOG_FATAL("%s", name);
+	}
+	return ptr;
+}
+
+// Check the input is not null.  This is useful in constructor initializer lists.
+#define CHECK_NOT_NULL(val) CheckNotNull("'" #val "' Must not be NULL", (val))
 
 #endif // NETLIB_NETLIB_LOGGING_H_
