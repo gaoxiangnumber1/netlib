@@ -155,7 +155,7 @@ void Connector::Retry(int socket_fd)
 	}
 	else
 	{
-		LOG_DEBUG("Don't connect.")
+		LOG_DEBUG("Don't connect.");
 	}
 }
 
