@@ -21,6 +21,20 @@ namespace netlib
 //			mutable MutexLock mutex_;
 //			std::vector<int> data_; // Guard by mutex_
 //		};
+
+// Interface:
+// Ctor.
+// Dtor.
+// IsLockedByThisThread.
+// AssertLockedByThisThread -> +IsLockedByThisThread.
+
+// For friend class MutexLockGuard:
+// Lock -> -AssignHolder
+// Unlock -> -UnassignHolder
+
+// For friend class Condition:
+// get_pthread_mutex_t
+// class: UnassignHolderGuard
 class MutexLock: public NonCopyable
 {
 	// NOTE: friend class declaration!
@@ -148,6 +162,10 @@ private:
 //			MutexLockGuard lock(mutex_);
 //			return data_.size();
 //		}
+
+// Interface:
+// Ctor
+// Dtor
 class MutexLockGuard: public NonCopyable
 {
 public:
