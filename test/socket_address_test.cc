@@ -20,5 +20,5 @@ int main()
 
 	SocketAddress address3("255.254.253.252", 65535);
 	assert(address3.ToIpPortString() == string("255.254.253.252:65535"));
-	LOG_INFO("All passed.")
+	LOG_INFO("All passed.");
 }
