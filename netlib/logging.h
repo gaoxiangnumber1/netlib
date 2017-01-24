@@ -16,7 +16,7 @@
 // Macros:
 // SetLogLevel -> +set_log_level
 // LOG -> +Log
-// LOG_XXX -> LOG(XXX, __VA_ARGS__)
+// LOG_XXX -> LOG
 // CHECK_NOT_NULL -> CheckNotNull
 
 namespace netlib
