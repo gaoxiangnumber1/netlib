@@ -11,7 +11,7 @@
 namespace netlib
 {
 
-// Use as data member of a class, for example:
+// Use MutexLock as data member of a class, for example:
 //		class Test
 //		{
 //		public:
@@ -21,6 +21,12 @@ namespace netlib
 //			mutable MutexLock mutex_;
 //			std::vector<int> data_; // Guard by mutex_
 //		};
+// Use MutexLockGuard as a stack variable, for example:
+//		int Test::size() const
+//		{
+//			MutexLockGuard lock(mutex_);
+//			return data_.size();
+//		}
 
 // Interface:
 // Ctor.
@@ -155,13 +161,6 @@ private:
 	// 4.	Use for assertion: ~MutexLock() and IsLockedByThisThread().
 	int holder_;
 };
-
-// Use as a stack variable, for example:
-//		int Test::size() const
-//		{
-//			MutexLockGuard lock(mutex_);
-//			return data_.size();
-//		}
 
 // Interface:
 // Ctor
