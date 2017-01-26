@@ -12,7 +12,14 @@ namespace netlib
 // The condition itself is protected by a mutex. A thread must first lock the mutex to
 // change the condition state. Other threads will not notice the change until they acquire
 // the mutex, because the mutex must be locked to be able to evaluate the condition.
-class Condition
+
+// Interface:
+// Ctor
+// Dtor
+// Wait
+// Notify
+// NotifyAll
+class Condition: public NonCopyable
 {
 public:
 	// Must pass argument by Reference!

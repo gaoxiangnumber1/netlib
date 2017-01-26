@@ -9,81 +9,7 @@
 using std::atomic;
 using netlib::Thread;
 
-namespace netlib
-{
-
-namespace detail
-{
-
-struct ThreadData // Store the arguments that need passed to pthread_create.
-{
-	using ThreadFunction = netlib::Thread::ThreadFunction;
-	// All data members are references: bind to the data member in Thread object.
-	const ThreadFunction &function_; // Thread's start function.
-	int &thread_id_;
-
-	ThreadData(const ThreadFunction &function, int &thread_id)
-		: function_(function),
-		  thread_id_(thread_id)
-	{}
-
-	void RunInThread()
-	{
-		// 1. Set thread id.
-		thread_id_ = Thread::ThreadId();
-		// 2. Call thread work function.
-		function_();
-	}
-};
-
-void *StartThread(void *object) // Thread start function passed to pthread_create.
-{
-	ThreadData *data = static_cast<ThreadData*>(object);
-	data->RunInThread();
-	delete data; // NOTE: delete data!
-	return nullptr;
-}
-
-}
-
-}
-
-using netlib::Thread;
-using netlib::detail::ThreadData;
-
-// Every thread has it own instance of __thread variable.
-__thread int t_cached_thread_id = 0; // The thread id in the kernel, not the pthread_t.
-
-// The child fork handler for pthread_atfork().
-// Since we cache the thread id in t_cached_thread_id, after fork(2), the child
-// process can see the cached thread id, but it is not its own thread id. Thus, we
-// empty the cached thread id for child process and re-cache the right thread id
-// in the child fork handler before returning from fork(2),
-void ChildForkHandler()
-{
-	t_cached_thread_id = 0;
-	Thread::ThreadId();
-}
-class ThreadIdInitializer
-{
-public:
-	ThreadIdInitializer()
-	{
-		// Thread::ThreadId(); // There is no use to cache the main thread's id since
-		// we may not use it at all. Call Thread::ThreadId() only when needed.
-		// #include <pthread.h>
-		// int pthread_atfork(void(*prepare)(void), void(*parent)(void), void(*child)(void));
-		// Return 0 if OK, error number on failure.
-		// The child fork handler is called in the context of the child process
-		// before returning from fork.
-		assert(pthread_atfork(NULL, NULL, &ChildForkHandler) == 0);
-	}
-};
-// C++ guarantee that the global object's constructs is finished before enter main().
-ThreadIdInitializer thread_id_initializer_object; // Global object.
-
-atomic<int> Thread::created_number_(0);
-
+atomic<int> Thread::created_number_(0); // NOTE: Not `= 0;`
 Thread::Thread(const ThreadFunction &function)
 	: started_(false),
 	  joined_(false),
@@ -116,6 +42,99 @@ Thread::~Thread()
 	// we have no chance to destroy pthread_t.
 }
 
+namespace netlib
+{
+struct ThreadData // Store the arguments that need passed to pthread_create.
+{
+	using ThreadFunction = Thread::ThreadFunction;
+	// All data members are references: bind to the data member in Thread object.
+	const ThreadFunction &function_; // Thread's start function.
+	int &thread_id_;
+
+	ThreadData(const ThreadFunction &function, int &thread_id)
+		: function_(function),
+		  thread_id_(thread_id)
+	{}
+
+	void RunInThread()
+	{
+		// 1. Set thread id.
+		thread_id_ = Thread::ThreadId();
+		LOG_INFO("%d\n", thread_id_);
+		// 2. Call thread work function.
+		function_();
+	}
+};
+void *StartThread(void *object) // Thread start function passed to pthread_create.
+{
+	ThreadData *data = static_cast<ThreadData*>(object);
+	data->RunInThread();
+	delete data; // NOTE: delete data!
+	return nullptr;
+}
+}
+using netlib::ThreadData;
+void Thread::Start()
+{
+	assert(started_ == false);
+	started_ = true;
+	// TODO: C++11 move(function_)
+	ThreadData *data = new ThreadData(function_, thread_id_);
+	// int pthread_create(pthread_t *ptid, const pthread_attr_t *attr,
+	//                    void* (*fun) (void*), void *arg);
+	// Return: 0 if OK, error number on failure.
+	// *ptid is set to the thread ID of the newly created thread.
+	// attr = NULL: create a thread with the default attributes.
+	// The newly created thread starts running at the address of the fun function.
+	// arg is the argument that passed to fun. If we need pass more than one argument,
+	// we should store them in a structure and pass the address of the structure in arg.
+	if(pthread_create(&pthread_id_, NULL, &netlib::StartThread, data) != 0)
+	{
+		started_ = false;
+		delete data; // NOTE: delete data!
+		LOG_FATAL("pthread_create: FATAL");
+	}
+}
+
+// Every thread has its own instance of __thread variable.
+__thread int t_cached_thread_id = 0; // The thread id in the kernel, not the pthread_t.
+int Thread::ThreadId() // Return the cached thread-id.
+{
+	if(t_cached_thread_id == 0) // If not cached yet.
+	{
+		// The return type of syscall() is long int.
+		t_cached_thread_id = static_cast<int>(::syscall(SYS_gettid));
+	}
+	return t_cached_thread_id;
+}
+// The child fork handler for pthread_atfork().
+// Since we cache the thread id in t_cached_thread_id, after fork(2), the child
+// process can see the cached thread id, but it is not its own thread id. Thus, we
+// empty the cached thread id for child process and re-cache the right thread id
+// in the child fork handler before returning from fork(2),
+void ChildForkHandler()
+{
+	t_cached_thread_id = 0;
+	Thread::ThreadId();
+}
+class ForkHandler
+{
+public:
+	ForkHandler()
+	{
+		// Thread::ThreadId(); // There is no use to cache the main thread's id since
+		// we may not use it at all. Call Thread::ThreadId() only when needed.
+		// #include <pthread.h>
+		// int pthread_atfork(void(*prepare)(void), void(*parent)(void), void(*child)(void));
+		// Return 0 if OK, error number on failure.
+		// The child fork handler is called in the context of the child process
+		// before returning from fork.
+		assert(pthread_atfork(NULL, NULL, &ChildForkHandler) == 0);
+	}
+};
+// C++ guarantee that the global object's constructs is finished before enter main().
+ForkHandler fork_handler; // Global object.
+
 void Thread::Join()
 {
 	assert(started_ == true && joined_ == false);
@@ -144,36 +163,4 @@ void Thread::Join()
 	// In this case, calling pthread_join allows us to wait for the specified thread,
 	// but does not retrieve the thread's termination status.
 	assert(pthread_join(pthread_id_, NULL) == 0);
-}
-
-void Thread::Start()
-{
-	assert(started_ == false);
-	started_ = true;
-	// TODO: C++11 move(function_)
-	ThreadData *data = new ThreadData(function_, thread_id_);
-	// int pthread_create(pthread_t *ptid, const pthread_attr_t *attr,
-	//                    void* (*fun) (void*), void *arg);
-	// Return: 0 if OK, error number on failure.
-	// *ptid is set to the thread ID of the newly created thread.
-	// attr = NULL: create a thread with the default attributes.
-	// The newly created thread starts running at the address of the fun function.
-	// arg is the argument that passed to fun. If we need pass more than one argument,
-	// we should store them in a structure and pass the address of the structure in arg.
-	if(pthread_create(&pthread_id_, NULL, &detail::StartThread, data) != 0)
-	{
-		started_ = false;
-		delete data; // NOTE: delete data!
-		LOG_FATAL("Failed in pthread_create");
-	}
-}
-
-int Thread::ThreadId() // Return the cached thread-id.
-{
-	if(t_cached_thread_id == 0) // If not cached yet.
-	{
-		// The return type of syscall() is long int.
-		t_cached_thread_id = static_cast<int>(::syscall(SYS_gettid));
-	}
-	return t_cached_thread_id;
 }

@@ -8,6 +8,11 @@
 namespace netlib
 {
 
+// Interface:
+// Ctor
+// CountDown
+// Wait
+
 class CountDownLatch: public NonCopyable
 {
 public:

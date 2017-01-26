@@ -11,6 +11,15 @@
 namespace netlib
 {
 
+// Interface:
+// Ctor
+// Dtor
+// created_number
+// Start -> netlib::ThreadData -> netlib::StartThread
+// ThreadId
+// ForkHandler -> ChildForkHandler
+// Join
+
 class Thread: public NonCopyable
 {
 public:
@@ -25,9 +34,9 @@ public:
 		return created_number_.load();
 	}
 
-	void Join(); // Call pthread_join.
 	void Start(); // Call pthread_create.
 	static int ThreadId(); // Get current thread's kernel-thread-id.
+	void Join(); // Call pthread_join.
 
 private:
 	// 1.	Ctor(): initialize to false.
@@ -50,7 +59,7 @@ private:
 	int thread_id_;
 	// TODO: why muduo use shared_ptr to manage thread id? I think it is not
 	// necessary, so I simply use int(same as pid_t).
-	ThreadFunction function_; // Start function. Not `ThreadFunction&`
+	const ThreadFunction function_; // Start function. Not `ThreadFunction&`
 	static std::atomic<int> created_number_; // The number of created threads.
 };
 }
