@@ -60,7 +60,6 @@ struct ThreadData // Store the arguments that need passed to pthread_create.
 	{
 		// 1. Set thread id.
 		thread_id_ = Thread::ThreadId();
-		LOG_INFO("%d\n", thread_id_);
 		// 2. Call thread work function.
 		function_();
 	}

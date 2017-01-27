@@ -4,12 +4,14 @@
 using std::bind;
 using netlib::ThreadPool;
 
-ThreadPool::ThreadPool(const int thread_number, const Task &initial_task):
+ThreadPool::ThreadPool(const int thread_number,
+                       const Task &initial_task,
+                       const int max_queue_size):
 	thread_number_(thread_number),
 	initial_task_(initial_task),
 	running_(false),
 	mutex_(),
-	max_queue_size_(0),
+	max_queue_size_(max_queue_size),
 	not_empty_(mutex_),
 	not_full_(mutex_)
 {}
@@ -23,51 +25,6 @@ ThreadPool::~ThreadPool()
 	}
 	// All data members(including `MutexLock mutex_`) are about to Destruct!
 }
-
-// Create thread_number_ threads and start all threads.
-void ThreadPool::Start()
-{
-	assert(running_ == false && thread_pool_.empty() == true);
-
-	running_ = true;
-	if(thread_number_ == 0 && initial_task_)
-	{
-		initial_task_();
-	}
-	thread_pool_.reserve(thread_number_);
-	for(int index = 0; index < thread_number_; ++index)
-	{
-		thread_pool_.push_back(new Thread(bind(&ThreadPool::RunInThread, this)));
-		thread_pool_[index]->Start();
-	}
-}
-
-// Run task directly when thread number is 0; otherwise add task into task queue
-// (block when the task_queue is full: `not_full_.Wait()`) and then wakeup threads
-// by `not_empty_.Notify();`.
-void ThreadPool::RunOrAddTask(const Task &task)
-{
-	assert(running_ == true); // NOTE: Use assertion for invariant.
-	if(thread_number_ == 0) // If thread_number_ = 0, run task() directly.
-	{
-		task();
-	}
-	else
-	{
-		MutexLockGuard lock(mutex_);
-		while(IsTaskQueueFull() == true) // The task queue is full, can't add task.
-		{
-			not_full_.Wait(); // Wait until remove task from task_queue_.
-		}
-		assert(IsTaskQueueFull() == false);
-		// Add task into task queue and wakeup threads waiting on not_empty_.
-		task_queue_.push_back(task);
-		// Notify() each time we add a task, rather than only notify() when
-		// task_queue_.size() change from 0 to 1 for efficiency.
-		not_empty_.Notify();
-	}
-}
-
 // Stop all threads and call Join() for all threads.
 void ThreadPool::Stop()
 {
@@ -106,7 +63,24 @@ void ThreadPool::Stop()
 	}
 }
 
-// The start function of thread: first call initial_task if any; then indefinitely get
+// Create thread_number_ threads and start all threads.
+void ThreadPool::Start()
+{
+	assert(running_ == false && thread_pool_.empty() == true);
+
+	running_ = true;
+	if(thread_number_ == 0 && initial_task_)
+	{
+		initial_task_();
+	}
+	thread_pool_.reserve(thread_number_);
+	for(int index = 0; index < thread_number_; ++index)
+	{
+		thread_pool_.push_back(new Thread(bind(&ThreadPool::RunInThread, this)));
+		thread_pool_[index]->Start();
+	}
+}
+// The start function of thread: first call initial_task_ if any; then indefinitely get
 // task from task_queue and run until running_ is false.
 void ThreadPool::RunInThread()
 {
@@ -126,7 +100,6 @@ void ThreadPool::RunInThread()
 		}
 	}
 }
-
 // Get the first task from task queue(block when the task queue is empty:
 // `not_empty_.Wait();`), then remove this task and wakeup threads by
 // `not_full_.Notify();` that wait on the not_full_ Condition.
@@ -156,6 +129,31 @@ ThreadPool::Task ThreadPool::GetAndRemoveTask()
 	return task;
 }
 
+// Run task directly when thread number is 0; otherwise add task into task queue
+// (block when the task_queue is full: `not_full_.Wait()`) and then wakeup threads
+// by `not_empty_.Notify();`.
+void ThreadPool::RunOrAddTask(const Task &task)
+{
+	assert(running_ == true); // NOTE: Use assertion for invariant.
+	if(thread_number_ == 0) // If thread_number_ = 0, run task() directly.
+	{
+		task();
+	}
+	else
+	{
+		MutexLockGuard lock(mutex_);
+		while(IsTaskQueueFull() == true) // The task queue is full, can't add task.
+		{
+			not_full_.Wait(); // Wait until remove task from task_queue_.
+		}
+		assert(IsTaskQueueFull() == false);
+		// Add task into task queue and wakeup threads waiting on not_empty_.
+		task_queue_.push_back(task);
+		// Notify() each time we add a task, rather than only notify() when
+		// task_queue_.size() change from 0 to 1 for efficiency.
+		not_empty_.Notify();
+	}
+}
 // Return true if the task queue if full(i.e., can't add more task).
 bool ThreadPool::IsTaskQueueFull() const
 {

@@ -12,22 +12,23 @@
 namespace netlib
 {
 
+// Interface:
+// Ctor
+// Dtor -> +Stop
+// Start -> -RunInThread -> -GetAndRemoveTask
+// RunOrAddTask -> -IsTaskQueueFull
+
 class ThreadPool: public NonCopyable
 {
 public:
 	using Task = std::function<void()>;
 
-	explicit ThreadPool(const int thread_number, const Task &initial_task);
+	explicit ThreadPool(const int thread_number,
+	                    const Task &initial_task,
+	                    const int max_queue_size);
 	~ThreadPool();
-
-	// Must be called before Start().
-	// The thread_number_ and initial_task shouldn't change once we create
-	// the thread pool, so we don't expose set_*() for them. We can change the
-	// task_queue_'s size() in the lifetime of thread pool.
-	void set_max_queue_size(int max_queue_size)
-	{
-		max_queue_size_ = max_queue_size;
-	}
+	// Stop all threads and call Join() for all threads(all threads can't run again).
+	void Stop();
 
 	// Create thread_number_ threads and start all threads.
 	void Start();
@@ -37,8 +38,6 @@ public:
 	// if we don't RunOrAddTask().
 	void RunOrAddTask(const Task &task);
 	// TODO: C++11 `void RunOrAddTask(Task &&task);`
-	// Stop all threads and call Join() for all threads(all threads can't run again).
-	void Stop();
 
 private:
 	// The start function of thread. Start() -> RunInThread().
@@ -57,7 +56,7 @@ private:
 	bool running_; // Indicate the status of all threads.
 	MutexLock mutex_; // Protect Condition and task queue.
 	std::deque<Task> task_queue_;
-	int max_queue_size_;
+	const int max_queue_size_;
 	// These two condition variables control the add/remove task into/from
 	// task_queue. Used in three functions:
 	// 1.	GetAndRemoveTask(): `not_empty_.Wait()` -> `not_full_.Notify()`
