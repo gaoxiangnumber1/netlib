@@ -23,6 +23,7 @@ class ThreadPool: public NonCopyable
 public:
 	using Task = std::function<void()>;
 
+	// NOTE: Use CONST whenever possible!
 	explicit ThreadPool(const int thread_number,
 	                    const Task &initial_task,
 	                    const int max_queue_size);
@@ -45,6 +46,7 @@ private:
 	// Get task from task queue and remove the gotten task.
 	// Called in RunInThread() `while(running_)` loop since we should assign
 	// new task to thread after current task() return.
+	// NOTE: Not return `Task&` since we delete(pop_front()) the task from task queue.
 	Task GetAndRemoveTask();
 	// Check whether task_queue_ is full, that is, task_queue_.size() >= max_queue_size_.
 	// max_queue_size_ is set by user. Called in RunOrAddTask() when adding task.

@@ -77,6 +77,7 @@ public:
 	}
 
 	// Must be called when locked, i.e. for assertion.
+	// NOTE: Use const whenever possible.
 	bool IsLockedByThisThread() const
 	{
 		return holder_ == Thread::ThreadId();
@@ -188,6 +189,6 @@ private:
 // Prevent misusing like this: `MutexLockGuard(mutex_);` A temporary object
 // is created and destroyed immediately after this expression, so we don't get the
 // lock for the critical section. We should use stack object.
-#define MutexLockGuard(name) error "Missing guard object name"
+#define MutexLockGuard(mutex_name) error "Missing guard object name"
 
 #endif  // NETLIB_NETLIB_MUTEX_H_

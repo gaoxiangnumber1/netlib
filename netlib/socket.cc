@@ -18,7 +18,7 @@ Socket::~Socket()
 
 // int bind(int sockfd, const struct sockaddr *address, socklen_t address_length);
 // When a socket is created with socket(2), it has no address assigned to it.
-// bind() assigns the address specified by address to the socket referred to by
+// ::bind() assigns the address specified by address to the socket referred to by
 // the file descriptor sockfd. address_length specifies the size, in bytes, of the
 // address structure pointed to by address.
 // On success, 0 is returned. On error, -1 is returned, and errno is set.
@@ -29,7 +29,7 @@ void Socket::Bind(const SocketAddress &local_address)
 	int ret = ::bind(socket_fd_, address, static_cast<socklen_t>(sizeof address));
 	if(ret == -1)
 	{
-		LOG_FATAL("Socket::BindAddress");
+		LOG_FATAL("bind(): FATAL");
 	}
 }
 
@@ -48,7 +48,7 @@ void Socket::Listen()
 	// SOMAXCONN: Maximum queue length specifiable by listen.
 	if(::listen(socket_fd_, SOMAXCONN) == -1)
 	{
-		LOG_FATAL("nso::listen()");
+		LOG_FATAL("listen(): FATAL");
 	}
 }
 
@@ -80,7 +80,7 @@ int Socket::Accept(SocketAddress &peer_address)
 	if(connected_fd == -1)
 	{
 		int saved_errno = errno;
-		LOG_ERROR("Socket::Accept error");
+		LOG_ERROR("accept(): ERROR");
 		switch(saved_errno)
 		{
 		// EAGAIN or EWOULDBLOCK
@@ -131,7 +131,6 @@ int Socket::Accept(SocketAddress &peer_address)
 			break;
 		default:
 			LOG_FATAL("unknown error of ::accept");
-			break;
 		}
 	}
 	else if(connected_fd >= 0)

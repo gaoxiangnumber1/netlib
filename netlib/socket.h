@@ -12,6 +12,15 @@ class SocketAddress;
 
 // A RAII handle of socket file descriptor. It closes the socket_fd when destructs.
 // It's thread safe, all operations are delegated to OS.
+
+// Interface:
+// Ctor
+// Dtor
+// socket_fd
+// Bind
+// Listen
+// Accept
+
 class Socket: public NonCopyable
 {
 public:

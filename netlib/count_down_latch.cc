@@ -15,7 +15,7 @@ void CountDownLatch::CountDown()
 	--count_;
 	if(count_ == 0)
 	{
-		// Broadcast indicates state change rather than resource availability.
+		// NOTE: Broadcast indicates state change rather than resource availability.
 		condition_.NotifyAll();
 	}
 }
