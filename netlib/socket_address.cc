@@ -38,7 +38,7 @@ SocketAddress::SocketAddress(string ip, int port)
 	address_.sin_family = AF_INET;
 	address_.sin_port = htobe16(static_cast<uint16_t>(port));
 	// #include <arpa/inet.h>
-	// int inet_pton(int af, const char *src, void *dst);
+	// int inet_pton(int address_family, const char *src, void *dst);
 	// Return 1 on success.
 	if(::inet_pton(AF_INET, ip.c_str(), &address_.sin_addr) != 1)
 	{

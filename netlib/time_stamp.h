@@ -12,6 +12,18 @@ namespace netlib
 
 // Time stamp in UTC, in microseconds resolution. This class is immutable.
 // It's recommended to pass it by value, since it's passed in register on x86-64.
+
+// Interface:
+// Ctor(), Ctor(int64_t)
+// microsecond_since_epoch
+// set_invalid
+// IsValid
+// Now
+// ToFormattedTimeString
+// operator<
+// TimeDifferenceInSecond
+// AddTime
+
 class TimeStamp: public Copyable
 {
 public:
@@ -51,21 +63,21 @@ inline bool operator<(TimeStamp lhs, TimeStamp rhs)
 }
 
 // Get time difference of two timestamps(high-low), result in seconds.
-inline double TimeDifference(TimeStamp high, TimeStamp low)
+inline double TimeDifferenceInSecond(TimeStamp high, TimeStamp low)
 {
 	if(high < low)
 	{
-		return TimeDifference(low, high);
+		return TimeDifferenceInSecond(low, high);
 	}
 	int64_t difference = high.microsecond_since_epoch() - low.microsecond_since_epoch();
 	return static_cast<double>(difference) / TimeStamp::kMicrosecondPerSecond;
 }
 
-inline TimeStamp AddTime(TimeStamp time_stamp, double second)
+inline TimeStamp AddTime(TimeStamp old_time_stamp, double second)
 {
 	int64_t microsecond =
 	    static_cast<int64_t>(second * TimeStamp::kMicrosecondPerSecond);
-	return TimeStamp(time_stamp.microsecond_since_epoch() + microsecond);
+	return TimeStamp(old_time_stamp.microsecond_since_epoch() + microsecond);
 }
 
 }

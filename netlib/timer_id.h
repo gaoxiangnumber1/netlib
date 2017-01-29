@@ -10,6 +10,10 @@ class Timer;
 
 // Used by TimerQueue::Cancel() to find corresponding Timer object
 // when we want to cancel some Timer.
+
+// Interface:
+// Ctor
+
 class TimerId: public Copyable
 {
 	friend class TimerQueue;

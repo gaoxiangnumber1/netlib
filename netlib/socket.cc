@@ -128,7 +128,6 @@ int Socket::Accept(SocketAddress &peer_address)
 		// The descriptor references a file, not a socket.
 		case ENOTSOCK:
 			LOG_FATAL("unexpected error of ::accept");
-			break;
 		default:
 			LOG_FATAL("unknown error of ::accept");
 		}
@@ -146,7 +145,7 @@ void Socket::ShutdownOnWrite()
 {
 	if(::shutdown(socket_fd_, SHUT_WR) == -1)
 	{
-		LOG_ERROR("nso::ShutdownWrite error");
+		LOG_ERROR("shutdown(): ERROR");
 	}
 }
 
@@ -166,7 +165,7 @@ void Socket::SetReuseAddress(bool on)
 	                       &option_value, static_cast<socklen_t>(sizeof option_value));
 	if(ret == -1 && on)
 	{
-		LOG_ERROR("SetReuseAddress() error.");
+		LOG_ERROR("setsockopt(SO_REUSEADDR): ERROR");
 	}
 }
 void Socket::SetReusePort(bool on)
@@ -193,7 +192,7 @@ void Socket::SetTcpKeepAlive(bool on)
 	                       &option_value, static_cast<socklen_t>(sizeof option_value));
 	if(ret == -1 && on)
 	{
-		LOG_ERROR("SetTcpNoDelay error");
+		LOG_ERROR("setsockopt(SO_KEEPALIVE): ERROR");
 	}
 }
 void Socket::SetTcpNoDelay(bool on)

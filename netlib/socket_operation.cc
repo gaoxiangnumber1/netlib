@@ -5,7 +5,7 @@
 
 #include <netlib/logging.h>
 
-// Create an IPv4, nonblocking, and TCP socket file descriptor, abort if any error.
+// Create an IPv4/6, nonblocking, and TCP socket file descriptor, abort if any error.
 int nso::CreateNonblockingSocket(sa_family_t family)
 {
 	// int socket(int domain, int type, int protocol);
@@ -28,7 +28,7 @@ int nso::CreateNonblockingSocket(sa_family_t family)
 	// On error, -1 is returned, and errno is set.
 	if(socket_fd == -1)
 	{
-		LOG_FATAL("nso::CreateNonblockingOrDie");
+		LOG_FATAL("socket(): FATAL");
 	}
 	return socket_fd;
 }
@@ -38,7 +38,7 @@ struct sockaddr_in nso::GetLocalAddress(int socket_fd)
 {
 	struct sockaddr_in local_address;
 	bzero(&local_address, sizeof local_address);
-	socklen_t address_length = sizeof(local_address);
+	socklen_t address_length = static_cast<socklen_t>(sizeof  local_address);
 	// int getsockname(int slocal_addressockfd, struct sockaddr *addr, socklen_t *addrlen);
 	// getsockname() return the address to which the socket socket_fd is bound, in
 	// the buffer pointed to by addr. addrlen should be initialized to indicate the

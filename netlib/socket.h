@@ -20,6 +20,11 @@ class SocketAddress;
 // Bind
 // Listen
 // Accept
+// ShutdownOnWrite
+// SetReuseAddress
+// SetReusePort
+// SetTcpKeepAlive
+// SetTcpNoDelay
 
 class Socket: public NonCopyable
 {

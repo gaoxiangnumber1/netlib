@@ -23,13 +23,12 @@ TimeStamp TimeStamp::Now()
 	// The tz argument should be specified as NULL.
 	// Return 0 for success, or -1 for failure and errno is set.
 	struct timeval tv;
-	gettimeofday(&tv, NULL);
+	::gettimeofday(&tv, NULL);
 	return TimeStamp(tv.tv_sec * kMicrosecondPerSecond + tv.tv_usec);
 }
 
 string TimeStamp::ToFormattedTimeString() const
 {
-	char buffer[32];
 	time_t second =
 	    static_cast<time_t>(microsecond_since_epoch_ / kMicrosecondPerSecond);
 	int microsecond =
@@ -40,19 +39,20 @@ string TimeStamp::ToFormattedTimeString() const
 	// Broken-down time is stored in the structure tm which is defined in <time.h>:
 	// struct tm
 	// {
-	// 	int tm_sec;         /* seconds */
-	// 	int tm_min;         /* minutes */
-	// 	int tm_hour;        /* hours */
-	// 	int tm_mday;        /* day of the month */
-	// 	int tm_mon;         /* month */
-	// 	int tm_year;        /* year */
+	//		int tm_sec;				/* seconds */
+	//		int tm_min;			/* minutes */
+	//		int tm_hour;			/* hours */
+	//		int tm_mday;		/* day of the month */
+	//		int tm_mon;			/* month */
+	//		int tm_year;			/* year */
 	// };
 	// localtime_r() converts the calendar time timep to broken-down time representation,
 	// expressed relative to the user's specified timezone; and stores the data in a user-supplied
 	// struct. Return NULL on error.
 	struct tm tm_time;
-	localtime_r(&second, &tm_time);
-	snprintf(buffer, sizeof(buffer), "%02d:%02d:%02d.%06d",
-	         tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec, microsecond);
+	::localtime_r(&second, &tm_time);
+	char buffer[32];
+	::snprintf(buffer, sizeof buffer, "%02d:%02d:%02d.%06d",
+	           tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec, microsecond);
 	return buffer;
 }
