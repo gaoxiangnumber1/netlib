@@ -11,6 +11,13 @@ namespace netlib
 {
 
 // Internal class for timer event.
+
+// Interface:
+// Ctor
+// Getter: expired_time, repeat, sequence
+// Restart
+// Run
+
 class Timer: public NonCopyable
 {
 public:

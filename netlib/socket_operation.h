@@ -9,6 +9,14 @@ namespace netlib
 namespace socket_operation
 {
 
+// Interface:
+// CastToConstsockaddr
+// CastToNonConstsockaddr
+// CreateNonblockingSocket
+// GetLocalAddress
+// GetPeerAddress
+// GetSocketError
+
 const struct sockaddr *CastToConstsockaddr(const struct sockaddr_in *address)
 {
 	return static_cast<const struct sockaddr*>(static_cast<const void*>(address));

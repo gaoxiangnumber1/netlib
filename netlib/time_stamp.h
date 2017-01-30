@@ -27,13 +27,12 @@ namespace netlib
 class TimeStamp: public Copyable
 {
 public:
-	static const int kMicrosecondPerSecond = 1000 * 1000;
+	static const int kMicrosecondPerSecond = 1000000;
 
 	// Construct an invalid time stamp.
 	TimeStamp(): microsecond_since_epoch_(0) {}
 	// Construct a time stamp at specific time
-	explicit TimeStamp(int64_t microsecond_since_epoch_arg):
-		microsecond_since_epoch_(microsecond_since_epoch_arg) {}
+	explicit TimeStamp(int64_t microsecond): microsecond_since_epoch_(microsecond) {}
 	// Default copy-ctor/assignment/dtor is okay.
 	// Getter
 	int64_t microsecond_since_epoch() const
@@ -73,11 +72,11 @@ inline double TimeDifferenceInSecond(TimeStamp high, TimeStamp low)
 	return static_cast<double>(difference) / TimeStamp::kMicrosecondPerSecond;
 }
 
-inline TimeStamp AddTime(TimeStamp old_time_stamp, double second)
+inline TimeStamp AddTime(TimeStamp base_time_stamp, double second)
 {
 	int64_t microsecond =
 	    static_cast<int64_t>(second * TimeStamp::kMicrosecondPerSecond);
-	return TimeStamp(old_time_stamp.microsecond_since_epoch() + microsecond);
+	return TimeStamp(base_time_stamp.microsecond_since_epoch() + microsecond);
 }
 
 }

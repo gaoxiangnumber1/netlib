@@ -53,7 +53,7 @@ const struct sockaddr *SocketAddress::socket_address() const
 
 string SocketAddress::ToIpPortString() const
 {
-	char ip[INET_ADDRSTRLEN] = ""; // Defined <netinet/in.h>, 16
+	char ip[16] = ""; // 123.456.789.101\0
 	// #include <arpa/inet.h>
 	// const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
 	::inet_ntop(AF_INET, &address_.sin_addr, ip, static_cast<socklen_t>(sizeof ip));
