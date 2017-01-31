@@ -22,7 +22,7 @@ class TimerId;
 //			-Refresh -> -InsertIntoActiveTimerSet -> -SetExpiredTime.
 // Dtor.
 // AddTimer -> -AddTimerInLoop -> -InsertIntoActiveTimerSet -> SetExpiredTime.
-// Cancel -> -CancelInLoop.
+// CancelTimer -> -CancelTimerInLoop.
 
 // A best effort timer queue. No guarantee that the callback will be on time.
 class TimerQueue: public NonCopyable
