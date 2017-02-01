@@ -205,6 +205,17 @@ void EventLoop::Quit()
 		Wakeup(); // Wakeup loop thread when we want to quit in other threads.
 	}
 }
+// fd is readable(select: readfds argument; poll: POLLIN flag; epoll: EPOLLIN flag)
+// if the counter is greater than 0.
+void EventLoop::Wakeup()
+{
+	uint64_t one = 1;
+	int write_byte = static_cast<int>(::write(wakeup_fd_, &one, 8));
+	if(write_byte != 8)
+	{
+		LOG_ERROR("EventLoop::Wakeup() write %d bytes instead of 8", write_byte);
+	}
+}
 
 // Runs callback at `time_stamp`.
 TimerId EventLoop::RunAt(const TimerCallback &callback, const TimeStamp &time)
@@ -290,17 +301,6 @@ void EventLoop::QueueInLoop(const Functor &callback)
 	if(IsInLoopThread() == false || calling_pending_functor_ == true)
 	{
 		Wakeup();
-	}
-}
-// fd is readable(select: readfds argument; poll: POLLIN flag; epoll: EPOLLIN flag)
-// if the counter is greater than 0.
-void EventLoop::Wakeup()
-{
-	uint64_t one = 1;
-	int write_byte = static_cast<int>(::write(wakeup_fd_, &one, 8));
-	if(write_byte != 8)
-	{
-		LOG_ERROR("EventLoop::Wakeup() write %d bytes instead of 8", write_byte);
 	}
 }
 

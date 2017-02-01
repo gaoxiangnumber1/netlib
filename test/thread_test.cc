@@ -9,14 +9,12 @@ using netlib::Thread;
 
 void Fun1()
 {
-	printf("Thread 1: thread_id=%d\n", Thread::ThreadId());
-	printf("Thread 1: thread_id=%d\n", Thread::ThreadId());
+	printf("Thread 1-Fun1: thread_id=%d\n", Thread::ThreadId());
 }
 
 void Fun2(int num)
 {
-	printf("Thread 2: thread_id=%d, num=%d\n", Thread::ThreadId(), num);
-	printf("Thread 2: thread_id=%d, num=%d\n", Thread::ThreadId(), num);
+	printf("Thread 2-Fun2: thread_id=%d, num=%d\n", Thread::ThreadId(), num);
 }
 
 class Test
@@ -24,8 +22,7 @@ class Test
 public:
 	void Fun3(double dou)
 	{
-		printf("Thread 3: thread_id=%d, dou=%f\n", Thread::ThreadId(), dou);
-		printf("Thread 3: thread_id=%d, dou=%f\n", Thread::ThreadId(), dou);
+		printf("Thread 3-Fun3: thread_id=%d, dou=%f\n", Thread::ThreadId(), dou);
 	}
 };
 
@@ -41,6 +38,7 @@ int main()
 	{
 		Thread thread2(bind(Fun2, 7188));
 		thread2.Start();
+		//thread2.Join();
 		// May destruct earlier than thread creation.
 	}
 

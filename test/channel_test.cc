@@ -21,7 +21,7 @@ void Print(const char* message)
 	printf("%s %s delay %f\n",
 	       now.ToFormattedTimeString().c_str(),
 	       message,
-	       TimeDifference(now, last));
+	       TimeDifferenceInSecond(now, last));
 	last = now;
 	if(++g_count == 30)
 	{

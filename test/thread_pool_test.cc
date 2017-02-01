@@ -23,9 +23,8 @@ void Print(int number)
 void Test(int max_queue_size, int thread_number = 5)
 {
 	printf("ThreadPool: thread_number = %d, max_queue_size = %d\n",
-			thread_number, max_queue_size);
-	ThreadPool pool(thread_number, InitialTask);
-	pool.set_max_queue_size(max_queue_size);
+	       thread_number, max_queue_size);
+	ThreadPool pool(thread_number, InitialTask, max_queue_size);
 	pool.Start();
 
 	printf("Adding\n");
@@ -44,8 +43,8 @@ void Test(int max_queue_size, int thread_number = 5)
 int main()
 {
 	Test(0);
-	Test(10);
-	Test(20);
-	Test(40);
-	Test(60);
+	//Test(10);
+	//Test(20);
+	//Test(40);
+	//Test(100);
 }

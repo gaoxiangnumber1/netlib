@@ -20,7 +20,7 @@ namespace netlib
 // IsValid
 // Now
 // ToFormattedTimeString
-// operator<
+// operator<, ==
 // TimeDifferenceInSecond
 // AddTime
 
@@ -55,6 +55,11 @@ public:
 private:
 	int64_t microsecond_since_epoch_; // 1 second = 10^6 microsecond.
 };
+
+inline bool operator==(TimeStamp lhs, TimeStamp rhs)
+{
+	return lhs.microsecond_since_epoch() == rhs.microsecond_since_epoch();
+}
 
 inline bool operator<(TimeStamp lhs, TimeStamp rhs)
 {

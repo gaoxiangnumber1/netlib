@@ -48,7 +48,7 @@ int TestLocked()
 
 int main()
 {
-	printf("Test IsLockedByThisThread():\n");
+	printf("Test IsLockedByThisThread(): ");
 	assert(TestLocked() == 0);
 	printf("passed.\n");
 
@@ -68,7 +68,7 @@ int main()
 			thread_vector[index]->Join();
 		}
 		printf("%d thread without lock %f\n",
-		       thread_number, TimeDifference(TimeStamp::Now(), start));
+		       thread_number, TimeDifferenceInSecond(TimeStamp::Now(), start));
 
 		thread_vector.clear();
 		g_vector.clear();
@@ -82,7 +82,7 @@ int main()
 			thread_vector[index]->Join();
 		}
 		printf("%d thread with lock %f\n",
-		       thread_number, TimeDifference(TimeStamp::Now(), start));
+		       thread_number, TimeDifferenceInSecond(TimeStamp::Now(), start));
 	}
 }
 /*

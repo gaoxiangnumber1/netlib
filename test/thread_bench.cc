@@ -30,7 +30,7 @@ void Fun1() {}
 void Fun2(TimeStamp start)
 {
 	TimeStamp now(TimeStamp::Now());
-	int delay = static_cast<int>(TimeDifference(now, start) * kMicrosecondPerSecond);
+	int delay = static_cast<int>(TimeDifferenceInSecond(now, start) * kMicrosecondPerSecond);
 	MutexLockGuard lock(g_mutex);
 	++g_delay[delay];
 }
@@ -53,7 +53,7 @@ void ForkBench()
 		}
 	}
 
-	double used_time = TimeDifference(TimeStamp::Now(), start);
+	double used_time = TimeDifferenceInSecond(TimeStamp::Now(), start);
 	printf("Average process creation time is %f microseconds.\n",
 	       used_time * kMicrosecondPerSecond / kProcessNumber);
 	printf("Total create %d processes.\n", kProcessNumber);
@@ -70,7 +70,7 @@ int main()
 		thread1.Start();
 		thread1.Join();
 	}
-	double used_time = TimeDifference(TimeStamp::Now(), start);
+	double used_time = TimeDifferenceInSecond(TimeStamp::Now(), start);
 	printf("Average thread creation time is %f microseconds\n",
 	       used_time * kMicrosecondPerSecond / kThreadNumber);
 	printf("Total create %d threads.\n", Thread::created_number());

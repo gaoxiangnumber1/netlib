@@ -29,7 +29,7 @@ void Benchmark()
 	}
 	printf("%s\n", stamp.front().ToFormattedTimeString().c_str());
 	printf("%s\n", stamp.back().ToFormattedTimeString().c_str());
-	printf("%f\n", TimeDifference(stamp.back(), stamp.front()));
+	printf("%f\n", TimeDifferenceInSecond(stamp.back(), stamp.front()));
 
 	int difference[20] = {0};
 	int64_t start = stamp.front().microsecond_since_epoch();

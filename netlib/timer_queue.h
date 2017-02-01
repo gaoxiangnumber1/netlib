@@ -16,6 +16,8 @@ class EventLoop;
 class Timer;
 class TimerId;
 
+// FIXME: There is a BUG!!!
+
 // Interface:
 // Ctor -> -CreateTimerFd -> -HandleRead.
 //		-HandleRead -> -ReadTimerFd -> -GetAndRemoveExpiredTimer -> -Refresh.
@@ -75,7 +77,6 @@ private:
 	// expired time, distinguish them by their object's address.
 	ExpirationTimerPairSet active_timer_set_;
 	// For CancelTimer():
-	bool calling_expired_timer_callback_; // Atomic.
 	std::set<int64_t> canceling_timer_sequence_set_;
 };
 
