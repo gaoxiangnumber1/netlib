@@ -38,15 +38,15 @@ const int kTimeoutInMillisecond = 10 * 1000;
 
 EventLoop::EventLoop():
 	looping_(false),
-	quit_(false),
-	calling_pending_functor_(false),
 	thread_id_(Thread::ThreadId()),
+	quit_(false),
 	epoller_(new Epoller(this)),
-	timer_queue_(new TimerQueue(this)),
+	epoll_return_time_(),
+	calling_pending_functor_(false),
+	mutex_(),
 	wakeup_fd_(CreateWakeupFd()),
 	wakeup_fd_channel_(new Channel(this, wakeup_fd_)),
-	event_handling_(false),
-	current_active_channel_(nullptr)
+	timer_queue_(new TimerQueue(this))
 {
 	LOG_DEBUG("EventLoop created %p in thread %d", this, thread_id_);
 	// One loop per thread means that every thread can have only one EventLoop object.
@@ -103,9 +103,9 @@ EventLoop::~EventLoop()
 {
 	LOG_DEBUG("EventLoop %p of thread %d destructs in thread %d",
 	          this, thread_id_, Thread::ThreadId());
+	::close(wakeup_fd_);
 	wakeup_fd_channel_->set_requested_event(Channel::NONE_EVENT);
 	wakeup_fd_channel_->RemoveChannel();
-	::close(wakeup_fd_);
 	t_loop_in_this_thread = nullptr;
 }
 
@@ -120,7 +120,6 @@ void EventLoop::AssertInLoopThread()
 
 void EventLoop::Loop()
 {
-	// Check invariants by assert().
 	assert(looping_ == false); // Not in looping.
 	AssertInLoopThread(); // Must run Loop in loop thread.
 
@@ -131,19 +130,15 @@ void EventLoop::Loop()
 	while(quit_ == false)
 	{
 		active_channel_vector_.clear(); // Clear old active channel vector.
-		poll_return_time_ =
+		epoll_return_time_ =
 		    epoller_->EpollWait(kTimeoutInMillisecond, active_channel_vector_);
 		PrintActiveChannel();
 		// TODO sort channel by priority
-		event_handling_ = true;
 		for(ChannelVector::iterator it = active_channel_vector_.begin();
 		        it != active_channel_vector_.end(); ++it)
 		{
-			current_active_channel_ = *it;
-			current_active_channel_->HandleEvent(poll_return_time_);
+			(*it)->HandleEvent(epoll_return_time_);
 		}
-		current_active_channel_ = nullptr;
-		event_handling_ = false;
 		DoPendingFunctor(); // Do callbacks of pending_functor_vector_.
 	}
 
@@ -217,6 +212,60 @@ void EventLoop::Wakeup()
 	}
 }
 
+void EventLoop::AddOrUpdateChannel(Channel *channel)
+{
+	// NOTE: Only can update channel that this EventLoop owns.
+	assert(channel->owner_loop() == this);
+	AssertInLoopThread();
+	epoller_->AddOrUpdateChannel(channel);
+}
+void EventLoop::RemoveChannel(Channel *channel)
+{
+	assert(channel->owner_loop() == this);
+	AssertInLoopThread();
+	epoller_->RemoveChannel(channel);
+}
+bool EventLoop::HasChannel(Channel *channel)
+{
+	assert(channel->owner_loop() == this);
+	AssertInLoopThread();
+	return epoller_->HasChannel(channel);
+}
+
+void EventLoop::RunInLoop(const Functor &functor)
+{
+	if(IsInLoopThread() == true)
+	{
+		functor();
+	}
+	else
+	{
+		QueueInLoop(functor);
+	}
+}
+void EventLoop::QueueInLoop(const Functor &functor)
+{
+	{
+		// lock is a stack variable, MutexLockGuard constructor calls `mutex_.Lock()`.
+		MutexLockGuard lock(mutex_);
+		pending_functor_vector_.push_back(functor); // Add this functor to functor queue.
+		// lock is about to destruct, its destructor calls `mutex_.Unlock()`.
+	}
+	// Wakeup loop thread when either of the following conditions satisfy:
+	//	1. This thread(i.e., the calling thread) is not the loop thread.
+	//	2. This thread is loop thread, but now it is calling pending functor.
+	//		`calling_pending_functor_` is true only in DoPendingFunctor() when
+	//		we call each pending functor. When the pending functor calls QueueInLoop()
+	//		again, we must Wakeup() loop thread, otherwise the newly added callbacks
+	//		won't be called on time.
+	// That is, only calling QueueInLoop in the EventCallback(s) of loop thread, can
+	// we not Wakeup loop thread.
+	if(IsInLoopThread() == false || calling_pending_functor_ == true)
+	{
+		Wakeup();
+	}
+}
+
 // Runs callback at `time_stamp`.
 TimerId EventLoop::RunAt(const TimerCallback &callback, const TimeStamp &time)
 {
@@ -236,74 +285,6 @@ TimerId EventLoop::RunEvery(const TimerCallback &callback, double interval)
 	                              AddTime(TimeStamp::Now(), interval),
 	                              interval);
 }
-
-void EventLoop::AddOrUpdateChannel(Channel *channel)
-{
-	// NOTE: Only can update channel that this EventLoop owns.
-	assert(channel->owner_loop() == this);
-	AssertInLoopThread();
-	epoller_->AddOrUpdateChannel(channel);
-}
-void EventLoop::RemoveChannel(Channel *channel)
-{
-	assert(channel->owner_loop() == this);
-	AssertInLoopThread();
-	// TODO: What's meaning? What's use???
-	// Me: If `RemoveChannel()` while `Loop()` is in `for(;;) HandleEvent();`, then the
-	// channel to be removed must be:
-	// 1.	Not in active channel vector.
-	// 2.	In active channel vector: it must be current_active_channel_, can't be
-	//		any other active channel.
-	if(event_handling_ == true)
-	{
-		assert(current_active_channel_ == channel ||
-		       find(active_channel_vector_.begin(),
-		            active_channel_vector_.end(),
-		            channel) == active_channel_vector_.end());
-	}
-	epoller_->RemoveChannel(channel);
-}
-bool EventLoop::HasChannel(Channel *channel)
-{
-	assert(channel->owner_loop() == this);
-	AssertInLoopThread();
-	return epoller_->HasChannel(channel);
-}
-
-void EventLoop::RunInLoop(const Functor &callback)
-{
-	if(IsInLoopThread() == true)
-	{
-		callback();
-	}
-	else
-	{
-		QueueInLoop(callback);
-	}
-}
-void EventLoop::QueueInLoop(const Functor &callback)
-{
-	{
-		// lock is a stack variable, MutexLockGuard constructor calls `mutex_.Lock()`.
-		MutexLockGuard lock(mutex_);
-		pending_functor_vector_.push_back(callback); // Add this functor to functor queue.
-		// lock is about to destruct, its destructor calls `mutex_.Unlock()`.
-	}
-	// Wakeup loop thread when either of the following conditions satisfy:
-	//	1. This thread(i.e., the calling thread) is not the loop thread.
-	//	2. This thread is loop thread, but now it is calling pending functor.
-	//		`calling_pending_functor_` is true only in DoPendingFunctor() when
-	//		we call each pending functor. When the pending functor calls QueueInLoop()
-	//		again, we must Wakeup() loop thread, otherwise the newly added callbacks
-	//		won't be called on time.
-	// That is, only calling QueueInLoop in the EventCallback(s) of loop thread, can
-	// we not Wakeup loop thread.
-	if(IsInLoopThread() == false || calling_pending_functor_ == true)
-	{
-		Wakeup();
-	}
-}
-
 void EventLoop::CancelTimer(TimerId timer_id)
 {
 	timer_queue_->CancelTimer(timer_id);

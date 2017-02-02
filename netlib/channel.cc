@@ -45,15 +45,11 @@ Channel::Channel(EventLoop *loop, int file_descriptor):
 	requested_event_(kNoneEvent),
 	returned_event_(kNoneEvent),
 	state_in_epoller_(-1), // Epoller::kRaw.
-	tied_(false),
-	event_handling_(false),
-	added_to_loop_(false)
+	tied_(false)
 {}
 
 Channel::~Channel()
 {
-	assert(event_handling_ == false);
-	assert(added_to_loop_ == false);
 	if(owner_loop_->IsInLoopThread() == true)
 	{
 		assert(owner_loop_->HasChannel(this) == false);
@@ -78,12 +74,14 @@ void Channel::set_requested_event(RequestedEventType type)
 		break;
 	case NONE_EVENT:
 		requested_event_ = kNoneEvent;
+		break;
+	default:
+		LOG_FATAL("Unknown RequestedEventType");
 	}
 	AddOrUpdateChannel();
 }
 void Channel::AddOrUpdateChannel()
 {
-	added_to_loop_ = true;
 	owner_loop_->AddOrUpdateChannel(this);
 	// Invoke `void Epoller::AddOrUpdateChannel(Channel*)`
 }
@@ -108,6 +106,9 @@ void Channel::set_event_callback(EventCallbackType type, const EventCallback &ca
 		break;
 	case ERROR_CALLBACK:
 		error_callback_ = callback;
+		break;
+	default:
+		LOG_FATAL("Unknown EventCallbackType!");
 	}
 }
 
@@ -122,6 +123,7 @@ bool Channel::IsRequestedArgumentEvent(RequestedEventType type)
 	case NONE_EVENT:
 		return requested_event_ == kNoneEvent;
 	default:
+		LOG_FATAL("Unknown RequestedEventType");
 		return true;
 	}
 }
@@ -145,7 +147,6 @@ void Channel::HandleEvent(TimeStamp receive_time)
 // Invoked by EventLoop::Loop().
 void Channel::HandleEventWithGuard(TimeStamp receive_time)
 {
-	event_handling_ = true;
 	LOG_TRACE("%s", ReturnedEventToString().c_str());
 
 	if((returned_event_ & kReadEvent) && read_callback_)
@@ -166,13 +167,11 @@ void Channel::HandleEventWithGuard(TimeStamp receive_time)
 	{
 		error_callback_(receive_time);
 	}
-	event_handling_ = false;
 }
 
 void Channel::RemoveChannel()
 {
 	assert(IsRequestedArgumentEvent(NONE_EVENT) == true);
-	added_to_loop_ = false;
 	owner_loop_->RemoveChannel(this);
 }
 
@@ -180,12 +179,10 @@ string Channel::RequestedEventToString() const
 {
 	return EventToString(fd_, requested_event_);
 }
-
 string Channel::ReturnedEventToString() const
 {
 	return EventToString(fd_, returned_event_);
 }
-
 string Channel::EventToString(int fd, int event)
 {
 	char buffer[32] = "";

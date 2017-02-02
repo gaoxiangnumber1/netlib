@@ -132,10 +132,6 @@ private:
 	// HandEventWithGuard().
 	std::weak_ptr<void> tie_;
 	bool tied_;
-	// NOTE: Set in HandleEventWithGuard(); Used for assertion in Dtor().
-	bool event_handling_;
-	// NOTE: Set in AddOrUpdateC() and RemoveC(); Used for assertion in Dtor().
-	bool added_to_loop_;
 	// Different callbacks called when corresponding event happens.
 	EventCallback read_callback_;
 	EventCallback write_callback_;

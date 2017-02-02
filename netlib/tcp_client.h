@@ -54,6 +54,7 @@ public:
 	void Stop();
 
 private:
+	using ConnectorPtr = std::shared_ptr<Connector>;
 	// Not thread safe, but in loop.
 	void HandleNewConnection(int socket_fd);
 	// Not thread safe, but in loop.

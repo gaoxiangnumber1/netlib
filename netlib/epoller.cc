@@ -62,7 +62,7 @@ Epoller::Epoller(EventLoop *owner_loop):
 {
 	if(epoll_fd_ == -1)
 	{
-		LOG_FATAL("Epoller(): create epoll_fd_ fails.");
+		LOG_FATAL("epoll_create1(): FATAL");
 	}
 }
 
@@ -101,9 +101,11 @@ TimeStamp Epoller::EpollWait(int timeout_in_millisecond, ChannelVector &active_c
 	// 1.	Call epoll_wait() to get the `epoll_event` whose channel has active IO events
 	//		and store them in returned_epoll_event_vector_.
 	// vector.data() <-> &(*vector.begin())
+	int returned_epoll_event_vector_size =
+	    static_cast<int>(returned_epoll_event_vector_.size());
 	int event_number = ::epoll_wait(epoll_fd_,
 	                                returned_epoll_event_vector_.data(),
-	                                static_cast<int>(returned_epoll_event_vector_.size()),
+	                                returned_epoll_event_vector_size,
 	                                timeout_in_millisecond);
 	TimeStamp now(TimeStamp::Now());
 	int saved_errno = errno; // NOTE: Must handle error.
@@ -122,9 +124,9 @@ TimeStamp Epoller::EpollWait(int timeout_in_millisecond, ChannelVector &active_c
 			active_channel.push_back(channel);
 		}
 		// NOTE: expand the returned epoll event vector if it is full.
-		if(event_number == static_cast<int>(returned_epoll_event_vector_.size()))
+		if(event_number == returned_epoll_event_vector_size)
 		{
-			returned_epoll_event_vector_.resize(returned_epoll_event_vector_.size() * 2);
+			returned_epoll_event_vector_.resize(returned_epoll_event_vector_size * 2);
 		}
 	}
 	else if(event_number == 0)
@@ -138,12 +140,11 @@ TimeStamp Epoller::EpollWait(int timeout_in_millisecond, ChannelVector &active_c
 		if(saved_errno != EINTR)
 		{
 			errno = saved_errno;
-			LOG_ERROR("Epoller::EpollWait() error");
+			LOG_ERROR("epoll_wait(): ERROR");
 		}
 	}
 	return now;
 }
-
 void Epoller::AssertInLoopThread() const // Must be in IO thread.
 {
 	owner_loop_->AssertInLoopThread();
@@ -158,17 +159,17 @@ void Epoller::AddOrUpdateChannel(Channel *channel)
 	int channel_state = channel->state_in_epoller();
 	LOG_TRACE("channel_fd = %d, requested_event = %d, channel_state = %d",
 	          channel->fd(), channel->requested_event(), channel_state);
-
 	switch(channel_state)
 	{
 	// kRaw or kDeleted: A new one, add with EPOLL_CTL_ADD.
 	case kRaw: // The initial state of every Channel object.
 		assert(channel_set_.find(channel) == channel_set_.end());
 		channel_set_.insert(channel); // Add new channel.
+	// NO `break;` to avoid duplicate codes!
 	case kDeleted:
 		assert(channel_set_.find(channel) != channel_set_.end());
-		channel->set_state_in_epoller(kAdded);
 		EpollCtl(EPOLL_CTL_ADD, channel);
+		channel->set_state_in_epoller(kAdded);
 		break;
 	// kAdded: Already existing one, update with DEL or MOD.
 	case kAdded:
@@ -176,9 +177,9 @@ void Epoller::AddOrUpdateChannel(Channel *channel)
 		// If this channel doesn't interest in any events.
 		if(channel->IsRequestedArgumentEvent(Channel::NONE_EVENT) == true)
 		{
-			channel->set_state_in_epoller(kDeleted);
 			// Remove its file descriptor from this epoll instance(referred to by epoll_fd_).
 			EpollCtl(EPOLL_CTL_DEL, channel);
+			channel->set_state_in_epoller(kDeleted);
 		}
 		else
 		{
@@ -189,16 +190,15 @@ void Epoller::AddOrUpdateChannel(Channel *channel)
 		LOG_FATAL("Unknown channel_state!");
 	}
 }
-
 // #include <sys/epoll.h>
 // int epoll_ctl(int epfd, int op, int fd, struct epoll_event *event);
 // Perform the operation `op` on the epoll(7) instance referred to by `epfd`
 // for the file descriptor `fd`.
 // The `event` argument describes the object linked to the file descriptor fd.
-// EPOLL_CTL_ADD	Register the target file descriptor fd on the epoll instance
+// EPOLL_CTL_ADD		Register the target file descriptor fd on the epoll instance
 // referred to by `epfd` and associate the `event` with the internal file linked to fd.
 // EPOLL_CTL_MOD	Change the `event` associated with the target file descriptor fd.
-// EPOLL_CTL_DEL	Remove(unregister) the target file descriptor fd from the epoll
+// EPOLL_CTL_DEL		Remove(unregister) the target file descriptor fd from the epoll
 // instance referred to by `epfd`. The event is ignored and can be NULL.
 // Return 0 on success; -1 on error and errno is set.
 void Epoller::EpollCtl(int operation, Channel *channel)
@@ -212,11 +212,10 @@ void Epoller::EpollCtl(int operation, Channel *channel)
 	          OperationToCString(operation), fd, channel->RequestedEventToString().c_str());
 	if(::epoll_ctl(epoll_fd_, operation, fd, &event) == -1)
 	{
-		LOG_FATAL("epoll_ctl error operation = %s fd = %d",
+		LOG_FATAL("epoll_ctl(): FATAL. operation = %s fd = %d",
 		          OperationToCString(operation), fd);
 	}
 }
-
 const char *Epoller::OperationToCString(int operation)
 {
 	switch(operation)
@@ -242,14 +241,12 @@ const char *Epoller::OperationToCString(int operation)
 void Epoller::RemoveChannel(Channel *channel)
 {
 	AssertInLoopThread();
-	int channel_state = channel->state_in_epoller();
-	LOG_TRACE("channel_fd = %d, channel_state = %d", channel->fd(), channel_state);
-	assert(channel_set_.find(channel) != channel_set_.end());
 	// Always `channel->set_requested_event_none()` before RemoveChannel().
 	assert(channel->IsRequestedArgumentEvent(Channel::NONE_EVENT) == true);
-	assert(channel_state == kAdded || channel_state == kDeleted);
 	// Remove this Channel from channel_set_:
 	assert(channel_set_.erase(channel) == 1);
+	int channel_state = channel->state_in_epoller();
+	assert(channel_state == kAdded || channel_state == kDeleted);
 	if(channel_state == kAdded)
 	{
 		EpollCtl(EPOLL_CTL_DEL, channel);

@@ -11,7 +11,7 @@ namespace netlib
 {
 
 // Wrapper of `struct sockaddr_in` that can convert byte order automatically.
-// SocketClass is value semantics, it can be copied.
+// SocketAddress is value semantics, it can be copied.
 
 // Interface:
 // Ctor(int), Ctor(string, int), Ctor(const struct sockaddr_in&)

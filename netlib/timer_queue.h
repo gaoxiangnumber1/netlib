@@ -16,8 +16,6 @@ class EventLoop;
 class Timer;
 class TimerId;
 
-// FIXME: There is a BUG!!!
-
 // Interface:
 // Ctor -> -CreateTimerFd -> -HandleRead.
 //		-HandleRead -> -ReadTimerFd -> -GetAndRemoveExpiredTimer -> -Refresh.

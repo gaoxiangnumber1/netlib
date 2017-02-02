@@ -19,7 +19,8 @@ class Channel;
 // Ctor.
 // Dtor.
 // EpollWait -> -AssertInLoopThread.
-// AddOrUpdateChannel -> -AssertInLoopThread -> -EpollCtl.
+// AddOrUpdateChannel -> -AssertInLoopThread -> -EpollCtl
+//		-EpollCtl -> -OperationToCString
 // RemoveChannel -> -AssertInLoopThread -> -EpollCtl.
 // HasChannel -> -AssertInLoopThread.
 
@@ -62,7 +63,7 @@ private:
 	EpollEventVector returned_epoll_event_vector_;
 	static const int kInitialReturnedEpollEventVectorSize = 16;
 	// Epoller is an indirect member of EventLoop, it is invoked by its owner
-	// EventLoop in IO thread. Thus, we don't need use MutexLock to protect it.
+	// EventLoop in the IO thread. Thus, we don't need use MutexLock to protect it.
 	// Epoller's life time is the same as its owner EventLoop.
 	EventLoop *owner_loop_;
 	// Epoller doesn't own Channel, so Channel object must unregister by itself calling
