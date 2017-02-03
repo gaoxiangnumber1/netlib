@@ -8,7 +8,6 @@ using netlib::EventLoop;
 
 EventLoopThread::EventLoopThread(const InitialTask &task):
 	loop_(nullptr),
-	exiting_(false),
 	thread_(bind(&EventLoopThread::ThreadFunction, this)),
 	mutex_(),
 	condition_(mutex_),
@@ -17,7 +16,6 @@ EventLoopThread::EventLoopThread(const InitialTask &task):
 
 EventLoopThread::~EventLoopThread()
 {
-	exiting_ = true;
 	// FIXME: Not 100% race-free, eg. ThreadFunction could be running callback_.
 	if(loop_ != nullptr)
 	{

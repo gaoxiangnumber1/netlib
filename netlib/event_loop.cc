@@ -76,12 +76,12 @@ EventLoop::EventLoop():
 // Return a new file descriptor on success; -1 on error and errno is set.
 int EventLoop::CreateWakeupFd()
 {
-	int event_fd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-	if(event_fd == -1)
+	int wakeup_fd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
+	if(wakeup_fd == -1)
 	{
 		LOG_FATAL("Failed in eventfd");
 	}
-	return event_fd;
+	return wakeup_fd;
 }
 // The value returned by read(2) is in host byte order.
 // 1.	If EFD_SEMAPHORE was not specified and the eventfd counter has a nonzero
@@ -91,7 +91,7 @@ int EventLoop::CreateWakeupFd()
 //		descriptor has been made nonblocking.
 void EventLoop::HandleRead()
 {
-	uint64_t counter = 0;
+	uint64_t counter;
 	int read_byte = static_cast<int>(::read(wakeup_fd_, &counter, 8));
 	if(read_byte != 8)
 	{
@@ -103,9 +103,15 @@ EventLoop::~EventLoop()
 {
 	LOG_DEBUG("EventLoop %p of thread %d destructs in thread %d",
 	          this, thread_id_, Thread::ThreadId());
-	::close(wakeup_fd_);
+	// NOTE: For file descriptor that has a channel, when its object destructs:
+	// 1. Set requested event to none.
+	// 2. Remove its channel.
+	// 3. Close this file descriptor.
+	// We must close file descriptor at last, otherwise
+	// `epoll_ctl(): FATAL. operation = DEL fd = X Bad file descriptor(errno=9)`
 	wakeup_fd_channel_->set_requested_event(Channel::NONE_EVENT);
 	wakeup_fd_channel_->RemoveChannel();
+	::close(wakeup_fd_);
 	t_loop_in_this_thread = nullptr;
 }
 
@@ -135,7 +141,8 @@ void EventLoop::Loop()
 		PrintActiveChannel();
 		// TODO sort channel by priority
 		for(ChannelVector::iterator it = active_channel_vector_.begin();
-		        it != active_channel_vector_.end(); ++it)
+		        it != active_channel_vector_.end();
+		        ++it)
 		{
 			(*it)->HandleEvent(epoll_return_time_);
 		}
@@ -176,7 +183,8 @@ void EventLoop::DoPendingFunctor()
 	//		but we still request ourself mutex, this will cause a deadlock.
 
 	for(FunctorVector::iterator it = pending_functor.begin();
-	        it != pending_functor.end(); ++it)
+	        it != pending_functor.end();
+	        ++it)
 	{
 		(*it)();
 	}

@@ -11,6 +11,11 @@ namespace netlib
 
 class EventLoop;
 
+// Interface:
+// Ctor.
+// Dtor.
+// StartLoop -> -ThreadFunction
+
 class EventLoopThread: public NonCopyable
 {
 public:
@@ -24,7 +29,6 @@ private:
 	void ThreadFunction();
 
 	EventLoop *loop_;
-	bool exiting_; // May have no use.
 	Thread thread_;
 	MutexLock mutex_;
 	Condition condition_;
