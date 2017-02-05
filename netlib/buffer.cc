@@ -19,7 +19,7 @@ Buffer::Buffer(int initial_size):
 const char *Buffer::FindCRLF(const char *start) const
 {
 	assert(ReadableBegin() <= start && start <= WritableBegin());
-	for(const char *ptr = start, *end = WritableBegin() - 1; ptr < end; ++ptr)
+	for(const char *ptr = start, *end = WritableBegin() - 2; ptr <= end; ++ptr)
 	{
 		if(*ptr == '\r' && *(ptr + 1) == '\n')
 		{

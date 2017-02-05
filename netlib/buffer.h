@@ -11,6 +11,13 @@
 namespace netlib
 {
 
+// Interface:
+// Ctor
+// Getter: PrependableByte, ReadableByte, WritableByte
+// FindCRLF: (const char*), () -> +ReadableBegin -> -WritableBegin
+//			+ReadableBegin -> -BufferBegin
+//			-WritableBegin -> -BufferBegin
+
 class Buffer: public Copyable
 {
 public:
