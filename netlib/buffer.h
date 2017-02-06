@@ -17,6 +17,10 @@ namespace netlib
 // FindCRLF: (const char*), () -> +ReadableBegin -> -WritableBegin
 //			+ReadableBegin -> -BufferBegin
 //			-WritableBegin -> -BufferBegin
+// ReadFd -> +Append(const char*, int)
+// Append(const string&) -> Append(const char*, int) -> -EnsureWritableByte -> -Copy
+//			-EnsureWritableByte -> -Copy
+// RetrieveAllAsString -> RetrieveAsString -> Retrieve -> RetrieveAll
 
 class Buffer: public Copyable
 {
@@ -43,20 +47,20 @@ public:
 
 	const char *FindCRLF(const char *start) const;
 	const char *FindCRLF() const;
-
-	// Input API: Read from socket and store the data in buffer.
-	int ReadFd(int fd, int &saved_errno);
-	void Append(const char *data, int length);
-	void Append(const std::string &data);
-
-	// Output API:
 	// The begin pointer of data to be read. Must be read-only.
 	const char *ReadableBegin() const
 	{
 		return BufferBegin() + read_index_;
 	}
-	std::string RetrieveAsString(int length);
+
+	// Input API: Read from socket and store the data in buffer.
+	int ReadFd(int fd, int &saved_errno);
+	void Append(const std::string &data);
+	void Append(const char *data, int length);
+
+	// Output API:
 	std::string RetrieveAllAsString();
+	std::string RetrieveAsString(int length);
 	void Retrieve(int length);
 	void RetrieveAll();
 

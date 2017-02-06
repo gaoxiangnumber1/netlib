@@ -16,14 +16,20 @@ class Socket;
 class Channel;
 
 // Interface:
-// Ctor.
+// Ctor -> -HandleRead -> -HandleWrite -> -HandleClose -> -HandleError
+//			-HandleRead -> -HandleClose -> -HandleError
+//			-HandleWrite -> -ShutdownInLoop
 // Dtor.
+// Getter: loop, name, local_address, peer_address, input_buffer, output_buffer
+// Setter: connection/message/high_water_mark/write_complete/close_callback
+// Connected/Disconnected
 // SetTcpNoDelay.
-// ConnectEstablished -> -connection_callback_.
-// Send -> -SendInLoop. (SendInLoop -> write_complete_cb_, high_water_mark_cb_)
+// ConnectEstablished -> -set_state
+// Send(const string&)/(Buffer*) -> -SendInLoop
 // Shutdown -> -ShutdownInLoop.
-// ForceClose -> -ForceCloseInLoop. (ForceCloseInLoop -> -HandleClose.)
-// ConnectDestroyed -> -connection_callback_.
+// ForceClose -> -ForceCloseInLoop
+//			-ForceCloseInLoop -> -HandleClose
+// ConnectDestroyed
 
 // TCP connection, for both client and server usage.
 // Because of the ambiguous lifetime of TcpConnection, we use shared_ptr<> to
@@ -138,8 +144,8 @@ private:
 	void HandleClose();
 	void HandleError();
 
-	void SendInLoop(const char *data, int length);
 	void ShutdownInLoop();
+	void SendInLoop(const char *data, int length);
 	void ForceCloseInLoop();
 
 	EventLoop *loop_;
