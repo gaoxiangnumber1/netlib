@@ -19,11 +19,11 @@ class Channel;
 // Ctor -> -HandleRead -> -HandleWrite -> -HandleClose -> -HandleError
 //			-HandleRead -> -HandleClose -> -HandleError
 //			-HandleWrite -> -ShutdownInLoop
-// Dtor.
+// Dtor
 // Getter: loop, name, local_address, peer_address, input_buffer, output_buffer
 // Setter: connection/message/high_water_mark/write_complete/close_callback
 // Connected/Disconnected
-// SetTcpNoDelay.
+// SetTcpNoDelay
 // ConnectEstablished -> -set_state
 // Send(const string&)/(Buffer*) -> -SendInLoop
 // Shutdown -> -ShutdownInLoop.

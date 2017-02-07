@@ -57,7 +57,7 @@ int Buffer::ReadFd(int fd, int &saved_errno)
 	// The data transfer performed by readv() is atomic.
 	// Return the number of bytes read on success; -1 is returned on error, and errno is set.
 	int read_byte = static_cast<int>(::readv(fd, vec, 2));
-	if(read_byte == -1)
+	if(read_byte <= 0)
 	{
 		saved_errno = errno;
 	}
@@ -67,7 +67,7 @@ int Buffer::ReadFd(int fd, int &saved_errno)
 	}
 	else
 	{
-		write_index_ = static_cast<int>(buffer_.size());
+		write_index_ += writable_byte;
 		Append(extra_buffer, read_byte - writable_byte);
 	}
 	return read_byte;
@@ -123,7 +123,7 @@ string Buffer::RetrieveAsString(int length)
 }
 void Buffer::Retrieve(int length)
 {
-	assert(length <= ReadableByte());
+	assert(0 <= length && length <= ReadableByte());
 	if(length < ReadableByte())
 	{
 		read_index_ += length;

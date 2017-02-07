@@ -16,11 +16,19 @@ class SocketAddress;
 // Acceptor is used to accept(2) new TCP connections and it notifies its caller by
 // new_connection_callback_. This is an internal class, used by TcpServer, and
 // its lifetime is controlled by TcpServer class.
+
+// Interface:
+// Ctor -> -HandleRead
+// Dtor
+// listening
+// set_new_connection_callback
+// Listen
+
 class Acceptor: public NonCopyable
 {
 public:
 	// NewConnectionCallback is used only in Acceptor class,
-	// so we don't put it in callback.h.
+	// so we don't put it in callback.h. (connection_fd, peer_address)
 	using NewConnectionCallback = std::function<void(int, const SocketAddress&)>;
 
 	Acceptor(EventLoop *owner_loop,
@@ -45,12 +53,12 @@ private:
 	// Call accept(2) to accept new connections and call user's callback.
 	void HandleRead();
 
-	EventLoop *owner_loop_; // owner loop.
+	EventLoop *owner_loop_;
 	Socket accept_socket_; // A listening socket, i.e., a server socket.
 	Channel accept_channel_;
-	NewConnectionCallback new_connection_callback_;
 	bool listening_;
 	int idle_fd_; // TODO: Read muduo-7.7.1
+	NewConnectionCallback new_connection_callback_;
 };
 
 }

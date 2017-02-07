@@ -41,6 +41,51 @@ Acceptor::Acceptor(EventLoop *owner_loop,
 	accept_channel_.set_event_callback(Channel::READ_CALLBACK,
 	                                   bind(&Acceptor::HandleRead, this));
 }
+// When the listening socket(i.e., the accept_socket_) is readable, Poller::Poll()
+// will return and calls Channel::HandleEvent(), which in turn calls this function.
+// Call accept_socket_.Accept() to accept(2) new connections
+// and call new connection callback if user supply.
+void Acceptor::HandleRead()
+{
+	owner_loop_->AssertInLoopThread();
+	SocketAddress peer_address; // Construct an endpoint with given port number.
+	// FIXME: Here we accept(2) one socket each time, which is suitable for long
+	// connection. There two strategies for short-connection:
+	// 1.	accept(2) until no more new connections arrive.
+	// 2.	accept(2) N connections at a time, N normally is 10.
+	int connection_fd = accept_socket_.Accept(peer_address);
+	// TODO: See 7.7 "How to avoid the use all of file descriptors?"
+	if(connection_fd >= 0)
+	{
+		if(new_connection_callback_) // void(int, const SocketAddress&)
+		{
+			// FIXME: Here pass the connection_fd by value, which may not free memory
+			// properly. C++11: create Socket object -> use std::move() to move this object
+			// to new_connection_callback. This Guarantee the safe memory release.
+			new_connection_callback_(connection_fd, peer_address);
+		}
+		else
+		{
+			::close(connection_fd);
+		}
+	}
+	else
+	{
+		LOG_ERROR("accept_socket_.Accept()");
+		// TODO: "The special problem of accept()ing when you can't" - libev's doc.
+		// The per-process limit of open file descriptors has been reached.
+		if(errno == EMFILE)
+		{
+			::close(idle_fd_);
+			// #include <sys/socket.h>
+			// int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
+			// addr = NULL: nothing is filled in, and addrlen should also be NULL.
+			idle_fd_ = ::accept(accept_socket_.socket_fd(), NULL, NULL);
+			::close(idle_fd_);
+			idle_fd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
+		}
+	}
+}
 
 Acceptor::~Acceptor()
 {
@@ -61,49 +106,3 @@ void Acceptor::Listen()
 	accept_socket_.Listen();
 }
 
-// When the listening socket(i.e., the accept_socket_) is readable, Poller::Poll()
-// will return and calls Channel::HandleEvent(), that in turn calls this function.
-// Call accept_socket_.Accept() to accept(2) new connections and call new connection
-// callback if user supply.
-void Acceptor::HandleRead()
-{
-	owner_loop_->AssertInLoopThread();
-
-	SocketAddress peer_address; // Construct an endpoint with given port number.
-	// FIXME: Here we accept(2) one socket each time, which is suitable for long
-	// connection. There two strategies for short-connection:
-	// 1.	accept(2) until no more new connections arrive.
-	// 2.	accept(2) N connections at a time, N normally is 10.
-	int connection_fd = accept_socket_.Accept(peer_address);
-	// TODO: See 7.7 "How to avoid the use all of file descriptors?"
-	if(connection_fd >= 0)
-	{
-		if(new_connection_callback_) // void(int, const InetAddress&)
-		{
-			// FIXME: Here pass the connection_fd by value, which may not free memory
-			// properly. C++11: create Socket object -> use std::move() to move this object
-			// to new_connection_callback. This Guarantee the safe memory release.
-			new_connection_callback_(connection_fd, peer_address);
-		}
-		else
-		{
-			::close(connection_fd);
-		}
-	}
-	else
-	{
-		LOG_ERROR("Acceptor::handleRead");
-		// TODO: "The special problem of accept()ing when you can't" - libev's doc.
-		// The per-process limit of open file descriptors has been reached.
-		if(errno == EMFILE)
-		{
-			::close(idle_fd_);
-			// #include <sys/socket.h>
-			// int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
-			// addr = NULL: nothing is filled in, and addrlen should also be NULL.
-			idle_fd_ = ::accept(accept_socket_.socket_fd(), NULL, NULL);
-			::close(idle_fd_);
-			idle_fd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
-		}
-	}
-}
