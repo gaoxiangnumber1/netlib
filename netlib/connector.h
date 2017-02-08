@@ -12,16 +12,18 @@ class EventLoop;
 class Channel;
 
 // Interface:
-// Ctor.
-// Dtor.
+// Ctor
+// Dtor
+// server_address
+// set_new_connection_callback
 // Start -> -StartInLoop
-//                 StartInLoop -> -Connect
-//                                              Connect -> -Connecting -> -Retry
-//                                                                                              Retry -> -StartInLoop
+//			-StartInLoop -> -Connect
+//						-Connect -> -Connecting -> -Retry
+//									-Retry -> -StartInLoop
 // Restart -> -StartInLoop
 // Stop -> -StopInLoop
-//                StopInLoop -> -RemoveAndResetChannel -> -Retry
-//                                            RemoveAndResetChannel -> -ResetChannel
+//			-StopInLoop -> -RemoveAndResetChannel -> -Retry
+//						-RemoveAndResetChannel -> -ResetChannel
 class Connector: public NonCopyable,
 	public std::enable_shared_from_this<Connector>
 {

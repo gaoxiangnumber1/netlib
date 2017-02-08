@@ -37,7 +37,7 @@ Acceptor::Acceptor(EventLoop *owner_loop,
 	assert(idle_fd_ >= 0);
 	accept_socket_.SetReuseAddress(true); // Enable SO_REUSEADDR
 	accept_socket_.SetReusePort(is_reuse_port);
-	accept_socket_.Bind(listen_address); // Wrapper for ::bind().
+	accept_socket_.Bind(listen_address);
 	accept_channel_.set_event_callback(Channel::READ_CALLBACK,
 	                                   bind(&Acceptor::HandleRead, this));
 }

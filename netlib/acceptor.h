@@ -27,8 +27,7 @@ class SocketAddress;
 class Acceptor: public NonCopyable
 {
 public:
-	// NewConnectionCallback is used only in Acceptor class,
-	// so we don't put it in callback.h. (connection_fd, peer_address)
+	// Different from the `NewConnectionCallback` in the callback.h
 	using NewConnectionCallback = std::function<void(int, const SocketAddress&)>;
 
 	Acceptor(EventLoop *owner_loop,

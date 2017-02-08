@@ -15,15 +15,19 @@ class EventLoop;
 class EventLoopThreadPool;
 class SocketAddress;
 
-// Interface:
-// Ctor.
-// Dtor.
-// Start.
-
 // TCP server, supports single-thread and thread-pool models.
 // TcpServer class's task: Manage the tcp connections get by accept(2).
 // This class is used directly by user and its lifetime is controlled by user.
 // User only needs set callback and then call Start().
+
+// Interface:
+// Ctor -> -HandleNewConnection
+//			-HandleNewConnection -> -RemoveConnection
+//						-RemoveConnection -> -RemoveConnectionInLoop
+// Dtor.
+// Setter: connection, message, write_complete
+// Start.
+
 class TcpServer: public NonCopyable
 {
 public:
