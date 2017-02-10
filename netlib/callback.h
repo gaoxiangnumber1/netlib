@@ -27,7 +27,7 @@ using EventCallback = std::function<void(TimeStamp)>;
 void DefaultConnectionCallback(const TcpConnectionPtr&);
 void DefaultMessageCallback(const TcpConnectionPtr&, Buffer*, TimeStamp);
 
-using NewConnectionCallback = std::function<void(int socket_fd)>;
+using NewConnectionCallback = std::function<void(int)>;
 
 }
 
