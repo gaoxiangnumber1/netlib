@@ -19,11 +19,15 @@ class Channel;
 // Start -> -StartInLoop
 //			-StartInLoop -> -Connect
 //						-Connect -> -Connecting -> -Retry
+//									-Connecting -> -HandleWrite -> -HandleError
+//												-HandleWrite -> -RemoveAndResetChannel -> -Retry -> -IsSelfConnect
+//															-RemoveAndResetChannel -> -ResetChannel
+//												-HandleError -> -RemoveAndResetChannel -> -Retry
 //									-Retry -> -StartInLoop
 // Restart -> -StartInLoop
 // Stop -> -StopInLoop
 //			-StopInLoop -> -RemoveAndResetChannel -> -Retry
-//						-RemoveAndResetChannel -> -ResetChannel
+
 class Connector: public NonCopyable,
 	public std::enable_shared_from_this<Connector>
 {
