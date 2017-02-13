@@ -26,7 +26,8 @@ Socket::~Socket()
 void Socket::Bind(const SocketAddress &local_address)
 {
 	const struct sockaddr *address = local_address.socket_address();
-	int ret = ::bind(socket_fd_, address, static_cast<socklen_t>(sizeof address));
+	// NOTE: sizeof address = 8, sizeof *address = 16! sizeof structure, not pointer!
+	int ret = ::bind(socket_fd_, address, static_cast<socklen_t>(sizeof *address));
 	if(ret == -1)
 	{
 		LOG_FATAL("bind(): FATAL");
