@@ -8,6 +8,7 @@ ThreadPool::ThreadPool(const int thread_number,
                        const Task &initial_task,
                        const int max_queue_size):
 	thread_number_(thread_number),
+	thread_pool_(thread_number_),
 	initial_task_(initial_task),
 	running_(false),
 	mutex_(),
@@ -66,17 +67,16 @@ void ThreadPool::Stop()
 // Create thread_number_ threads and start all threads.
 void ThreadPool::Start()
 {
-	assert(running_ == false && thread_pool_.empty() == true);
+	assert(running_ == false && static_cast<int>(thread_pool_.size()) == thread_number_);
 
 	running_ = true;
 	if(thread_number_ == 0 && initial_task_)
 	{
 		initial_task_();
 	}
-	thread_pool_.reserve(thread_number_);
 	for(int index = 0; index < thread_number_; ++index)
 	{
-		thread_pool_.push_back(new Thread(bind(&ThreadPool::RunInThread, this)));
+		thread_pool_[index] = new Thread(bind(&ThreadPool::RunInThread, this));
 		thread_pool_[index]->Start();
 	}
 }

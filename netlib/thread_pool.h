@@ -12,6 +12,10 @@
 namespace netlib
 {
 
+// Review:
+// NonFunction: thread_pool_, running_
+// Function:
+
 // Interface:
 // Ctor
 // Dtor -> +Stop
