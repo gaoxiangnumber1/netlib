@@ -48,7 +48,7 @@ Acceptor::Acceptor(EventLoop *owner_loop,
 void Acceptor::HandleRead()
 {
 	owner_loop_->AssertInLoopThread();
-	SocketAddress peer_address; // Construct an endpoint with given port number.
+	SocketAddress peer_address(0); // Construct an endpoint with given port number.
 	// FIXME: Here we accept(2) one socket each time, which is suitable for long
 	// connection. There two strategies for short-connection:
 	// 1.	accept(2) until no more new connections arrive.
