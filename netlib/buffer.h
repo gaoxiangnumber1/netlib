@@ -21,6 +21,7 @@ namespace netlib
 // Append(const string&) -> Append(const char*, int) -> -EnsureWritableByte -> -Copy
 //			-EnsureWritableByte -> -Copy
 // RetrieveAllAsString -> RetrieveAsString -> Retrieve -> RetrieveAll
+// RetrieveUntil -> +ReadableBegin -> -WritableBegin -> +Retrieve
 
 class Buffer: public Copyable
 {
@@ -62,6 +63,7 @@ public:
 	std::string RetrieveAllAsString();
 	std::string RetrieveAsString(int length);
 	void Retrieve(int length);
+	void RetrieveUntil(const char *until);
 	void RetrieveAll();
 
 private:

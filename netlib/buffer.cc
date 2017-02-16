@@ -133,6 +133,11 @@ void Buffer::Retrieve(int length)
 		RetrieveAll();
 	}
 }
+void Buffer::RetrieveUntil(const char *until)
+{
+	assert(ReadableBegin() <= until && until <= WritableBegin());
+	Retrieve(static_cast<int>(until - ReadableBegin()));
+}
 void Buffer::RetrieveAll()
 {
 	read_index_ = write_index_ = kPrepend;
