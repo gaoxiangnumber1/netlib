@@ -45,11 +45,14 @@ Channel::Channel(EventLoop *loop, int file_descriptor):
 	requested_event_(kNoneEvent),
 	returned_event_(kNoneEvent),
 	state_in_epoller_(-1), // Epoller::kRaw.
-	tied_(false)
+	tied_(false),
+	event_handling_(false)
 {}
 
 Channel::~Channel()
 {
+	// Assert that this channel object won't destruct in the process of event handling.
+	assert(event_handling_ == false);
 	if(owner_loop_->IsInLoopThread() == true)
 	{
 		assert(owner_loop_->HasChannel(this) == false);
@@ -147,6 +150,7 @@ void Channel::HandleEvent(TimeStamp receive_time)
 // Invoked by EventLoop::Loop().
 void Channel::HandleEventWithGuard(TimeStamp receive_time)
 {
+	event_handling_ = true;
 	LOG_TRACE("%s", ReturnedEventToString().c_str());
 
 	if((returned_event_ & kReadEvent) && read_callback_)
@@ -167,6 +171,7 @@ void Channel::HandleEventWithGuard(TimeStamp receive_time)
 	{
 		error_callback_(receive_time);
 	}
+	event_handling_ = false;
 }
 
 void Channel::RemoveChannel()
