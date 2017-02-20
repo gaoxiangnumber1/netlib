@@ -20,8 +20,8 @@ class Channel;
 //			-HandleRead -> -HandleClose -> -HandleError
 //			-HandleWrite -> -ShutdownInLoop
 // Dtor
-// Getter: loop, name, local_address, peer_address, input_buffer, output_buffer
-// Setter: connection/message/high_water_mark/write_complete/close_callback
+// Getter: loop, name, local_address, peer_address, input_buffer, output_buffer, context
+// Setter: connection/message/high_water_mark/write_complete/close_callback/context
 // Connected/Disconnected
 // SetTcpNoDelay
 // ConnectEstablished -> -set_state
@@ -76,6 +76,10 @@ public:
 	{
 		return &output_buffer_;
 	}
+	const void *context() const
+	{
+		return context_;
+	}
 
 	// Setter.
 	void set_connection_callback(const ConnectionCallback &callback)
@@ -100,6 +104,10 @@ public:
 	void set_close_callback(const CloseCallback &callback)
 	{
 		close_callback_ = callback;
+	}
+	void set_context(void *context_arg)
+	{
+		context_ = context_arg;
 	}
 
 	bool Connected() const
@@ -177,7 +185,7 @@ private:
 	// user only use connection_callback_.
 	// Called in HandleClose(). Bind to TcpServer::RemoveConnection().
 	CloseCallback close_callback_;
-	// May use later. boost::any context_;
+	void *context_;
 };
 
 }
