@@ -11,8 +11,11 @@
 namespace netlib
 {
 
+// Review:	ReadFd#errno, Append(const char*, int)#w_i_, EnsureWritableByte
+//					Retrieve, RetrieveAll, RetrieveUntil#assert
+
 // Interface:
-// Ctor
+// Ctor -> +PrependableByte -> +ReadableByte -> +WritableByte
 // Getter: PrependableByte, ReadableByte, WritableByte
 // FindCRLF: (const char*), () -> +ReadableBegin -> -WritableBegin
 //			+ReadableBegin -> -BufferBegin
@@ -20,6 +23,7 @@ namespace netlib
 // ReadFd -> +Append(const char*, int)
 // Append(const string&) -> Append(const char*, int) -> -EnsureWritableByte -> -Copy
 //			-EnsureWritableByte -> -Copy
+// Prepend
 // RetrieveAllAsString -> RetrieveAsString -> Retrieve -> RetrieveAll
 // RetrieveUntil -> +ReadableBegin -> -WritableBegin -> +Retrieve
 
@@ -27,9 +31,9 @@ class Buffer: public Copyable
 {
 public:
 	static const int kPrepend = 8;
-	static const int kInitialSize = 1024;
+	static const int kOneKilobyte = 1024;
 
-	explicit Buffer(int initial_size = kInitialSize);
+	explicit Buffer(int initial_size = kOneKilobyte);
 	// Default dtor/copy-ctor/assignment-op are okay.
 
 	// Getter.
@@ -58,6 +62,7 @@ public:
 	int ReadFd(int fd, int &saved_errno);
 	void Append(const std::string &data);
 	void Append(const char *data, int length);
+	void Prepend(const void *data, int length);
 
 	// Output API:
 	std::string RetrieveAllAsString();
@@ -65,6 +70,8 @@ public:
 	void Retrieve(int length);
 	void RetrieveUntil(const char *until);
 	void RetrieveAll();
+
+	int32_t PeekInt32();
 
 private:
 	const char *BufferBegin() const

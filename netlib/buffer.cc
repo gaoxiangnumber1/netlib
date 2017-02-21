@@ -2,6 +2,7 @@
 
 #include <sys/uio.h> // readv()
 #include <errno.h> // errno
+#include <string.h> // memcpy()
 
 using std::string;
 using netlib::Buffer;
@@ -19,7 +20,7 @@ Buffer::Buffer(int initial_size):
 const char *Buffer::FindCRLF(const char *start) const
 {
 	assert(ReadableBegin() <= start && start <= WritableBegin());
-	for(const char *ptr = start, *end = WritableBegin() - 2; ptr <= end; ++ptr)
+	for(const char *ptr = start, *end = WritableBegin() - 1; ptr < end; ++ptr)
 	{
 		if(*ptr == '\r' && *(ptr + 1) == '\n')
 		{
@@ -35,7 +36,7 @@ const char *Buffer::FindCRLF() const
 
 int Buffer::ReadFd(int fd, int &saved_errno)
 {
-	char extra_buffer[65536]; // 2^16B = 2^6KB = 64KB
+	char extra_buffer[64 * kOneKilobyte];
 	int writable_byte = WritableByte();
 	// 	struct iovec
 	// 	{
@@ -57,9 +58,9 @@ int Buffer::ReadFd(int fd, int &saved_errno)
 	// The data transfer performed by readv() is atomic.
 	// Return the number of bytes read on success; -1 is returned on error, and errno is set.
 	int read_byte = static_cast<int>(::readv(fd, vec, 2));
-	if(read_byte <= 0)
+	if(read_byte < 0)
 	{
-		saved_errno = errno;
+		saved_errno = errno; // The caller handles error.
 	}
 	else if(read_byte <= writable_byte)
 	{
@@ -99,8 +100,8 @@ void Buffer::EnsureWritableByte(int length)
 			read_index_ = kPrepend;
 			write_index_ = read_index_ + readable_byte;
 		}
+		assert(WritableByte() >= length);
 	}
-	assert(WritableByte() >= length);
 }
 void Buffer::Copy(const char *to_copy, const int length, char *to_write)
 {
@@ -108,6 +109,14 @@ void Buffer::Copy(const char *to_copy, const int length, char *to_write)
 	{
 		*(to_write++) = *(to_copy + index);
 	}
+}
+
+void Buffer::Prepend(const void *data, int length)
+{
+	assert(length <= PrependableByte());
+	read_index_ -= length;
+	const char *to_copy = static_cast<const char*>(data);
+	Copy(to_copy, length, BufferBegin() + read_index_);
 }
 
 string Buffer::RetrieveAllAsString()
@@ -141,4 +150,12 @@ void Buffer::RetrieveUntil(const char *until)
 void Buffer::RetrieveAll()
 {
 	read_index_ = write_index_ = kPrepend;
+}
+
+int32_t Buffer::PeekInt32()
+{
+	assert(ReadableByte() >= static_cast<int>(sizeof(int32_t)));
+	int32_t be32 = 0;
+	::memcpy(&be32, ReadableBegin(), sizeof be32);
+	return ::be32toh(be32);
 }
