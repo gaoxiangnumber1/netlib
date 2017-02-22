@@ -9,10 +9,27 @@ using netlib::EventLoop;
 EventLoopThread::EventLoopThread(const InitialTask &task):
 	loop_(nullptr),
 	thread_(bind(&EventLoopThread::ThreadFunction, this)),
+	initial_task_(task),
 	mutex_(),
-	condition_(mutex_),
-	initial_task_(task)
+	condition_(mutex_)
 {}
+void EventLoopThread::ThreadFunction()
+{
+	// Create object on stack.
+	EventLoop loop;
+	{
+		MutexLockGuard lock(mutex_);
+		loop_ = &loop; // Assign stack object's address to the data member.
+		condition_.Notify(); // Notify the condition -> Wakeup StartLoop().
+	}
+
+	if(initial_task_)
+	{
+		initial_task_(loop_);
+	}
+	loop.Loop();
+	loop_ = nullptr;
+}
 
 EventLoopThread::~EventLoopThread()
 {
@@ -38,23 +55,4 @@ EventLoop *EventLoopThread::StartLoop()
 		}
 	}
 	return loop_; // Return the EventLoop object's address of the new thread.
-}
-
-void EventLoopThread::ThreadFunction()
-{
-	// Create object on stack.
-	EventLoop loop;
-	if(initial_task_)
-	{
-		initial_task_(&loop);
-	}
-
-	{
-		MutexLockGuard lock(mutex_);
-		loop_ = &loop; // Assign stack object's address to the data member.
-		condition_.Notify(); // Notify the condition -> Wakeup StartLoop().
-	}
-
-	loop.Loop();
-	loop_ = nullptr;
 }

@@ -14,7 +14,8 @@ namespace netlib
 
 // Review:
 // NonFunction: thread_pool_, running_
-// Function:
+// Function:	Stop#MLG, Start#running_, RunOrAddTask#running_#condition
+//						IsTaskQueueFull#mutex_
 
 // Interface:
 // Ctor

@@ -18,11 +18,10 @@ Socket::~Socket()
 
 // int bind(int sockfd, const struct sockaddr *address, socklen_t address_length);
 // When a socket is created with socket(2), it has no address assigned to it.
-// ::bind() assigns the address specified by address to the socket referred to by
-// the file descriptor sockfd. address_length specifies the size, in bytes, of the
-// address structure pointed to by address.
+// ::bind() assigns the address specified by address to the socket referred to by sockfd.
+// address_length specifies the size, in bytes,
+// of the address structure pointed to by address.
 // On success, 0 is returned. On error, -1 is returned, and errno is set.
-// Assign local_address object's address_ to this Socket's object's socket_fd_.
 void Socket::Bind(const SocketAddress &local_address)
 {
 	const struct sockaddr *address = local_address.socket_address();
@@ -43,7 +42,6 @@ void Socket::Bind(const SocketAddress &local_address)
 // the underlying protocol supports retransmission, the request may be ignored so
 // that a later reattempt at connection succeeds.
 // On success, 0 is returned. On error, -1 is returned and errno is set.
-// Mark socket_fd_ as a passive socket(i.e., accept connections).
 void Socket::Listen()
 {
 	// SOMAXCONN: Maximum queue length specifiable by listen.
@@ -63,12 +61,10 @@ void Socket::Listen()
 // address of the peer socket. When address is NULL, nothing is filled in and
 // addrlen should be NULL.
 // addrlen is a value-result argument: the caller must initialize it to contain the size
-// (in bytes) of the structure pointed to by address; on return it will contain the size
+// in bytes of the structure pointed to by address; on return it will contain the size
 // of the peer address.
 // Return a nonnegative integer that is a descriptor for the accepted socket on success.
 // On error, -1 is returned, and errno is set.
-// Return the file descriptor for the new accepted connection.
-// Store the peer's address to `*peer_address` object.
 int Socket::Accept(SocketAddress &peer_address)
 {
 	struct sockaddr_in address;
@@ -78,10 +74,14 @@ int Socket::Accept(SocketAddress &peer_address)
 	                             nso::CastToNonConstsockaddr(&address),
 	                             &address_length,
 	                             SOCK_NONBLOCK | SOCK_CLOEXEC);
-	if(connected_fd == -1)
+	if(connected_fd >= 0)
 	{
-		int saved_errno = errno;
+		peer_address.set_socket_address(address);
+	}
+	else
+	{
 		LOG_ERROR("accept(): ERROR");
+		int saved_errno = errno;
 		switch(saved_errno)
 		{
 		// EAGAIN or EWOULDBLOCK
@@ -132,10 +132,6 @@ int Socket::Accept(SocketAddress &peer_address)
 		default:
 			LOG_FATAL("unknown error of ::accept");
 		}
-	}
-	else if(connected_fd >= 0)
-	{
-		peer_address.set_socket_address(address);
 	}
 	return connected_fd;
 }

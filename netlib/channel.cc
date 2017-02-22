@@ -23,8 +23,7 @@ using netlib::Channel;
 // Hang up happened on the fd. epoll_wait(2) always wait for this event;
 // it is not necessary to set it in events.
 // EPOLLERR
-// Error condition happened on the fd. epoll_wait(2) always wait for this event,
-// it is not necessary to set it in events.
+// Error condition happened on the fd. epoll_wait(2) always wait for this event.
 // EPOLLET
 // Set the Edge Triggered behavior for fd. Default is Level Triggered.
 // EPOLLONESHOT
@@ -94,6 +93,7 @@ void Channel::set_tie(const shared_ptr<void> &object)
 	tie_ = object;
 	tied_ = true;
 }
+
 void Channel::set_event_callback(EventCallbackType type, const EventCallback &callback)
 {
 	switch(type)
@@ -121,8 +121,12 @@ bool Channel::IsRequestedArgumentEvent(RequestedEventType type)
 	{
 	case READ_EVENT:
 		return requested_event_ & kReadEvent;
+	case NOT_READ:
+		return !(requested_event_ & kReadEvent);
 	case WRITE_EVENT:
 		return requested_event_ & kWriteEvent;
+	case NOT_WRITE:
+		return !(requested_event_ & kWriteEvent);
 	case NONE_EVENT:
 		return requested_event_ == kNoneEvent;
 	default:
@@ -190,7 +194,7 @@ string Channel::ReturnedEventToString() const
 }
 string Channel::EventToString(int fd, int event)
 {
-	char buffer[32] = "";
+	char buffer[32];
 	char *ptr = buffer, *buffer_end = buffer + sizeof buffer;
 	ptr += snprintf(ptr, buffer_end - ptr, "%d: ", fd);
 	if(event & EPOLLIN)

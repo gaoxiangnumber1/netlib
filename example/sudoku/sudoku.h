@@ -1,11 +1,9 @@
-#ifndef NETLIB_EXAMPLES_SUDOKU_SUDOKU_H_
-#define NETLIB_EXAMPLES_SUDOKU_SUDOKU_H_
+#ifndef NETLIB_EXAMPLE_SUDOKU_SUDOKU_H_
+#define NETLIB_EXAMPLE_SUDOKU_SUDOKU_H_
 
-#include <muduo/base/StringPiece.h>
-#include <muduo/base/Types.h>
+#include <string>
 
-const int kCells = 81; // Cells' number.
-extern const char kNoSolution[];
-muduo::string SolveSudoku(const muduo::StringPiece& puzzle);
+const int kCellNumber = 81;
+std::string SolveSudoku(const std::string puzzle);
 
-#endif // NETLIB_EXAMPLES_SUDOKU_SUDOKU_H_
+#endif // NETLIB_EXAMPLE_SUDOKU_SUDOKU_H_

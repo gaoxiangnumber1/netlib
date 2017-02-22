@@ -13,6 +13,9 @@ namespace netlib
 // Wrapper of `struct sockaddr_in` that can convert byte order automatically.
 // SocketAddress is value semantics, it can be copied.
 
+// Review:
+// Function: set_socket_address#r_t_c, Ctor(string, int)#i_p, ToIpPortString
+
 // Interface:
 // Ctor(int), Ctor(string, int), Ctor(const struct sockaddr_in&)
 // socket_family
@@ -24,7 +27,7 @@ class SocketAddress: public Copyable
 {
 public:
 	// Construct an endpoint with given port number. Mostly used in server listening.
-	explicit SocketAddress(int port = 0);
+	explicit SocketAddress(int port);
 	// Construct an endpoint with given ip and port. ip should be "1.2.3.4".
 	SocketAddress(std::string ip, int port);
 	// Construct an endpoint with given `struct sockaddr_in`.

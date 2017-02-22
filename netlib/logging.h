@@ -6,6 +6,10 @@
 
 #include <netlib/copyable.h> // Copyable
 
+// Review:
+// NonFunction: LogLevel#OFF, log_level_#static#.cc, log_level_string_#.cc
+// Function: Log#level, CheckNotNull#name
+
 // Interface:
 // log_level
 // set_log_level
@@ -25,9 +29,11 @@ namespace netlib
 class Logger: public Copyable
 {
 public:
+	// By default, enumerator values start at 0 and each enumerator
+	// has a value 1 greater than the preceding one.
 	enum LogLevel
 	{
-		ALL = 0,
+		ALL,
 		TRACE,
 		DEBUG,
 		INFO,
@@ -49,8 +55,8 @@ public:
 	                int saved_errno, const char *format ...);
 
 private:
-	static const char *log_level_string_[OFF];
 	static LogLevel log_level_;
+	static const char *log_level_string_[OFF];
 };
 
 const char *ThreadSafeStrError(int saved_errno);
@@ -61,6 +67,7 @@ const char *ThreadSafeStrError(int saved_errno);
 
 #define LOG(level, ...) do \
 { \
+	/* `level` has added `netlib::Logger::` in the expansion of LOG_XXX */ \
 	if(level >= netlib::Logger::log_level()) \
 	{ \
 		::snprintf(0, 0, __VA_ARGS__); /* Check whether the format is matched. */ \
@@ -87,6 +94,6 @@ T *CheckNotNull(const char *name, T *ptr)
 }
 
 // Check the input is not null.  This is useful in constructor initializer lists.
-#define CHECK_NOT_NULL(val) CheckNotNull("'" #val "' Must not be NULL", (val))
+#define CHECK_NOT_NULL(arg) CheckNotNull("'" #arg "' Must not be NULL", (arg))
 
 #endif // NETLIB_NETLIB_LOGGING_H_

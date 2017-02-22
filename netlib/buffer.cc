@@ -88,7 +88,7 @@ void Buffer::EnsureWritableByte(int length)
 	if(WritableByte() < length)
 	{
 		// 1. There is really not enough space.
-		if(PrependableByte() + WritableByte() < length + kPrepend)
+		if(PrependableByte() + WritableByte() < kPrepend + length)
 		{
 			buffer_.resize(write_index_ + length);
 		}

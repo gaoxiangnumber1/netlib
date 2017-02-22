@@ -121,7 +121,6 @@ void Connector::Connect()
 		// on the server.
 		LOG_ERROR("Unexpected error in Connector::startInLoop %d", saved_errno);
 		::close(socket_fd);
-		break;
 	}
 }
 void Connector::Connecting(int socket_fd)
@@ -139,65 +138,6 @@ void Connector::Connecting(int socket_fd)
 	// because channel_ is not managed by shared_ptr.
 	channel_->set_requested_event(Channel::WRITE_EVENT);
 }
-void Connector::Retry(int socket_fd)
-{
-	::close(socket_fd);
-	set_state(DISCONNECTED);
-	if(connect_ == true)
-	{
-		LOG_INFO("Connector::retry - Retry connecting to %s in %f seconds",
-		         server_address_.ToIpPortString().c_str(),
-		         retry_delay_second_);
-		loop_->RunAfter(bind(&Connector::StartInLoop, shared_from_this()),
-		                retry_delay_second_);
-		retry_delay_second_ = (retry_delay_second_ * 2 > kMaxRetryDelaySecond) ?
-		                      kMaxRetryDelaySecond : retry_delay_second_ * 2;
-	}
-	else
-	{
-		LOG_DEBUG("Don't connect.");
-	}
-}
-
-void Connector::Restart()
-{
-	loop_->AssertInLoopThread();
-	set_state(DISCONNECTED);
-	retry_delay_second_ = kInitialRetryDelaySecond;
-	connect_ = true;
-	StartInLoop();
-}
-
-void Connector::Stop()
-{
-	connect_ = false;
-	loop_->QueueInLoop(bind(&Connector::StopInLoop, this)); // FIXME: unsafe.
-	// FIXME: Cancel timer.
-}
-void Connector::StopInLoop()
-{
-	loop_->AssertInLoopThread();
-	if(state_ == CONNECTING)
-	{
-		set_state(DISCONNECTED);
-		int socket_fd = RemoveAndResetChannel();
-		Retry(socket_fd);
-	}
-}
-int Connector::RemoveAndResetChannel()
-{
-	channel_->set_requested_event(Channel::NONE_EVENT);
-	channel_->RemoveChannel();
-	int socket_fd = channel_->fd();
-	// Can't reset channel_ here because we are in Channel::HandleEvent().
-	loop_->QueueInLoop(bind(&Connector::ResetChannel, this)); // FIXME: unsafe.
-	return socket_fd;
-}
-void Connector::ResetChannel()
-{
-	channel_.reset();
-}
-
 void Connector::HandleWrite()
 {
 	LOG_TRACE("Connector::handleWrite %d", state_);
@@ -235,12 +175,47 @@ void Connector::HandleWrite()
 		assert(state_ == DISCONNECTED);
 	}
 }
+int Connector::RemoveAndResetChannel()
+{
+	channel_->set_requested_event(Channel::NONE_EVENT);
+	channel_->RemoveChannel();
+	int socket_fd = channel_->fd();
+	// Can't reset channel_ here because we are in Channel::HandleEvent().
+	loop_->QueueInLoop(bind(&Connector::ResetChannel, this)); // FIXME: unsafe.
+	return socket_fd;
+}
+void Connector::ResetChannel()
+{
+	channel_.reset();
+}
+void Connector::Retry(int socket_fd)
+{
+	::close(socket_fd);
+	set_state(DISCONNECTED);
+	if(connect_ == true)
+	{
+		LOG_INFO("Connector::retry - Retry connecting to %s in %f seconds",
+		         server_address_.ToIpPortString().c_str(),
+		         retry_delay_second_);
+		loop_->RunAfter(bind(&Connector::StartInLoop, shared_from_this()),
+		                retry_delay_second_);
+		retry_delay_second_ *= 2;
+		if(retry_delay_second_ > kMaxRetryDelaySecond)
+		{
+			retry_delay_second_ = kMaxRetryDelaySecond;
+		}
+	}
+	else
+	{
+		LOG_DEBUG("Don't connect.");
+	}
+}
 bool Connector::IsSelfConnect(int socket_fd)
 {
 	struct sockaddr_in local_address = nso::GetLocalAddress(socket_fd);
 	struct sockaddr_in peer_address = nso::GetPeerAddress(socket_fd);
-	return local_address.sin_port == peer_address.sin_port
-	       && local_address.sin_addr.s_addr == peer_address.sin_addr.s_addr;
+	return local_address.sin_port == peer_address.sin_port &&
+	       local_address.sin_addr.s_addr == peer_address.sin_addr.s_addr;
 }
 void Connector::HandleError()
 {
@@ -251,5 +226,30 @@ void Connector::HandleError()
 		int error = nso::GetSocketError(socket_fd);
 		LOG_TRACE("SO_ERROR = %d %s", error, ThreadSafeStrError(error));
 		Retry(socket_fd);
+	}
+}
+
+void Connector::Restart()
+{
+	loop_->AssertInLoopThread();
+	connect_ = true;
+	set_state(DISCONNECTED);
+	retry_delay_second_ = kInitialRetryDelaySecond;
+	StartInLoop();
+}
+
+void Connector::Stop()
+{
+	connect_ = false;
+	loop_->QueueInLoop(bind(&Connector::StopInLoop, this)); // FIXME: unsafe.
+	// FIXME: Cancel timer.
+}
+void Connector::StopInLoop()
+{
+	loop_->AssertInLoopThread();
+	if(state_ == CONNECTING)
+	{
+		set_state(DISCONNECTED);
+		Retry(RemoveAndResetChannel());
 	}
 }

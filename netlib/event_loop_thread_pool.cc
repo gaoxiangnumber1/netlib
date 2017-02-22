@@ -13,13 +13,10 @@ EventLoopThreadPool::EventLoopThreadPool(EventLoop *base_loop,
 	initial_task_(initial_task),
 	started_(false),
 	thread_number_(thread_number),
+	thread_pool_(thread_number_),
+	loop_pool_(thread_number_),
 	next_loop_index_(0)
 {}
-
-EventLoopThreadPool::~EventLoopThreadPool()
-{
-	// Don't delete loop since it is stack variable.
-}
 
 void EventLoopThreadPool::Start()
 {
@@ -34,8 +31,8 @@ void EventLoopThreadPool::Start()
 	for(int index = 0; index < thread_number_; ++index)
 	{
 		EventLoopThread *thread = new EventLoopThread(initial_task_);
-		thread_pool_.push_back(thread);
-		loop_pool_.push_back(thread->StartLoop());
+		thread_pool_[index] = thread;
+		loop_pool_[index] = thread->StartLoop();
 	}
 }
 
@@ -45,10 +42,10 @@ EventLoop *EventLoopThreadPool::GetNextLoop()
 	assert(started_ == true);
 
 	EventLoop *next_loop = base_loop_;
-	if(loop_pool_.empty() == false)
+	if(thread_number_ > 0)
 	{
 		next_loop = loop_pool_[next_loop_index_];
-		next_loop_index_ = (next_loop_index_ + 1) % static_cast<int>(loop_pool_.size());
+		next_loop_index_ = (next_loop_index_ + 1) % thread_number_;
 	}
 	return next_loop;
 }

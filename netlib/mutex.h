@@ -43,9 +43,8 @@ namespace netlib
 // class: UnassignHolderGuard
 class MutexLock: public NonCopyable
 {
-	// NOTE: friend class declaration!
-	friend class Condition; // Use private member class UnassignHolder.
 	friend class MutexLockGuard; // Use private: Lock(), Unlock().
+	friend class Condition; // Use private member class UnassignHolder.
 	// Private member: base class itself and friend can access.
 	// Protected member: base class itself, friend and derived classes can access.
 

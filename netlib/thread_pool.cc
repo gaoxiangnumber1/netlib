@@ -29,13 +29,14 @@ ThreadPool::~ThreadPool()
 // Stop all threads and call Join() for all threads.
 void ThreadPool::Stop()
 {
+	// Once set running_ to false, we can't set it to true.
+	// That is, all threads can't run again.
+	running_ = false;
+
 	// NOTE: Use as short critical section as possible. {critical section;} non-critical;
 	// NOTE: Always use Condition with MutexLock!
 	{
 		MutexLockGuard lock(mutex_);
-		// Once set running_ to false, we can't set it to true.
-		// That is, all threads can't run again.
-		running_ = false;
 		// When calling Stop(), either directly calling in the main thread which creates
 		// the thread pool, or indirectly calling when the thread pool object destructs,
 		// the two condition variables may still in Wait() state:
@@ -138,21 +139,19 @@ void ThreadPool::RunOrAddTask(const Task &task)
 	if(thread_number_ == 0) // If thread_number_ = 0, run task() directly.
 	{
 		task();
+		return;
 	}
-	else
+	MutexLockGuard lock(mutex_);
+	while(IsTaskQueueFull() == true) // The task queue is full, can't add task.
 	{
-		MutexLockGuard lock(mutex_);
-		while(IsTaskQueueFull() == true) // The task queue is full, can't add task.
-		{
-			not_full_.Wait(); // Wait until remove task from task_queue_.
-		}
-		assert(IsTaskQueueFull() == false);
-		// Add task into task queue and wakeup threads waiting on not_empty_.
-		task_queue_.push_back(task);
-		// Notify() each time we add a task, rather than only notify() when
-		// task_queue_.size() change from 0 to 1 for efficiency.
-		not_empty_.Notify();
+		not_full_.Wait(); // Wait until remove task from task_queue_.
 	}
+	assert(IsTaskQueueFull() == false);
+	// Add task into task queue and wakeup threads waiting on not_empty_.
+	task_queue_.push_back(task);
+	// Notify() each time we add a task, rather than only notify() when
+	// task_queue_.size() change from 0 to 1 for efficiency.
+	not_empty_.Notify();
 }
 // Return true if the task queue if full(i.e., can't add more task).
 bool ThreadPool::IsTaskQueueFull() const

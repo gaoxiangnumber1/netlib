@@ -5,6 +5,15 @@
 
 #include <netlib/logging.h>
 
+const struct sockaddr *nso::CastToConstsockaddr(const struct sockaddr_in *address)
+{
+	return static_cast<const struct sockaddr*>(static_cast<const void*>(address));
+}
+struct sockaddr *nso::CastToNonConstsockaddr(struct sockaddr_in *address)
+{
+	return static_cast<struct sockaddr*>(static_cast<void*>(address));
+}
+
 // Create an IPv4/6, nonblocking, and TCP socket file descriptor, abort if any error.
 int nso::CreateNonblockingSocket(sa_family_t family)
 {
@@ -38,7 +47,7 @@ struct sockaddr_in nso::GetLocalAddress(int socket_fd)
 {
 	struct sockaddr_in local_address;
 	bzero(&local_address, sizeof local_address);
-	socklen_t address_length = static_cast<socklen_t>(sizeof  local_address);
+	socklen_t address_length = static_cast<socklen_t>(sizeof local_address);
 	// int getsockname(int slocal_addressockfd, struct sockaddr *addr, socklen_t *addrlen);
 	// getsockname() return the address to which the socket socket_fd is bound, in
 	// the buffer pointed to by addr. addrlen should be initialized to indicate the
@@ -74,7 +83,7 @@ struct sockaddr_in nso::GetPeerAddress(int socket_fd)
 int nso::GetSocketError(int socket_fd)
 {
 	int option_value;
-	socklen_t option_length = sizeof option_value;
+	socklen_t option_length = static_cast<socklen_t>(sizeof option_value);
 
 	// Return 0 on success; -1 on error and errno is set.
 	if(::getsockopt(socket_fd, SOL_SOCKET, SO_ERROR,

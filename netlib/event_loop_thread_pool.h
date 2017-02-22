@@ -12,9 +12,10 @@ namespace netlib
 class EventLoop;
 class EventLoopThread;
 
+// Review: all
+
 // Interface:
-// Ctor.
-// Dtor.
+// Ctor
 // Start
 // GetNextLoop
 
@@ -26,7 +27,6 @@ public:
 	explicit EventLoopThreadPool(EventLoop *base_loop,
 	                             const InitialTask &initial_task = InitialTask(),
 	                             const int thread_number = 0);
-	~EventLoopThreadPool();
 	void Start();
 	EventLoop *GetNextLoop();
 

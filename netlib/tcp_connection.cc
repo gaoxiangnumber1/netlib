@@ -41,7 +41,8 @@ TcpConnection::TcpConnection(EventLoop *event_loop,
 	channel_(new Channel(loop_, socket)),
 	local_address_(local),
 	peer_address_(peer),
-	high_water_mark_(kInitialHighWaterMark)
+	high_water_mark_(kInitialHighWaterMark),
+	context_(nullptr)
 {
 	channel_->set_event_callback(Channel::READ_CALLBACK,
 	                             bind(&TcpConnection::HandleRead, this, _1));
@@ -177,6 +178,12 @@ void TcpConnection::ConnectEstablished()
 	connection_callback_(shared_from_this());
 }
 
+void TcpConnection::Send(const void *data, int length)
+{
+	const char *data_begin = static_cast<const char*>(data);
+	const char *data_end = data_begin + length;
+	Send(string(data_begin, data_end));
+}
 void TcpConnection::Send(const string &message)
 {
 	if(state_ == CONNECTED)

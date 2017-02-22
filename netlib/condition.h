@@ -13,6 +13,9 @@ namespace netlib
 // change the condition state. Other threads will not notice the change until they acquire
 // the mutex, because the mutex must be locked to be able to evaluate the condition.
 
+// Review:
+// Function: Wait#ML::#get
+
 // Interface:
 // Ctor
 // Dtor

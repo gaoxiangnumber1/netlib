@@ -16,10 +16,15 @@ class EventLoop;
 class Timer;
 class TimerId;
 
+// Review:
+// NonFunction: timer_fd_#const
+// Function:	CreateTimerFd#flags, HandleRead, SetExpiredTime, Dtor
+//						AddTimer#return, CancelTimerInLoop
+
 // Interface:
 // Ctor -> -CreateTimerFd -> -HandleRead.
-//		-HandleRead -> -ReadTimerFd -> -GetAndRemoveExpiredTimer -> -Refresh.
-//			-Refresh -> -InsertIntoActiveTimerSet -> -SetExpiredTime.
+//			-HandleRead -> -ReadTimerFd -> -GetAndRemoveExpiredTimer -> -Refresh.
+//						-Refresh -> -InsertIntoActiveTimerSet -> -SetExpiredTime.
 // Dtor.
 // AddTimer -> -AddTimerInLoop -> -InsertIntoActiveTimerSet -> SetExpiredTime.
 // CancelTimer -> -CancelTimerInLoop.

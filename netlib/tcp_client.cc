@@ -19,7 +19,7 @@ TcpClient::TcpClient(EventLoop *event_loop,
 	name_(name),
 	retry_(false),
 	connect_(true),
-	next_connection_id_(1),
+	next_connection_id_(0),
 	connection_callback_(DefaultConnectionCallback),
 	message_callback_(DefaultMessageCallback)
 {
@@ -29,14 +29,64 @@ TcpClient::TcpClient(EventLoop *event_loop,
 	         name_.c_str(),
 	         connector_.get());
 }
+void TcpClient::HandleNewConnection(int socket_fd)
+{
+	loop_->AssertInLoopThread();
+	SocketAddress peer_address(nso::GetPeerAddress(socket_fd));
+	char buffer[32];
+	::snprintf(buffer, sizeof buffer, ":%s#%d",
+	           peer_address.ToIpPortString().c_str(),
+	           ++next_connection_id_);
+	string connection_name = name_ + buffer;
+	LOG_INFO("TcpClient::HandleNewConnection [%s] - new connection [%s] to %s",
+	         name_.c_str(), connection_name.c_str(), peer_address.ToIpPortString().c_str());
+
+	SocketAddress local_address(nso::GetLocalAddress(socket_fd));
+	// FIXME poll with zero timeout to double confirm the new connection.
+	// FIXME use make_shared if necessary.
+	TcpConnectionPtr connection(new TcpConnection(loop_,
+	                            connection_name,
+	                            socket_fd,
+	                            local_address,
+	                            peer_address));
+
+	connection->set_connection_callback(connection_callback_);
+	connection->set_message_callback(message_callback_);
+	connection->set_write_complete_callback(write_complete_callback_);
+	// FIXME: unsafe
+	connection->set_close_callback(bind(&TcpClient::RemoveConnection, this, _1));
+	{
+		MutexLockGuard lock(mutex_);
+		connection_ = connection;
+	}
+	connection->ConnectEstablished();
+}
+void TcpClient::RemoveConnection(const TcpConnectionPtr &connection)
+{
+	loop_->AssertInLoopThread();
+	assert(loop_ == connection->loop());
+	{
+		MutexLockGuard lock(mutex_);
+		assert(connection_ == connection);
+		connection_.reset();
+	}
+	loop_->QueueInLoop(bind(&TcpConnection::ConnectDestroyed, connection));
+	if(retry_ == true && connect_ == true)
+	{
+		LOG_INFO("TcpClient::connect[%s] - Reconnecting to %s",
+		         name_.c_str(),
+		         connector_->server_address().ToIpPortString().c_str());
+		connector_->Restart();
+	}
+}
 
 TcpClient::~TcpClient()
 {
 	LOG_INFO("TcpClient::~TcpClient[%s] - connector %p",
 	         name_.c_str(),
 	         connector_.get());
-	TcpConnectionPtr connection;
 	bool is_unique = false;
+	TcpConnectionPtr connection;
 	{
 		MutexLockGuard lock(mutex_);
 		is_unique = connection_.unique();
@@ -71,6 +121,7 @@ void TcpClient::Connect()
 	connect_ = true;
 	connector_->Start();
 }
+
 void TcpClient::Disconnect()
 {
 	connect_ = false;
@@ -82,58 +133,9 @@ void TcpClient::Disconnect()
 		}
 	}
 }
+
 void TcpClient::Stop()
 {
 	connect_ = false;
 	connector_->Stop();
-}
-
-void TcpClient::HandleNewConnection(int socket_fd)
-{
-	loop_->AssertInLoopThread();
-	SocketAddress peer_address(nso::GetPeerAddress(socket_fd));
-	char buffer[32];
-	snprintf(buffer, sizeof buffer, ":%s#%d",
-	         peer_address.ToIpPortString().c_str(),
-	         next_connection_id_++);
-	string connection_name = name_ + buffer;
-
-	SocketAddress local_address(nso::GetLocalAddress(socket_fd));
-	// FIXME poll with zero timeout to double confirm the new connection.
-	// FIXME use make_shared if necessary.
-	TcpConnectionPtr connection(new TcpConnection(loop_,
-	                            connection_name,
-	                            socket_fd,
-	                            local_address,
-	                            peer_address));
-
-	connection->set_connection_callback(connection_callback_);
-	connection->set_message_callback(message_callback_);
-	connection->set_write_complete_callback(write_complete_callback_);
-	connection->set_close_callback(
-	    bind(&TcpClient::RemoveConnection, this, _1)); // FIXME: unsafe
-	{
-		MutexLockGuard lock(mutex_);
-		connection_ = connection;
-	}
-	connection->ConnectEstablished();
-}
-
-void TcpClient::RemoveConnection(const TcpConnectionPtr& connection)
-{
-	loop_->AssertInLoopThread();
-	assert(loop_ == connection->loop());
-	{
-		MutexLockGuard lock(mutex_);
-		assert(connection_ == connection);
-		connection_.reset();
-	}
-	loop_->QueueInLoop(bind(&TcpConnection::ConnectDestroyed, connection));
-	if (retry_ == true && connect_ == true)
-	{
-		LOG_INFO("TcpClient::connect[%s] - Reconnecting to %s",
-		         name_.c_str(),
-		         connector_->server_address().ToIpPortString().c_str());
-		connector_->Restart();
-	}
 }

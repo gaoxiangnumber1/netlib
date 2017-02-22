@@ -57,7 +57,7 @@ int main()
 		loop.RunAfter(bind(CancelTimer, timer_id_45), 4.2);
 		loop.RunAfter(bind(CancelTimer, timer_id_45), 4.8);
 		TimerId timer_id_30 = loop.RunEvery(bind(PrintMessage, "every3 "), 3.0);
-		loop.RunAfter(bind(CancelTimer, timer_id_30), 9.001);
+		loop.RunAfter(bind(CancelTimer, timer_id_30), 8.999);
 
 		loop.Loop();
 		PrintMessage("exit   ");

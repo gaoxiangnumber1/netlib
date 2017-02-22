@@ -12,6 +12,10 @@ namespace netlib
 
 // Internal class for timer event.
 
+// Review:
+// NonFunction: i/r/s#const, c_t_n_#static, TC#()
+// Function: Restart
+
 // Interface:
 // Ctor
 // Getter: expired_time, repeat, sequence
@@ -21,13 +25,7 @@ namespace netlib
 class Timer: public NonCopyable
 {
 public:
-	Timer(const TimerCallback &callback, TimeStamp time_stamp, double interval):
-		callback_(callback),
-		expired_time_(time_stamp),
-		interval_(interval),
-		repeat_(interval_ > 0.0),
-		sequence_(++created_timer_number_) // Increment and get.
-	{}
+	Timer(const TimerCallback &callback, TimeStamp time_stamp, double interval);
 	// TODO: Timer(TimerCallback &&).
 	// Getter
 	TimeStamp expired_time() const
@@ -44,10 +42,7 @@ public:
 	}
 
 	void Restart(TimeStamp now); // Restart timer from now on if interval_ > 0.0.
-	void Run() const // Run the event callback.
-	{
-		callback_();
-	}
+	void Run() const; // Run the event callback.
 
 private:
 	const TimerCallback callback_; // Called in TimerQueue::HandleRead().

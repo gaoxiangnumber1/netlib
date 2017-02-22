@@ -34,16 +34,16 @@ IgnoreSigPipe ignore_sig_pipe_object;
 
 // Every thread has its own instance of __thread variable.
 __thread EventLoop *t_loop_in_this_thread = nullptr;
-const int kTimeoutInMillisecond = 10 * 1000;
+const int kTimeoutInMillisecond = 10000; // 10 seconds
 
 EventLoop::EventLoop():
 	looping_(false),
-	thread_id_(Thread::ThreadId()),
 	quit_(false),
+	thread_id_(Thread::ThreadId()),
 	epoller_(new Epoller(this)),
 	epoll_return_time_(),
-	calling_pending_functor_(false),
 	mutex_(),
+	calling_pending_functor_(false),
 	wakeup_fd_(CreateWakeupFd()),
 	wakeup_fd_channel_(new Channel(this, wakeup_fd_)),
 	timer_queue_(new TimerQueue(this))
@@ -62,9 +62,9 @@ EventLoop::EventLoop():
 		// whose main function is running EventLoop::Loop().
 		t_loop_in_this_thread = this;
 	}
-	wakeup_fd_channel_->set_requested_event(Channel::READ_EVENT);
 	wakeup_fd_channel_->set_event_callback(Channel::READ_CALLBACK,
 	                                       bind(&EventLoop::HandleRead, this));
+	wakeup_fd_channel_->set_requested_event(Channel::READ_EVENT);
 }
 // int eventfd(unsigned int initval, int flags);
 // eventfd() creates an "eventfd object" that can be used as an event wait/notify
@@ -77,9 +77,9 @@ EventLoop::EventLoop():
 int EventLoop::CreateWakeupFd()
 {
 	int wakeup_fd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
-	if(wakeup_fd == -1)
+	if(wakeup_fd < 0)
 	{
-		LOG_FATAL("Failed in eventfd");
+		LOG_FATAL("eventfd(): FATAL");
 	}
 	return wakeup_fd;
 }
@@ -91,9 +91,9 @@ int EventLoop::CreateWakeupFd()
 //		descriptor has been made nonblocking.
 void EventLoop::HandleRead()
 {
-	uint64_t counter;
-	int read_byte = static_cast<int>(::read(wakeup_fd_, &counter, 8));
-	if(read_byte != 8)
+	uint64_t value;
+	int read_byte = static_cast<int>(::read(wakeup_fd_, &value, sizeof value));
+	if(read_byte != sizeof value)
 	{
 		LOG_ERROR("EventLoop::HandleRead() reads %d bytes instead of 8", read_byte);
 	}
@@ -101,6 +101,7 @@ void EventLoop::HandleRead()
 
 EventLoop::~EventLoop()
 {
+	assert(looping_ == false);
 	LOG_DEBUG("EventLoop %p of thread %d destructs in thread %d",
 	          this, thread_id_, Thread::ThreadId());
 	// NOTE: For file descriptor that has a channel, when its object destructs:
@@ -162,8 +163,8 @@ void EventLoop::PrintActiveChannel() const
 }
 void EventLoop::DoPendingFunctor()
 {
-	FunctorVector pending_functor; // Local variable.
 	calling_pending_functor_ = true;
+	FunctorVector pending_functor; // Local variable.
 
 	// Critical Section: Swap this empty local vector and pending_functor_vector_.
 	{
@@ -213,8 +214,8 @@ void EventLoop::Quit()
 void EventLoop::Wakeup()
 {
 	uint64_t one = 1;
-	int write_byte = static_cast<int>(::write(wakeup_fd_, &one, 8));
-	if(write_byte != 8)
+	int write_byte = static_cast<int>(::write(wakeup_fd_, &one, sizeof one));
+	if(write_byte != sizeof one)
 	{
 		LOG_ERROR("EventLoop::Wakeup() write %d bytes instead of 8", write_byte);
 	}

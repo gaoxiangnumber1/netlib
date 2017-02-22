@@ -34,6 +34,11 @@ const int kDeleted = 0;
 // 2.	kAdded: in UC(); ADD.
 }
 
+Epoller::Epoller(EventLoop *owner_loop):
+	epoll_fd_(CreateEpollFd()),
+	returned_epoll_event_vector_(kInitialReturnedEpollEventVectorSize),
+	owner_loop_(owner_loop)
+{}
 // #include <sys/epoll.h>
 // int epoll_create(int size);
 // int epoll_create1(int flags);
@@ -55,15 +60,14 @@ const int kDeleted = 0;
 // If `flags` is 0, then epoll_create1() is the same as epoll_create(). EPOLL_CLOEXEC
 // Set the close-on-exec(FD_CLOEXEC) flag on the new file descriptor.
 // Return a nonnegative file descriptor on success; -1 on error and errno is set.
-Epoller::Epoller(EventLoop *owner_loop):
-	epoll_fd_(::epoll_create1(EPOLL_CLOEXEC)),
-	returned_epoll_event_vector_(kInitialReturnedEpollEventVectorSize),
-	owner_loop_(owner_loop)
+int Epoller::CreateEpollFd()
 {
-	if(epoll_fd_ == -1)
+	int epoll_fd = ::epoll_create1(EPOLL_CLOEXEC);
+	if(epoll_fd < 0)
 	{
 		LOG_FATAL("epoll_create1(): FATAL");
 	}
+	return epoll_fd;
 }
 
 Epoller::~Epoller()
@@ -107,7 +111,7 @@ TimeStamp Epoller::EpollWait(int timeout_in_millisecond, ChannelVector &active_c
 	                                returned_epoll_event_vector_.data(),
 	                                returned_epoll_event_vector_size,
 	                                timeout_in_millisecond);
-	TimeStamp now(TimeStamp::Now());
+	TimeStamp epoll_return_time(TimeStamp::Now());
 	int saved_errno = errno; // NOTE: Must handle error.
 	if(event_number > 0)
 	{
@@ -143,7 +147,7 @@ TimeStamp Epoller::EpollWait(int timeout_in_millisecond, ChannelVector &active_c
 			LOG_ERROR("epoll_wait(): ERROR");
 		}
 	}
-	return now;
+	return epoll_return_time;
 }
 void Epoller::AssertInLoopThread() const // Must be in IO thread.
 {
@@ -205,8 +209,8 @@ void Epoller::EpollCtl(int operation, Channel *channel)
 {
 	struct epoll_event event;
 	bzero(&event, sizeof event);
-	event.events = channel->requested_event(); // NOTE: Set requested events!
 	event.data.ptr = channel;
+	event.events = channel->requested_event();
 	int fd = channel->fd();
 	LOG_TRACE("epoll_ctl operation = %s, fd = %d, requested_event = {%s}",
 	          OperationToCString(operation), fd, channel->RequestedEventToString().c_str());

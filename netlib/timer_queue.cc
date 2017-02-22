@@ -58,6 +58,8 @@ void TimerQueue::HandleRead()
 	owner_loop_->AssertInLoopThread();
 	// 1. Get expired_time time and Invoke `ReadTimerFd()` to read form timer_fd_.
 	TimeStamp expired_time(TimeStamp::Now());
+	// Since we use level trigger, we should read timer_fd after it expired,
+	// otherwise it would trigger immediately next time when using epoll_wait().
 	ReadTimerFd(expired_time);
 	// 2.	Get the expired timers relative to `expired_time` and
 	//		store them in expired_time_vector_. Run each timer's callback_.
@@ -170,9 +172,6 @@ bool TimerQueue::InsertIntoActiveTimerSet(Timer *timer)
 	active_timer_set_.insert(ExpirationTimerPair(expired_time, timer));
 
 	bool is_first_expired = false;
-	// When one of the following conditions satisfies, this timer expires first:
-	// 1. Timer set has only one element(just inserted one).
-	// 2. This timer's expiration time is less than the smallest expiration time in timer set.
 	if(expired_time == active_timer_set_.begin()->first)
 	{
 		is_first_expired = true;
@@ -284,13 +283,14 @@ void TimerQueue::CancelTimer(TimerId timer_id)
 void TimerQueue::CancelTimerInLoop(TimerId timer_id)
 {
 	owner_loop_->AssertInLoopThread();
-	Timer *timer = timer_id.timer_;
+	Timer *timer = timer_id.timer_; // Friend class.
 	ExpirationTimerPairSet::iterator it =
 	    active_timer_set_.find(ExpirationTimerPair(timer->expired_time(), timer));
 	if(it != active_timer_set_.end())
 	{
 		active_timer_set_.erase(it);
-		delete it->second; // NOTE: `delete Timer*;`!
+		delete timer; // NOTE: `delete Timer*;`!
+		timer = nullptr;
 	}
 	else
 	{

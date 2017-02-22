@@ -1,32 +1,23 @@
-#ifndef NETLIB_EXAMPLES_ECHO_ECHO_H_
-#define NETLIB_EXAMPLES_ECHO_ECHO_H_
+#ifndef NETLIB_EXAMPLE_ECHO_ECHO_H_
+#define NETLIB_EXAMPLE_ECHO_ECHO_H_
 
-//A header that has a using directive or declaration at its top-level scope injects names
-//into every file that includes the header. Headers should define only the names that are
-//part of its interface, not names used in its own implementation. Header files should
-//not contain using directives or using declarations except inside functions or
-//namespaces(3.1).		CPP-Primer-18.2
+#include <netlib/tcp_server.h>
 
-#include <muduo/net/TcpServer.h>
+// Interface:
+// Ctor -> -HandleConnection -> -HandleMessage
+// Start
 
-// RFC 862
 class EchoServer
 {
 public:
-	EchoServer(muduo::net::EventLoop *loop,
-	           const muduo::net::InetAddress &listen_address); // Constructor.
-
-	void Start(); // call server_.start()
+	EchoServer(netlib::EventLoop*, const netlib::SocketAddress&);
+	void Start();
 
 private:
-	// Callback function when there is a new connection.
-	void OnConnection(const muduo::net::TcpConnectionPtr &connection);
+	void HandleConnection(const netlib::TcpConnectionPtr&);
+	void HandleMessage(const netlib::TcpConnectionPtr&, netlib::Buffer*, netlib::TimeStamp);
 
-	void OnMessage(const muduo::net::TcpConnectionPtr &connection,
-	               muduo::net::Buffer *buffer,
-	               muduo::Timestamp time); // Callback function when there has new message.
-
-	muduo::net::TcpServer server_;
+	netlib::TcpServer server_;
 };
 
-#endif // NETLIB_EXAMPLES_ECHO_ECHO_H_
+#endif // NETLIB_EXAMPLE_ECHO_ECHO_H_

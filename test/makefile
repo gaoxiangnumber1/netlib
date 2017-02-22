@@ -1,123 +1,20 @@
-INCLUDE = ../
-SRC = ../netlib
-CC = g++
+NETLIB_DIRECTORY = $(HOME)/netlib
+NETLIB_INCLUDE = $(NETLIB_DIRECTORY)/include
+NETLIB_LIBRARY = $(NETLIB_DIRECTORY)/lib
+
+CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wconversion -Werror -Wextra -Wno-unused-parameter \
 						-Wold-style-cast -Woverloaded-virtual -Wpointer-arith -Wshadow \
-						-Wwrite-strings -march=native -rdynamic \
-						-I$(INCLUDE)
-LDFLAGS = -lpthread
+						-Wwrite-strings -march=native -rdynamic -I$(NETLIB_INCLUDE)
+LDFLAGS = -L$(NETLIB_LIBRARY) -lnetlib -lpthread
 
-.SUFFIXES: .cc .o
-SOURCE =	mutex_test.cc \
-					$(SRC)/count_down_latch.cc \
-					thread_test.cc thread_bench.cc $(SRC)/thread.cc \
-					thread_pool_test.cc $(SRC)/thread_pool.cc\
-					time_stamp_test.cc $(SRC)/time_stamp.cc \
-					$(SRC)/timer.cc \
-					logging_test.cc $(SRC)/logging.cc \
-					$(SRC)/socket.cc \
-					socket_address_test.cc $(SRC)/socket_address.cc \
-					$(SRC)/socket_operation.cc \
-					$(SRC)/epoller.cc \
-					channel_test.cc $(SRC)/channel.cc \
-					timer_queue_test.cc $(SRC)/timer_queue.cc \
-					event_loop_test.cc $(SRC)/event_loop.cc \
-					event_loop_thread_test.cc $(SRC)/event_loop_thread.cc \
-					event_loop_thread_pool_test.cc $(SRC)/event_loop_thread_pool.cc \
-					buffer_test.cc $(SRC)/buffer.cc\
-					$(SRC)/acceptor.cc \
-					$(SRC)/tcp_connection.cc \
-					$(SRC)/tcp_server.cc \
-					$(SRC)/connector.cc \
-					$(SRC)/tcp_client.cc
-OBJECT = $(SOURCE:.cc=.o)
+TEST_SOURCE = $(shell find -name '*.cc')
+TEST = $(TEST_SOURCE:.cc=)
 
-MUTEX_TEST = mutex_test
-MUTEX_OBJ = mutex_test.o $(SRC)/thread.o $(SRC)/time_stamp.o $(SRC)/logging.o
-THREAD_TEST = thread_test
-THREAD_OBJ = thread_test.o $(SRC)/logging.o $(SRC)/thread.o
-THREAD_BENCH = thread_bench
-THREAD_BENCH_OBJ = thread_bench.o $(SRC)/thread.o $(SRC)/time_stamp.o $(SRC)/logging.o
-THREAD_POOL_TEST = thread_pool_test
-THREAD_POOL_OBJ =		thread_pool_test.o $(SRC)/thread_pool.o $(SRC)/logging.o \
-											$(SRC)/thread.o $(SRC)/count_down_latch.o
-TIME_STAMP_TEST = time_stamp_test
-TIME_STAMP_OBJ = time_stamp_test.o $(SRC)/time_stamp.o
-LOG_TEST = logging_test
-LOG_OBJ = logging_test.o $(SRC)/logging.o $(SRC)/thread.o
-SOCKET_ADDRESS_TEST = socket_address_test
-SOCKET_ADDRESS_OBJ =	socket_address_test.o $(SRC)/socket_address.o $(SRC)/logging.o \
-												 $(SRC)/thread.o
-EVENT_LOOP_TEST = event_loop_test
-EVENT_LOOP_OBJ =	$(SRC)/event_loop.o $(SRC)/thread.o $(SRC)/logging.o \
-										$(SRC)/epoller.o $(SRC)/timer_queue.o $(SRC)/channel.o \
-										$(SRC)/time_stamp.o $(SRC)/timer.o
-EVENT_LOOP_TEST_OBJ = event_loop_test.o $(EVENT_LOOP_OBJ)
-BUFFER_TEST = buffer_test
-BUFFER_OBJ = buffer_test.o $(SRC)/buffer.o
-CHANNEL_TEST = channel_test
-CHANNEL_OBJ =	channel_test.o $(EVENT_LOOP_OBJ)
-TIMER_QUEUE_TEST = timer_queue_test
-TIMER_QUEUE_OBJ =	timer_queue_test.o $(SRC)/event_loop_thread.o $(EVENT_LOOP_OBJ)
-EVENT_LOOP_THREAD_TEST = event_loop_thread_test
-EVENT_LOOP_THREAD_OBJ =	event_loop_thread_test.o $(SRC)/event_loop_thread.o \
-														$(EVENT_LOOP_OBJ)
-EVENT_LOOP_THREAD_POOL_TEST = event_loop_thread_pool_test
-EVENT_LOOP_THREAD_POOL_OBJ =	event_loop_thread_pool_test.o \
-																	$(SRC)/event_loop_thread_pool.o \
-																	$(SRC)/event_loop_thread.o \
-																	$(EVENT_LOOP_OBJ)
-TEST =	$(MUTEX_TEST) $(THREAD_TEST) $(THREAD_BENCH) \
-				$(THREAD_POOL_TEST) $(TIME_STAMP_TEST) \
-				$(LOG_TEST) $(SOCKET_ADDRESS_TEST) $(EVENT_LOOP_TEST) \
-				$(BUFFER_TEST) $(CHANNEL_TEST) $(TIMER_QUEUE_TEST) \
-				$(EVENT_LOOP_THREAD_TEST) $(EVENT_LOOP_THREAD_POOL_TEST)
+all: $(TEST)
 
-all: $(OBJECT) $(TEST)
-
-$(MUTEX_TEST): $(MUTEX_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(THREAD_TEST): $(THREAD_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(THREAD_BENCH): $(THREAD_BENCH_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(THREAD_POOL_TEST): $(THREAD_POOL_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(TIME_STAMP_TEST): $(TIME_STAMP_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(LOG_TEST): $(LOG_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(SOCKET_ADDRESS_TEST): $(SOCKET_ADDRESS_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(EVENT_LOOP_TEST): $(EVENT_LOOP_TEST_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(BUFFER_TEST): $(BUFFER_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(CHANNEL_TEST): $(CHANNEL_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(TIMER_QUEUE_TEST): $(TIMER_QUEUE_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(EVENT_LOOP_THREAD_TEST): $(EVENT_LOOP_THREAD_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-$(EVENT_LOOP_THREAD_POOL_TEST): $(EVENT_LOOP_THREAD_POOL_OBJ)
-	$(CC) -o $@ $^ $(LDFLAGS)
-
-.cc.o:
-	$(CC) $(CXXFLAGS) -o $@ -c $<
+.cc:
+	$(CXX) -o $@ $< $(CXXFLAGS) $(LDFLAGS)
 
 clean:
-	rm -f $(OBJECT) $(TEST) *~
-
-.PHONY: all clean
+	rm -f $(TEST) *~

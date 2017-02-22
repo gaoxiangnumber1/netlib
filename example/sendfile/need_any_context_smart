@@ -1,0 +1,85 @@
+// Segmentation fault: `FilePtr fp_ptr(fp, ::fclose);` create a stack shared_ptr object,
+// when `if(fp != nullptr)` ends, fp_ptr destruct, so fp is closed!
+// Solution: 1. C++11 ? = boost::any; 2. handy: handy-imp.h:22:struct AutoContext
+
+#include <stdio.h>
+
+#include <netlib/logging.h>
+#include <netlib/event_loop.h>
+#include <netlib/tcp_server.h>
+
+using namespace netlib;
+
+const char *g_file = nullptr;
+const int kBufferSize = 64 * 1024; // 64KB
+using FilePtr = std::shared_ptr<FILE>;
+
+void HandleWriteComplete(const TcpConnectionPtr &connection)
+{
+	FilePtr *fp_ptr = static_cast<FilePtr*>(connection->context());
+	char buffer[kBufferSize];
+	int read_byte = static_cast<int>(::fread(buffer, 1, sizeof buffer, fp_ptr->get()));
+	if(read_byte > 0)
+	{
+		LOG_INFO("Enter HandleWriteComplete: Resend");
+		connection->Send(buffer, read_byte);
+	}
+	else
+	{
+		connection->set_context(nullptr);
+		connection->Shutdown();
+		LOG_INFO("FileServer - Done.");
+	}
+}
+void HandleHighWaterMark(const TcpConnectionPtr &connection, int length)
+{
+	LOG_INFO("HighWaterMark = %d", length);
+}
+void HandleConnection(const TcpConnectionPtr &connection)
+{
+	bool connected = connection->Connected();
+	LOG_INFO("FileServer - %s -> %s is %s",
+	         connection->peer_address().ToIpPortString().c_str(),
+	         connection->local_address().ToIpPortString().c_str(),
+	         (connected ? "UP" : "DOWN"));
+	if(connected == true)
+	{
+		LOG_INFO("FileServer - Sending file %s to %s",
+		         g_file,
+		         connection->peer_address().ToIpPortString().c_str());
+		connection->set_high_water_mark_callback(HandleHighWaterMark, kBufferSize + 1);
+
+		FILE *fp = ::fopen(g_file, "rb");
+		if(fp != nullptr)
+		{
+			FilePtr fp_ptr(fp, ::fclose);
+			connection->set_context(&fp_ptr);
+			char buffer[kBufferSize];
+			int read_byte = static_cast<int>(::fread(buffer, 1, sizeof buffer, fp));
+			connection->Send(buffer, read_byte);
+		}
+		else
+		{
+			connection->Shutdown();
+			LOG_FATAL("FileServer - No such file.");
+		}
+	}
+}
+
+int main(int argc, char **argv)
+{
+	if(argc == 1)
+	{
+		::fprintf(stderr, "Usage: %s file_for_sending\n", argv[0]);
+		return -1;
+	}
+
+	g_file = argv[1];
+	EventLoop loop;
+	SocketAddress listen_address(7188);
+	TcpServer server(&loop, listen_address, "FileServer");
+	server.set_connection_callback(HandleConnection);
+	server.set_write_complete_callback(HandleWriteComplete);
+	server.Start();
+	loop.Loop();
+}

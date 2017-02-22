@@ -22,9 +22,9 @@ using netlib::TcpServer;
 TcpServer::TcpServer(EventLoop *loop,
                      const SocketAddress &listen_address,
                      const string &name,
-                     bool is_reuse_port,
                      int thread_number,
-                     const InitialTask &initial_task):
+                     const InitialTask &initial_task,
+                     bool is_reuse_port):
 	loop_(CHECK_NOT_NULL(loop)),
 	ip_port_(listen_address.ToIpPortString()),
 	name_(name),

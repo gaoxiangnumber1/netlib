@@ -13,6 +13,7 @@ using netlib::Thread;
 namespace netlib
 {
 
+Logger::LogLevel Logger::log_level_ = Logger::INFO;
 const char *Logger::log_level_string_[OFF] =
 {
 	"ALL  ",
@@ -23,7 +24,6 @@ const char *Logger::log_level_string_[OFF] =
 	"ERROR",
 	"FATAL",
 };
-Logger::LogLevel Logger::log_level_ = Logger::INFO;
 
 // Print to standard out. Don't need buffer.
 void Logger::Log(LogLevel level,

@@ -9,6 +9,9 @@ namespace netlib
 namespace socket_operation
 {
 
+// Review:
+// Function: CreateNonblockingSocket, Get*Address#a_l, GetSocketError#a_l
+
 // Interface:
 // CastToConstsockaddr
 // CastToNonConstsockaddr
@@ -17,14 +20,8 @@ namespace socket_operation
 // GetPeerAddress
 // GetSocketError
 
-const struct sockaddr *CastToConstsockaddr(const struct sockaddr_in *address)
-{
-	return static_cast<const struct sockaddr*>(static_cast<const void*>(address));
-}
-struct sockaddr *CastToNonConstsockaddr(struct sockaddr_in *address)
-{
-	return static_cast<struct sockaddr*>(static_cast<void*>(address));
-}
+const struct sockaddr *CastToConstsockaddr(const struct sockaddr_in*);
+struct sockaddr *CastToNonConstsockaddr(struct sockaddr_in*);
 
 // Create an IPv4/6, nonblocking, and TCP socket file descriptor, abort if any error.
 // Called in Acceptor class and Connector class.

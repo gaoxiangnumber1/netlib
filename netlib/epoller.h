@@ -15,12 +15,17 @@ namespace netlib
 class EventLoop;
 class Channel;
 
+// Review:
+// NonFunction: ChannelSet, r_e_e_v_
+// Function:	Ctor, CreateEpollFd, EpollWait, AddOrUpdateChannel, EpollCtl
+//						RemoveChannel, HasChannel
+
 // Interface:
-// Ctor.
-// Dtor.
+// Ctor -> -CreateEpollFd
+// Dtor
 // EpollWait -> -AssertInLoopThread.
 // AddOrUpdateChannel -> -AssertInLoopThread -> -EpollCtl
-//		-EpollCtl -> -OperationToCString
+//			-EpollCtl -> -OperationToCString
 // RemoveChannel -> -AssertInLoopThread -> -EpollCtl.
 // HasChannel -> -AssertInLoopThread.
 
@@ -48,6 +53,7 @@ private:
 	using EpollEventVector = std::vector<struct epoll_event>;
 	using ChannelSet = std::set<Channel*>; // Map file_descriptor to Channel.
 
+	int CreateEpollFd();
 	// Used for assertion in functions that must be called in loop thread.
 	// EpollWait(), HasChannel(), AddOrUpdateChannel(), RemoveChannel().
 	void AssertInLoopThread() const;

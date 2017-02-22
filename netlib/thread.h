@@ -11,6 +11,10 @@
 namespace netlib
 {
 
+// Review:
+// NonFunction: ThreadFunction, thread_id_#non_const, created_number_
+// Function: StartThread#delete, ForkHandler#object, ChildForkHandler#void()
+
 // Interface:
 // Ctor
 // Dtor
@@ -56,7 +60,7 @@ private:
 	// and the kernel guarantees that no thread ID is the same as any process ID
 	// on the system, except when a thread is the thread group leader for a process.
 	// glibc doesn't provide gettid(), using syscall(SYS_gettid).
-	int thread_id_;
+	int thread_id_; // Can't be const.
 	// TODO: why muduo use shared_ptr to manage thread id? I think it is not
 	// necessary, so I simply use int(same as pid_t).
 	// NOTE: Use const since we can't change function_ after creating the thread.

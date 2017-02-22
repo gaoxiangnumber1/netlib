@@ -13,6 +13,9 @@ namespace netlib
 // Time stamp in UTC, in microseconds resolution. This class is immutable.
 // It's recommended to pass it by value, since it's passed in register on x86-64.
 
+// Review:
+// Function: Ctor(int64_t)#explicit, Now#static
+
 // Interface:
 // Ctor(), Ctor(int64_t)
 // microsecond_since_epoch
@@ -27,7 +30,7 @@ namespace netlib
 class TimeStamp: public Copyable
 {
 public:
-	static const int kMicrosecondPerSecond = 1000000;
+	static const int kMicrosecondPerSecond = 1000000; // 1 second = 10^6 microsecond.
 
 	// Construct an invalid time stamp.
 	TimeStamp(): microsecond_since_epoch_(0) {}
@@ -53,17 +56,16 @@ public:
 	std::string ToFormattedTimeString() const;
 
 private:
-	int64_t microsecond_since_epoch_; // 1 second = 10^6 microsecond.
+	int64_t microsecond_since_epoch_;
 };
-
-inline bool operator==(TimeStamp lhs, TimeStamp rhs)
-{
-	return lhs.microsecond_since_epoch() == rhs.microsecond_since_epoch();
-}
 
 inline bool operator<(TimeStamp lhs, TimeStamp rhs)
 {
 	return lhs.microsecond_since_epoch() < rhs.microsecond_since_epoch();
+}
+inline bool operator==(TimeStamp lhs, TimeStamp rhs)
+{
+	return lhs.microsecond_since_epoch() == rhs.microsecond_since_epoch();
 }
 
 // Get time difference of two timestamps(high-low), result in seconds.
@@ -79,9 +81,8 @@ inline double TimeDifferenceInSecond(TimeStamp high, TimeStamp low)
 
 inline TimeStamp AddTime(TimeStamp base_time_stamp, double second)
 {
-	int64_t microsecond =
-	    static_cast<int64_t>(second * TimeStamp::kMicrosecondPerSecond);
-	return TimeStamp(base_time_stamp.microsecond_since_epoch() + microsecond);
+	return TimeStamp(base_time_stamp.microsecond_since_epoch() +
+	                 static_cast<int64_t>(second * TimeStamp::kMicrosecondPerSecond));
 }
 
 }

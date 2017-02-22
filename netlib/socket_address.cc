@@ -42,7 +42,7 @@ SocketAddress::SocketAddress(string ip, int port)
 	// Return 1 on success.
 	if(::inet_pton(AF_INET, ip.c_str(), &address_.sin_addr) != 1)
 	{
-		LOG_ERROR("sockets::fromIpPort");
+		LOG_ERROR("inet_pton(): ERROR");
 	}
 }
 
@@ -53,12 +53,11 @@ const struct sockaddr *SocketAddress::socket_address() const
 
 string SocketAddress::ToIpPortString() const
 {
-	char ip[16] = ""; // 123.456.789.101\0
+	char ip[16], ip_port[32]; // ip "000.000.000.000\0" is 16B; port is uint16_t.
 	// #include <arpa/inet.h>
 	// const char *inet_ntop(int af, const void *src, char *dst, socklen_t size);
-	::inet_ntop(AF_INET, &address_.sin_addr, ip, static_cast<socklen_t>(sizeof ip));
-	char buffer[32] = "";
+	::inet_ntop(address_.sin_family, &address_.sin_addr, ip, static_cast<socklen_t>(sizeof ip));
 	// uint16_t be16toh(uint16_t)
-	::snprintf(buffer, sizeof buffer, "%s:%u", ip, be16toh(address_.sin_port));
-	return buffer;
+	::snprintf(ip_port, sizeof ip_port, "%s:%u", ip, be16toh(address_.sin_port));
+	return ip_port;
 }

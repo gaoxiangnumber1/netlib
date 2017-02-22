@@ -9,7 +9,7 @@
 using std::atomic;
 using netlib::Thread;
 
-atomic<int> Thread::created_number_(0); // NOTE: Not `= 0;`
+atomic<int> Thread::created_number_(0);
 Thread::Thread(const ThreadFunction &function)
 	: started_(false),
 	  joined_(false),
@@ -69,6 +69,7 @@ void *StartThread(void *object) // Thread start function passed to pthread_creat
 	ThreadData *data = static_cast<ThreadData*>(object);
 	data->RunInThread();
 	delete data; // NOTE: delete data!
+	data = nullptr;
 	return nullptr;
 }
 }
@@ -91,6 +92,7 @@ void Thread::Start()
 	{
 		started_ = false;
 		delete data; // NOTE: delete data!
+		data = nullptr;
 		LOG_FATAL("pthread_create: FATAL");
 	}
 }

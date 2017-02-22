@@ -6,6 +6,7 @@
 
 #include <netlib/callback.h>
 #include <netlib/non_copyable.h>
+#include <netlib/tcp_connection.h>
 
 namespace netlib
 {
@@ -36,9 +37,9 @@ public:
 	TcpServer(EventLoop *loop,
 	          const SocketAddress &listen_address,
 	          const std::string &name,
-	          bool is_reuse_port = false,
 	          int thread_number = 0,
-	          const InitialTask &initial_task = InitialTask());
+	          const InitialTask &initial_task = InitialTask(),
+	          bool is_reuse_port = false);
 	~TcpServer(); // Force outline destructor, for unique_ptr members.
 
 	// Following set_*_callback are all NOT thread safe.

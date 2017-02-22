@@ -12,7 +12,7 @@ namespace netlib
 {
 
 // Review:	ReadFd#errno, Append(const char*, int)#w_i_, EnsureWritableByte
-//					Retrieve, RetrieveAll, RetrieveUntil#assert
+//					Retrieve, RetrieveAll, RetrieveUntil#assert, Prepend, PeekInt32#assert
 
 // Interface:
 // Ctor -> +PrependableByte -> +ReadableByte -> +WritableByte
@@ -26,6 +26,7 @@ namespace netlib
 // Prepend
 // RetrieveAllAsString -> RetrieveAsString -> Retrieve -> RetrieveAll
 // RetrieveUntil -> +ReadableBegin -> -WritableBegin -> +Retrieve
+// PeekInt32
 
 class Buffer: public Copyable
 {

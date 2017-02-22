@@ -20,12 +20,12 @@ class Channel;
 //			-HandleRead -> -HandleClose -> -HandleError
 //			-HandleWrite -> -ShutdownInLoop
 // Dtor
-// Getter: loop, name, local_address, peer_address, input_buffer, output_buffer, context
+// Getter:	loop, name, local_address, peer_address, input_buffer, output_buffer, context
 // Setter: connection/message/high_water_mark/write_complete/close_callback/context
 // Connected/Disconnected
 // SetTcpNoDelay
 // ConnectEstablished -> -set_state
-// Send(const string&)/(Buffer*) -> -SendInLoop
+// Send(const void*, int)/(const string&)/(Buffer*) -> -SendInLoop
 // Shutdown -> -ShutdownInLoop.
 // ForceClose -> -ForceCloseInLoop
 //			-ForceCloseInLoop -> -HandleClose
@@ -76,7 +76,7 @@ public:
 	{
 		return &output_buffer_;
 	}
-	const void *context() const
+	void *context()
 	{
 		return context_;
 	}
@@ -123,6 +123,7 @@ public:
 	// Called when TcpServer accept a new connection. Should be called only once.
 	void ConnectEstablished();
 	// Thread safe.
+	void Send(const void *data, int length);
 	void Send(const std::string &message);
 	void Send(Buffer *message); // Swap data
 	// TODO: NOT thread safe, no simultaneous calling.

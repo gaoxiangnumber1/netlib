@@ -13,6 +13,9 @@ class SocketAddress;
 // A RAII handle of socket file descriptor. It closes the socket_fd when destructs.
 // It's thread safe, all operations are delegated to OS.
 
+// Review:
+// Function: Bind, Listen, Accept, ShutdownOnWrite, Set*#level#opt_name
+
 // Interface:
 // Ctor
 // Dtor
@@ -29,7 +32,7 @@ class SocketAddress;
 class Socket: public NonCopyable
 {
 public:
-	explicit Socket(int fd): socket_fd_(fd) {}
+	explicit Socket(const int fd): socket_fd_(fd) {}
 	// TODO: Socket(Socket&&) // move constructor in C++11
 	~Socket();
 

@@ -11,6 +11,10 @@ class Timer;
 // Used by TimerQueue::Cancel() to find corresponding Timer object
 // when we want to cancel some Timer.
 
+// Review:
+// NonFunction: friend
+// Function: Ctor#arg
+
 // Interface:
 // Ctor
 
@@ -19,7 +23,7 @@ class TimerId: public Copyable
 	friend class TimerQueue;
 public:
 	// Called in `TimerQueue::AddTimer(const TimerCallback&, TimeStamp, double);
-	explicit TimerId(Timer *timer = nullptr, int64_t sequence = 0):
+	explicit TimerId(Timer *timer, int64_t sequence):
 		timer_(timer),
 		sequence_(sequence)
 	{}

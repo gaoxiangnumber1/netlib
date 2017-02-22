@@ -6,6 +6,7 @@
 #include <netlib/callback.h>
 #include <netlib/mutex.h>
 #include <netlib/non_copyable.h>
+#include <netlib/tcp_connection.h>
 
 namespace netlib
 {
@@ -14,11 +15,16 @@ class EventLoop;
 class SocketAddress;
 
 // Interface:
-// Ctor.
-// Dtor.
-// Connect.
-// Disconnect.
-// Stop.
+// Ctor -> -HandleNewConnection
+//			-HandleNewConnection -> -RemoveConnection
+// Dtor
+// Getter: loop
+// Setter: set_connection/message/write_complete_callback
+// EnableRetry
+// Connect
+// Disconnect
+// Stop
+
 class TcpClient: public NonCopyable
 {
 public:
@@ -65,7 +71,7 @@ private:
 	const std::string name_;
 	bool retry_; // FIXME: atomic.
 	bool connect_; // FIXME: atomic.
-	int next_connection_id_; // Always in loop thread.
+	int next_connection_id_; // FIXME: Let server pass its connection_id as client's id.
 	MutexLock mutex_;
 	TcpConnectionPtr connection_; // Guarded by mutex_.
 	ConnectionCallback connection_callback_;

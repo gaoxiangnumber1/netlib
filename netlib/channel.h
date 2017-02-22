@@ -11,16 +11,21 @@ namespace netlib
 
 class EventLoop;
 
+// Review:
+// NonFunction: k*Event
+// Function:	Dtor, HandleEventWithGuard#e_h_, RemoveChannel#assert
+//						EventToString
+
 // Interface:
-// Ctor.
-// Dtor.
-// Getter: owner_loop, fd, requested_event, state_in_channel.
-// Setter:	set_requested_event -> -AddOrUpdateChannel.
-//				set_returned_event, set_state_in_epoller, set_tie, set_event_callback.
-// IsRequestedArgumentEvent.
-// HandleEvent -> -HandleEventWithGuard.
-// RemoveChannel.
-// RequestedEventToString/Returned -> -EventToString.
+// Ctor
+// Dtor
+// Getter: owner_loop, fd, requested_event, state_in_epoller
+// Setter:	set_requested_event -> -AddOrUpdateChannel
+//				set_returned_event, set_state_in_epoller, set_tie, set_event_callback
+// IsRequestedArgumentEvent
+// HandleEvent -> -HandleEventWithGuard
+// RemoveChannel
+// RequestedEventToString/Returned -> -EventToString
 
 class Channel: public NonCopyable // A selectable I/O channel.
 {
@@ -41,7 +46,7 @@ public:
 		ERROR_CALLBACK
 	};
 
-	Channel(EventLoop *owner_loop, int file_descriptor);
+	Channel(EventLoop*, int);
 	~Channel();
 
 	// Getter.
@@ -132,6 +137,7 @@ private:
 	// HandEventWithGuard().
 	std::weak_ptr<void> tie_;
 	bool tied_;
+	bool event_handling_; // See 8.6.
 	// Different callbacks called when corresponding event happens.
 	EventCallback read_callback_;
 	EventCallback write_callback_;
