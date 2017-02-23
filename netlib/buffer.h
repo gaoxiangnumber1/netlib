@@ -74,6 +74,8 @@ public:
 
 	int32_t PeekInt32();
 
+	void swap(Buffer &rhs);
+
 private:
 	const char *BufferBegin() const
 	{

@@ -17,7 +17,7 @@ public:
 
 private:
 	StringMessageCallback string_message_callback_;
-	static const int kHeaderLength = 4;
+	static const int kHeaderLength = static_cast<int>(sizeof(int32_t));
 	static const int kMinMessageLength = 0;
 	static const int kMaxMessageLength = 64 * 1024; // 64KB
 };

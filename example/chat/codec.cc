@@ -1,5 +1,6 @@
 #include "codec.h"
 
+#include <stdio.h>
 #include <endian.h> // htobe32()
 
 #include <string>

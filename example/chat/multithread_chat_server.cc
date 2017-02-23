@@ -56,6 +56,9 @@ private:
 		        it != connection_set_.end();
 		        ++it)
 		{
+			// FIXME: when there has many clients, some clients receive strange buffer
+			// content, though the buffer->ReadableByte() is still right, the message length
+			// at header is wrong. Why? Maybe the buffer is destructed?
 			codec_.Send(*it, message);
 		}
 	}

@@ -8,6 +8,8 @@
 #include <netlib/mutex.h>
 #include <netlib/tcp_client.h>
 
+// Review: Write#mutex
+
 using namespace netlib;
 using namespace std::placeholders;
 using std::bind;
@@ -39,9 +41,9 @@ public:
 	void Write(const string &message)
 	{
 		MutexLockGuard lock(mutex_);
-		if(connection_)
+		if(connection_ptr_)
 		{
-			codec_.Send(connection_, message);
+			codec_.Send(connection_ptr_, message);
 		}
 	}
 
@@ -56,11 +58,11 @@ private:
 		MutexLockGuard lock(mutex_);
 		if(connected == true)
 		{
-			connection_ = connection;
+			connection_ptr_ = connection;
 		}
 		else
 		{
-			connection_.reset();
+			connection_ptr_.reset();
 		}
 	}
 	void HandleStringMessage(const TcpConnectionPtr &connection,
@@ -73,7 +75,7 @@ private:
 	TcpClient client_;
 	Codec codec_;
 	MutexLock mutex_;
-	TcpConnectionPtr connection_;
+	TcpConnectionPtr connection_ptr_;
 };
 
 int main(int argc, char **argv)

@@ -4,8 +4,10 @@
 #include <errno.h> // errno
 #include <string.h> // memcpy()
 
-using std::string;
+#include <algorithm> // std::swap
+
 using netlib::Buffer;
+using std::string;
 
 Buffer::Buffer(int initial_size):
 	buffer_(kPrepend + initial_size),
@@ -158,4 +160,11 @@ int32_t Buffer::PeekInt32()
 	int32_t be32 = 0;
 	::memcpy(&be32, ReadableBegin(), sizeof be32);
 	return ::be32toh(be32);
+}
+
+void Buffer::swap(Buffer &rhs)
+{
+	buffer_.swap(rhs.buffer_);
+	std::swap(read_index_, rhs.read_index_);
+	std::swap(write_index_, rhs.write_index_);
 }
