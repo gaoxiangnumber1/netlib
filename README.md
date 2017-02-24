@@ -18,25 +18,25 @@
 
 ##example
 
- - RAII技法example/raii/。
-raii.cc展示了RAII技法的运行结果。
- - Echo服务器example/echo/。
-single_thread_echo_server.cc是一个单线程并发Echo服务器。
- - 数独服务器example/sudoku。
-sudoku.cc使用回溯法解决数独问题，有解问题用时2秒钟左右，无解问题用时5秒钟左右。
-single_thread_sudoku.cc单线程服务器，所有连接的IO、Compute都在一个线程完成。
-thread_pool_sudoku.cc主线程做所有连接的IO，线程池做所有连接的Compute。
-multiloop_sudoku.cc主线程为每个客户连接分配一个IO子线程，该子线程完成该连接上的所有IO和Compute。
-multiloop_thread_pool_sudoku.cc主线程为每个客户连接分配一个IO子线程，该子线程完成该连接上的所有IO，线程池完成所有连接上的Compute。
- - 传输服务器example/sendfile。
-send_file_once.cc每个连接建立后，把文件内容一次性全部读入一个字符串，调用Send发送。内存使用正比于“并发连接数*文件大小”。
-send_file_block.cc采用流水线思路，首先发送前64KB数据，然后使用WriteCompleteCallback继续读取后面的数据，直到fread返回0，文件读取完毕。内存使用正比于“并发连接数*缓冲区大小”，与文件大小无关。
- - 聊天服务器example/chat。
-codec.cc实现TCP字节流打包、分包，由server和client共用。
-single_thread_chat_server.cc单线程并发服务器。
-multithread_chat_server.cc主线程接受连接，为每个连接分配一个EventLoop线程，使用MutexLock保护共享数据。
-multithread_cow_chat_server.cc主线程接受连接，为每个连接分配一个EventLoop线程，使用shared_ptr实现对共享数据的Copy-On-Write。
-chat_client.cc双线程，main函数线程读取stdin，EventLoopThread线程完成该连接上的IO。
+###RAII技法example/raii/
+ - raii.cc展示了RAII技法的运行结果。
+###Echo服务器example/echo/
+ - single_thread_echo_server.cc是一个单线程并发Echo服务器。
+###数独服务器example/sudoku
+ - sudoku.cc使用回溯法解决数独问题，有解问题用时2秒钟左右，无解问题用时5秒钟左右。
+ - single_thread_sudoku.cc单线程服务器，所有连接的IO、Compute都在一个线程完成。
+ - thread_pool_sudoku.cc主线程做所有连接的IO，线程池做所有连接的Compute。
+ - multiloop_sudoku.cc主线程为每个客户连接分配一个IO子线程，该子线程完成该连接上的所有IO和Compute。
+ - multiloop_thread_pool_sudoku.cc主线程为每个客户连接分配一个IO子线程，该子线程完成该连接上的所有IO，线程池完成所有连接上的Compute。
+###传输服务器example/sendfile
+ - send_file_once.cc每个连接建立后，把文件内容一次性全部读入一个字符串，调用Send发送。内存使用正比于“并发连接数*文件大小”。
+ - send_file_block.cc采用流水线思路，首先发送前64KB数据，然后使用WriteCompleteCallback继续读取后面的数据，直到fread返回0，文件读取完毕。内存使用正比于“并发连接数*缓冲区大小”，与文件大小无关。
+###聊天服务器example/chat
+ - codec.cc实现TCP字节流打包、分包，由server和client共用。
+ - single_thread_chat_server.cc单线程并发服务器。
+ - multithread_chat_server.cc主线程接受连接，为每个连接分配一个EventLoop线程，使用MutexLock保护共享数据。
+ - multithread_cow_chat_server.cc主线程接受连接，为每个连接分配一个EventLoop线程，使用shared_ptr实现对共享数据的Copy-On-Write。
+ - chat_client.cc双线程，main函数线程读取stdin，EventLoopThread线程完成该连接上的IO。
 
 ##关于
  - Blog：http://blog.csdn.net/gaoxiangnumber1
