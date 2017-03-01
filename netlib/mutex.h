@@ -186,7 +186,7 @@ private:
 }
 
 // Prevent misusing like this: `MutexLockGuard(mutex_);` A temporary object
-// is created and destroyed immediately after this expression, so we don't get the
+// is created and destroyed immediately after this expression, so we don't acquire the
 // lock for the critical section. We should use stack object.
 #define MutexLockGuard(mutex_name) error "Missing guard object name"
 

@@ -36,8 +36,8 @@ TimerQueue::TimerQueue(EventLoop *owner_loop):
 // timerfd_create() creates a new timer object, and returns a file descriptor that refers to
 // that timer. `clockid` specifies the clock that is used to mark the progress of the timer:
 // 1. CLOCK_REALTIME: a settable system-wide clock.
-// 2. CLOCK_MONOTONIC: a nonsettable clock that is not affected by discontinuous
-// changes in the system clock(e.g., manual changes to system time).
+// 2. CLOCK_MONOTONIC: a non-settable clock that is not affected by discontinuous
+// changes in the system clock(e.g., manual changes to system time).(ZH:Dan Diao De)
 // `flags`
 // 1. TFD_NONBLOCK: Set `O_NONBLOCK` file status flag on the new file descriptor.
 // 2. TFD_CLOEXEC: Set `close-on-exec(FD_CLOEXEC)` flag.

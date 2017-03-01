@@ -15,12 +15,16 @@ class EventLoop;
 class Socket;
 class Channel;
 
+// Review:
+// NonFunction: All
+// Function: All
+
 // Interface:
 // Ctor -> -HandleRead -> -HandleWrite -> -HandleClose -> -HandleError
 //			-HandleRead -> -HandleClose -> -HandleError
 //			-HandleWrite -> -ShutdownInLoop
 // Dtor
-// Getter:	loop, name, local_address, peer_address, input_buffer, output_buffer, context
+// Getter: loop, name, local_address, peer_address, input_buffer, output_buffer, context
 // Setter: connection/message/high_water_mark/write_complete/close_callback/context
 // Connected/Disconnected
 // SetTcpNoDelay
@@ -45,7 +49,7 @@ public:
 	// Construct a TcpConnection with a connected socket.
 	// User should not create this object.
 	TcpConnection(EventLoop *event_loop,
-	              const std::string string_name,
+	              const std::string &string_name,
 	              int socket,
 	              const SocketAddress &local,
 	              const SocketAddress &peer);
@@ -136,10 +140,10 @@ public:
 private:
 	enum State
 	{
-		DISCONNECTED,
 		CONNECTING,
 		CONNECTED,
-		DISCONNECTING
+		DISCONNECTING,
+		DISCONNECTED
 	};
 	void set_state(State state)
 	{
@@ -161,12 +165,12 @@ private:
 	// "listen_address.ToIpPortString()" + "#next_connection_id_". Set by TcpServer.
 	const std::string name_;
 	State state_; // FIXME: Use atomic variable
-	// We don't expose unique_ptr<T> classes to client.
-	// TcpConnection owns TCP socket, its destructor will `::close(socket_)` in the
-	// destructor of the Socket object.
+	void *context_;
+	// TcpConnection owns the connection_fd returned by `accept_socket_.Accept(p_a)`,
+	// its destructor will `::close(socket_)` in the destructor of the Socket object.
 	std::unique_ptr<Socket> socket_;
-	// TcpConnection gets the socket_'s IO events by channel_. It deals with the writable
-	// events by itself, and pass readable events to user by message_callback_.
+	// TcpConnection deals with the writable IO events by itself,
+	// and pass readable events to user by message_callback_.
 	std::unique_ptr<Channel> channel_;
 	const SocketAddress local_address_;
 	const SocketAddress peer_address_;
@@ -175,18 +179,16 @@ private:
 	// TcpServer::HandleNewConnection -> TcpConnection::ConnectEstablished() ->
 	// connection_callback_.
 	ConnectionCallback connection_callback_;
-	// Called in HandleRead(), that is, when the socket is readable(message arrives).
-	MessageCallback message_callback_;
+	MessageCallback message_callback_; // Called in HandleRead().
+	HighWaterMarkCallback high_water_mark_callback_;
 	int high_water_mark_;
 	static const int kInitialHighWaterMark = 64 * 1024 * 1024;
-	HighWaterMarkCallback high_water_mark_callback_;
 	WriteCompleteCallback write_complete_callback_;
 	// close_callback_ can be only used by TcpServer and TcpClient, to notify that
 	// they should remove this TcpConnection object's shared_ptr; not used by user,
 	// user only use connection_callback_.
-	// Called in HandleClose(). Bind to TcpServer::RemoveConnection().
+	// Called in HandleClose(). Bind to TcpServer/TcpClient::RemoveConnection().
 	CloseCallback close_callback_;
-	void *context_;
 };
 
 }

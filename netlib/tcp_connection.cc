@@ -30,19 +30,19 @@ void netlib::DefaultMessageCallback(const TcpConnectionPtr&,
 }
 
 TcpConnection::TcpConnection(EventLoop *event_loop,
-                             const string string_name,
+                             const string &string_name,
                              int socket,
                              const SocketAddress &local,
                              const SocketAddress &peer):
 	loop_(CHECK_NOT_NULL(event_loop)),
 	name_(string_name),
 	state_(CONNECTING),
+	context_(nullptr),
 	socket_(new Socket(socket)),
 	channel_(new Channel(loop_, socket)),
 	local_address_(local),
 	peer_address_(peer),
-	high_water_mark_(kInitialHighWaterMark),
-	context_(nullptr)
+	high_water_mark_(kInitialHighWaterMark)
 {
 	channel_->set_event_callback(Channel::READ_CALLBACK,
 	                             bind(&TcpConnection::HandleRead, this, _1));
@@ -53,14 +53,14 @@ TcpConnection::TcpConnection(EventLoop *event_loop,
 	channel_->set_event_callback(Channel::ERROR_CALLBACK,
 	                             bind(&TcpConnection::HandleError, this));
 	LOG_DEBUG("TcpConnection::ctor[%s] at %p fd=%d", name_.c_str(), this, socket);
-	socket_->SetTcpKeepAlive(true);
+	socket_->SetTcpKeepAlive(true); // TODO: What use?
 }
 void TcpConnection::HandleRead(TimeStamp receive_time)
 {
 	loop_->AssertInLoopThread();
 	int saved_errno = 0;
 	int read_byte = input_buffer_.ReadFd(channel_->fd(), saved_errno);
-	if(read_byte > 0)
+	if(read_byte > 0 && message_callback_)
 	{
 		message_callback_(shared_from_this(), &input_buffer_, receive_time);
 	}
@@ -79,6 +79,7 @@ void TcpConnection::HandleClose()
 {
 	loop_->AssertInLoopThread();
 	LOG_TRACE("fd = %d, state = %s", channel_->fd(), StateToCString());
+	// Shutdown() {...set_state(DISCONNECTING);...}
 	assert(state_ == CONNECTED || state_ == DISCONNECTING);
 	set_state(DISCONNECTED);
 	// We don't close fd, leave it to dtor, so we can find leaks easily.
@@ -86,11 +87,13 @@ void TcpConnection::HandleClose()
 	TcpConnectionPtr guard(shared_from_this());
 	connection_callback_(guard);
 	close_callback_(guard);
+	// Not RemoveChannel() here. close_callback_ = TcpServer::RemoveConnection
+	// -> TS::RCInLoop -> TcpConnection::ConnectDestroyed, RC() here.
 }
 void TcpConnection::HandleError()
 {
 	int error = nso::GetSocketError(channel_->fd());
-	LOG_INFO("TcpConnection::handleError [%s] - SO_ERROR = %d %s",
+	LOG_INFO("TcpConnection::HandleError [%s] - SO_ERROR = %d %s",
 	         name_.c_str(), error, ThreadSafeStrError(error));
 }
 void TcpConnection::HandleWrite()
@@ -180,18 +183,18 @@ void TcpConnection::ConnectEstablished()
 
 void TcpConnection::Send(const void *data, int length)
 {
-	const char *data_begin = static_cast<const char*>(data);
-	const char *data_end = data_begin + length;
-	Send(string(data_begin, data_end));
+	if(state_ == CONNECTED)
+	{
+		loop_->RunInLoop(bind(&TcpConnection::SendInLoop,
+		                      this,
+		                      static_cast<const char*>(data),
+		                      length));
+	}
 }
 void TcpConnection::Send(const string &message)
 {
 	if(state_ == CONNECTED)
 	{
-//		if(loop_->IsInLoopThread() == true)
-//			SendInLoop(message.data(), static_cast<int>(message.size()));
-//		else
-//			loop_->RunInLoop(*);
 		// TODO: Use C++11::move(string&&) to avoid the copy of string content.
 		loop_->RunInLoop(bind(&TcpConnection::SendInLoop,
 		                      this,
@@ -228,7 +231,7 @@ void TcpConnection::SendInLoop(const char *data, int length)
 	        output_buffer_.ReadableByte() == 0)
 	{
 		write_byte = static_cast<int>(::write(channel_->fd(), data, length));
-		if(write_byte >= 0)
+		if(write_byte > 0)
 		{
 			remaining_byte -= write_byte;
 			if(remaining_byte == 0 && write_complete_callback_)
@@ -239,9 +242,14 @@ void TcpConnection::SendInLoop(const char *data, int length)
 		else
 		{
 			write_byte = 0; // Used in `output_buffer_.Append()`
-			if(errno != EWOULDBLOCK)
+			// EWOULDBLOCK/EAGAIN: fd refers to a socket and has been marked
+			// nonblocking(O_NONBLOCK), and the write would block.
+			if(errno != EWOULDBLOCK && errno != EAGAIN)
 			{
 				LOG_ERROR("TcpConnection::SendInLoop");
+				// EPIPE: fd is connected to a pipe or socket whose reading end is closed.
+				// When this happens the writing process will receive a SIGPIPE signal.
+				// ECONNRESET: Connection reset
 				if(errno == EPIPE || errno == ECONNRESET)
 				{
 					has_error = true;
