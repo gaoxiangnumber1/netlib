@@ -10,7 +10,7 @@
  - 卸载：`make uninstall`
 
 ##主要模块介绍
- - 线程库。使用RAII手法封装mutex，实现条件变量、CountDownLatch、Thread支持线程创建和等待结束、ThreadPool支持动态添加Task。
+ - 线程库。使用RAII手法封装非递归mutex实现Scoped Locking，实现条件变量、CountDownLatch、Thread支持线程创建和等待结束、ThreadPool支持动态添加Task。
  - Reactor。使用one loop per thread模型，IO线程创建EventLoop，TimerQueue实现Add/CancelTimer接口，Epoller实现IO multiplexing，Channel分发IO events。
  - Read/Write。通过Buffer读写数据，使用readv和栈空间实现兼顾内存使用和效率的Read，使用Send和HandleWrite实现线程安全、无阻塞Write。
  - TcpServer。将TcpConnection按round robin分配到EventLoopThreadPool中，通过EventLoop::RunInLoop实现线程安全的跨线程调用。
