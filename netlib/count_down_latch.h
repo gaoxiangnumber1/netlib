@@ -8,6 +8,8 @@
 namespace netlib
 {
 
+// Review: none.
+
 // Interface:
 // Ctor
 // CountDown
@@ -18,13 +20,11 @@ class CountDownLatch: public NonCopyable
 public:
 	explicit CountDownLatch(int count);
 
-	void CountDown(); // Get lock -> --count_.
-	void Wait(); // Wait until count_ reaches 0.
+	void CountDown();
+	void Wait();
 
 private:
-	// Data member sequence: mutex_ Must come first and then condition_
-	// since we use mutex_ to construct condition_ variable.
-	// NOTE: CountDownLatch owns one MutexLock, so its data member isn't `ML&`.
+	// mutex_ Must before condition_ since we use mutex_ to construct condition_.
 	MutexLock mutex_;
 	Condition condition_;
 	int count_; // The number of count down before Wait() return.

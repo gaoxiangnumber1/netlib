@@ -15,16 +15,14 @@ void CountDownLatch::CountDown()
 	--count_;
 	if(count_ == 0)
 	{
-		// NOTE: Broadcast indicates state change rather than resource availability.
 		condition_.NotifyAll();
 	}
 }
 
 void CountDownLatch::Wait()
 {
-	// Must first get lock and then Wait() on condition.
 	MutexLockGuard lock(mutex_);
-	// NOTE: `while(count_ != 0)` is wrong since we only wait for initial count_ times.
+	// NOTE: `while(count_ != 0)` is wrong since we only wait for count_ times.
 	while(count_ > 0)
 	{
 		condition_.Wait();

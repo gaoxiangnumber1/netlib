@@ -29,36 +29,23 @@ ThreadPool::~ThreadPool()
 // Stop all threads and call Join() for all threads.
 void ThreadPool::Stop()
 {
-	// Once set running_ to false, we can't set it to true.
-	// That is, all threads can't run again.
+	// Once set to false, we can't set it to true, i.e., all threads can't run again.
 	running_ = false;
 
-	// NOTE: Use as short critical section as possible. {critical section;} non-critical;
-	// NOTE: Always use Condition with MutexLock!
+	// Use as short critical section as possible. {critical section;} non-critical;
 	{
 		MutexLockGuard lock(mutex_);
-		// When calling Stop(), either directly calling in the main thread which creates
-		// the thread pool, or indirectly calling when the thread pool object destructs,
-		// the two condition variables may still in Wait() state:
-		// 1.	For `not_empty_.Wait()` in GetAndRemoveTask(): use
-		//		`not_empty_.NotifyAll();` to wakeup all threads that wait for task. After this,
-		//		all waiting threads will exit the `while(running_ && t_q_.empty())` loop
-		//		since we set running_ to false before NotifyAll(). Thus, GetAndRemoveTask()
-		//		will return an invalid task and RunInThread() will not run the returned task.
-		//		Then, RunInThread() will check `while(running_)` loop and the condition
-		//		is false. Thus, RunInThread() will return(void) and the thread will terminate
-		//		normally. So, after Stop(), all waiting threads on not_empty_ Condition
-		//		terminate normally.
+		// Reason for only wakeup not_empty_:
+		// 1.	not_empty_.Wait() <- GetAndRemoveTask() <- RunInThread() <- Child thread
+		//		start function. ONLY child thread can Wait() on not_empty_.
+		// 2.	not_full_.Wait() <- RunOrAddTask() <- Main thread called. ONLY main thread
+		//		can Wait() on not_full_.
+		// 3.	Stop() can be called by Main thread ONLY.
+		// 4.	One thread can execute one function at a time: when in Stop(), main thread
+		//		can't Wait() on not_full_, thus no thread Wait() on not_full_ now.
+		// Summary: Main thread wakeup child thread to exit.
 		not_empty_.NotifyAll();
-		// 2.	For `not_full_.Wait()` in RunOrAddTask(): Only the main thread which
-		//		creates the thread pool object can use thread_pool object. That is, only the
-		//		main thread can call RunOrAddTask() or Stop(). When the main thread
-		//		blocks on `not_full_.Wait()` in RunOrAddTask(), it can't continue execute,
-		//		thus it can't call Stop() or finish current scope(which will cause the thread
-		//		pool object destructs). So, when in Stop(), there is no thread that may possible
-		//		wait on not_full_. Thus, we don't need `not_full_.NotifyAll()` in Stop().
 	}
-	// Call Thread::Join() for every thread.
 	for(int index = 0; index < thread_number_; ++index)
 	{
 		thread_pool_[index]->Join();
@@ -104,6 +91,7 @@ void ThreadPool::RunInThread()
 // Get the first task from task queue(block when the task queue is empty:
 // `not_empty_.Wait();`), then remove this task and wakeup threads by
 // `not_full_.Notify();` that wait on the not_full_ Condition.
+// NOTE: Not return `Task&` since we delete(pop_front()) the task from task queue.
 ThreadPool::Task ThreadPool::GetAndRemoveTask()
 {
 	MutexLockGuard lock(mutex_);

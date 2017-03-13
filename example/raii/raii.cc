@@ -1,4 +1,4 @@
-#include <iostream>
+#include <stdio.h>
 #include <memory>
 
 using namespace std;
@@ -8,79 +8,72 @@ class Test
 public:
 	Test()
 	{
-		cout << "Ctor()\n";
+		printf("Ctor\t");
 	}
 	~Test()
 	{
-		cout << "Dtor()\n";
+		printf("Dtor\t");
 	}
 };
 
 int main()
 {
-	cout << "stack object, without dtor call.\n";
+	printf("Stack Object without Dtor call.\n");
 	{
 		Test test;
 	}
-	cout << "End\n";
+	printf("\nEnd\n");
 
-	cout << "stack object, with dtor call.\n";
+	printf("Stack Object with Dtor call.\n");
 	{
 		Test test;
 		test.~Test();
 	}
-	cout << "End\n";
+	printf("\nEnd\n");
 
-	cout << "heap object, without dtor call.\n";
+	printf("Heap Object without Dtor call.\n");
 	{
 		Test *test = new Test();
 	}
-	cout << "End\n";
+	printf("\nEnd\n");
 
-	cout << "heap object, with dtor call.\n";
+	printf("Heap Object with Dtor call.\n");
 	{
 		Test *test = new Test();
 		test->~Test();
 	}
-	cout << "End\n";
+	printf("\nEnd\n");
 
-	cout << "heap object, managed by smart_ptr, without dtor() call.\n";
+	printf("Heap Object managed by smart_ptr, without Dtor() call.\n");
 	{
 		shared_ptr<Test> test(new Test());
 	}
-	cout << "End\n";
+	printf("\nEnd\n");
 
-	cout << "heap object, managed by smart_ptr, with dtor() call.\n";
+	printf("Heap Object, managed by smart_ptr, with Dtor() call.\n");
 	{
 		shared_ptr<Test> test(new Test());
 		(*test).~Test();
 	}
-	cout << "End\n";
+	printf("\nEnd\n");
 }
 /*
-stack object, without dtor call.
-Ctor()
-Dtor()
+Stack Object without Dtor call.
+Ctor	Dtor
 End
-stack object, with dtor call.
-Ctor()
-Dtor()
-Dtor()
+Stack Object with Dtor call.
+Ctor	Dtor	Dtor
 End
-heap object, without dtor call.
-Ctor()
+Heap Object without Dtor call.
+Ctor
 End
-heap object, with dtor call.
-Ctor()
-Dtor()
+Heap Object with Dtor call.
+Ctor	Dtor
 End
-heap object, managed by smart_ptr, without dtor() call.
-Ctor()
-Dtor()
+Heap Object managed by smart_ptr, without Dtor() call.
+Ctor	Dtor
 End
-heap object, managed by smart_ptr, with dtor() call.
-Ctor()
-Dtor()
-Dtor()
+Heap Object, managed by smart_ptr, with Dtor() call.
+Ctor	Dtor	Dtor
 End
 */
