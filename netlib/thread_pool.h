@@ -12,7 +12,7 @@
 namespace netlib
 {
 
-// Review: Stop()
+// Review: Stop(), Start(), GetAndRemoveTask(), RunOrAddTask(), IsTaskQueueFull()
 
 // Interface:
 // Ctor
