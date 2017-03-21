@@ -35,7 +35,7 @@ private:
 	InitialTask initial_task_;
 	bool started_;
 	const int thread_number_;
-	std::vector<EventLoopThread*> thread_pool_;
+	std::vector<EventLoopThread*> thread_pool_; // No need. Should be deleted.
 	std::vector<EventLoop*> loop_pool_;
 	int next_loop_index_; // Always in loop thread.
 };
