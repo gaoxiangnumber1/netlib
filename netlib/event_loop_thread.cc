@@ -20,7 +20,7 @@ void EventLoopThread::ThreadFunction()
 	{
 		MutexLockGuard lock(mutex_);
 		loop_ = &loop; // Assign stack object's address to the data member.
-		condition_.Notify(); // Notify the condition -> Wakeup StartLoop().
+		condition_.Signal(); // Notify the condition -> Wakeup StartLoop().
 	}
 
 	if(initial_task_)

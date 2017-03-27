@@ -115,7 +115,7 @@ void Channel::set_event_callback(EventCallbackType type, const EventCallback &ca
 	}
 }
 
-bool Channel::IsRequestedArgumentEvent(RequestedEventType type)
+bool Channel::IsRequested(RequestedEventType type)
 {
 	switch(type)
 	{
@@ -180,7 +180,7 @@ void Channel::HandleEventWithGuard(TimeStamp receive_time)
 
 void Channel::RemoveChannel()
 {
-	assert(IsRequestedArgumentEvent(NONE_EVENT) == true);
+	assert(IsRequested(NONE_EVENT) == true);
 	owner_loop_->RemoveChannel(this);
 }
 

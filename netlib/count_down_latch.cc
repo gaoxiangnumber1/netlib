@@ -15,7 +15,7 @@ void CountDownLatch::CountDown()
 	--count_;
 	if(count_ == 0)
 	{
-		condition_.NotifyAll();
+		condition_.Broadcast();
 	}
 }
 

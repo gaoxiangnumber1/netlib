@@ -34,7 +34,6 @@ IgnoreSigPipe ignore_sig_pipe_object;
 
 // Every thread has its own instance of __thread variable.
 __thread EventLoop *t_loop_in_this_thread = nullptr;
-const int kTimeoutInMillisecond = 10000; // 10 seconds
 
 EventLoop::EventLoop():
 	looping_(false),
@@ -137,8 +136,7 @@ void EventLoop::Loop()
 	while(quit_ == false)
 	{
 		active_channel_vector_.clear(); // Clear old active channel vector.
-		epoll_return_time_ =
-		    epoller_->EpollWait(kTimeoutInMillisecond, active_channel_vector_);
+		epoll_return_time_ = epoller_->EpollWait(-1, active_channel_vector_);
 		PrintActiveChannel();
 		// TODO sort channel by priority
 		for(ChannelVector::iterator it = active_channel_vector_.begin();

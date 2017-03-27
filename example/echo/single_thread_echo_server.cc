@@ -11,6 +11,7 @@ using namespace netlib;
 
 int main()
 {
+	SetLogLevel(ALL);
 	LOG_INFO("pid = %d", getpid());
 	EventLoop loop;
 	SocketAddress listen_address(7188);

@@ -26,7 +26,6 @@ ThreadPool::~ThreadPool()
 	}
 	// All data members(including `MutexLock mutex_`) are about to Destruct!
 }
-// Stop all threads and call Join() for all threads.
 void ThreadPool::Stop()
 {
 	// Once set to false, we can't set it to true, i.e., all threads can't run again.
@@ -44,7 +43,7 @@ void ThreadPool::Stop()
 		// 4.	One thread can execute one function at a time: when in Stop(), main thread
 		//		can't Wait() on not_full_, thus no thread Wait() on not_full_ now.
 		// Summary: Main thread wakeup child thread to exit.
-		not_empty_.NotifyAll();
+		not_empty_.Broadcast();
 	}
 	for(int index = 0; index < thread_number_; ++index)
 	{
@@ -67,16 +66,12 @@ void ThreadPool::Start()
 		thread_pool_[index]->Start();
 	}
 }
-// The start function of thread.
 void ThreadPool::RunInThread()
 {
-	// First run the initial_task_ if any.
 	if(initial_task_)
 	{
 		initial_task_();
 	}
-	// Then indefinitely get(and remove) task from task queue and run it
-	// until running_ flag is set false by Stop().
 	while(running_ == true)
 	{
 		Task task(GetAndRemoveTask());
@@ -103,31 +98,30 @@ ThreadPool::Task ThreadPool::GetAndRemoveTask()
 	{
 		task = task_queue_.front();
 		task_queue_.pop_front();
-		// Wakeup main thread each time we remove one task for efficiency.
-		not_full_.Notify();
+		not_full_.Signal();
 	}
 	return task;
 }
 
 void ThreadPool::RunOrAddTask(const Task &task)
 {
-	assert(running_ == true); // NOTE: Use assertion for invariant.
+	assert(running_ == true);
 	if(thread_number_ == 0)
 	{
 		task();
-		return;
 	}
-	MutexLockGuard lock(mutex_);
-	while(IsTaskQueueFull() == true) // The task queue is full, can't add task.
+	else
 	{
-		not_full_.Wait();
+		MutexLockGuard lock(mutex_);
+		while(IsTaskQueueFull() == true)
+		{
+			not_full_.Wait();
+		}
+		assert(IsTaskQueueFull() == false);
+		task_queue_.push_back(task);
+		not_empty_.Signal();
 	}
-	assert(IsTaskQueueFull() == false);
-	// Add task into task queue and wakeup child thread.
-	task_queue_.push_back(task);
-	not_empty_.Notify();
 }
-// Return true if the task queue if full(i.e., can't add more task).
 bool ThreadPool::IsTaskQueueFull() const
 {
 	mutex_.AssertLockedByThisThread();

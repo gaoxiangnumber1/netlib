@@ -25,7 +25,6 @@ class ThreadPool: public NonCopyable
 public:
 	using Task = std::function<void()>;
 
-	// NOTE: Use CONST whenever possible!
 	explicit ThreadPool(const int thread_number,
 	                    const Task &initial_task,
 	                    const int max_queue_size);
@@ -43,13 +42,11 @@ private:
 	// The start function of thread. Start() -> RunInThread().
 	void RunInThread();
 	Task GetAndRemoveTask();
-	// Check whether task_queue_ is full, that is, task_queue_.size() >= max_queue_size_.
-	// max_queue_size_ is set by user. Called in RunOrAddTask() when adding task.
 	bool IsTaskQueueFull() const;
 
 	const int thread_number_;
 	std::vector<Thread*> thread_pool_; // Store thread_number_ threads' pointer.
-	const Task initial_task_; // The first task(i.e., function) that thread will run.
+	const Task initial_task_; // The first task that thread will run.
 	bool running_; // Indicate the status of all threads.
 	MutexLock mutex_; // Protect Condition and task queue.
 	std::deque<Task> task_queue_;

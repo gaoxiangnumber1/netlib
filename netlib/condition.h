@@ -6,14 +6,14 @@
 namespace netlib
 {
 
-// Review: Wait, Notify, NotifyAll
+// Review: Wait, Signal, Broadcast
 
 // Interface:
 // Ctor
 // Dtor
 // Wait
-// Notify
-// NotifyAll
+// Signal
+// Broadcast
 class Condition: public NonCopyable
 {
 public:
@@ -30,7 +30,7 @@ public:
 	// 2.	Thread X calls Condition::Wait(). In Wait(): pthread_cond_wait() atomically
 	//		put Thread X on the waiting queue of condition and unlock the mutex.
 	// 3.	Thread Y gets the lock of mutex_ -> changes the state of mutex_ -> calls
-	//		Condition::Notify() or Condition::NotifyAll() -> unlock the mutex_.
+	//		Condition::Signal() or Condition::Broadcast() -> unlock the mutex_.
 	// 4.	Thread X returns from `pthread_cond_wait()` and gets the lock of mutex_ again.
 	void Wait()
 	{
@@ -38,11 +38,11 @@ public:
 		MutexLock::UnassignHolderGuard guard(mutex_); // mutex_.holder_ = 0;
 		assert(pthread_cond_wait(&condition_, mutex_.get_pthread_mutex_t()) == 0);
 	}
-	void Notify()
+	void Signal()
 	{
 		assert(pthread_cond_signal(&condition_) == 0);
 	}
-	void NotifyAll()
+	void Broadcast()
 	{
 		assert(pthread_cond_broadcast(&condition_) == 0);
 	}

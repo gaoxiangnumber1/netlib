@@ -34,6 +34,7 @@ int main()
 	printf("Heap Object without Dtor call.\n");
 	{
 		Test *test = new Test();
+		test = test; // No warning, please.
 	}
 	printf("\nEnd\n");
 

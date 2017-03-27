@@ -22,7 +22,7 @@ class EventLoop;
 // Getter: owner_loop, fd, requested_event, state_in_epoller
 // Setter:	set_requested_event -> -AddOrUpdateChannel
 //				set_returned_event, set_state_in_epoller, set_tie, set_event_callback
-// IsRequestedArgumentEvent
+// IsRequested
 // HandleEvent -> -HandleEventWithGuard
 // RemoveChannel
 // RequestedEventToString/Returned -> -EventToString
@@ -89,7 +89,7 @@ public:
 	void set_event_callback(EventCallbackType type, const EventCallback &callback);
 
 	// Used for assertion.
-	bool IsRequestedArgumentEvent(RequestedEventType type);
+	bool IsRequested(RequestedEventType type);
 
 	// Call different callbacks based on returned_event_.
 	// Called: EventLoop::Loop()

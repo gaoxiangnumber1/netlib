@@ -99,7 +99,7 @@ void TcpConnection::HandleError()
 void TcpConnection::HandleWrite()
 {
 	loop_->AssertInLoopThread();
-	if(channel_->IsRequestedArgumentEvent(Channel::WRITE_EVENT) == true)
+	if(channel_->IsRequested(Channel::WRITE_EVENT) == true)
 	{
 		int write_byte = static_cast<int>(::write(channel_->fd(),
 		                                  output_buffer_.ReadableBegin(),
@@ -136,7 +136,7 @@ void TcpConnection::HandleWrite()
 void TcpConnection::ShutdownInLoop()
 {
 	loop_->AssertInLoopThread();
-	if(channel_->IsRequestedArgumentEvent(Channel::WRITE_EVENT) == false)
+	if(channel_->IsRequested(Channel::WRITE_EVENT) == false)
 	{
 		socket_->ShutdownOnWrite();
 	}
@@ -227,7 +227,7 @@ void TcpConnection::SendInLoop(const char *data, int length)
 	bool has_error = false;
 	// If we are not writing and there is no data in the output buffer, try writing directly.
 	// Otherwise, the data may be out of order.
-	if(channel_->IsRequestedArgumentEvent(Channel::WRITE_EVENT) == false &&
+	if(channel_->IsRequested(Channel::WRITE_EVENT) == false &&
 	        output_buffer_.ReadableByte() == 0)
 	{
 		write_byte = static_cast<int>(::write(channel_->fd(), data, length));
