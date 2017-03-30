@@ -1,7 +1,5 @@
 #include <netlib/channel.h>
 
-#include <sys/epoll.h> // EPOLL*
-
 #include <netlib/event_loop.h> // EventLoop
 #include <netlib/logging.h> // Log
 
@@ -10,47 +8,18 @@ using std::shared_ptr;
 using netlib::EventLoop;
 using netlib::Channel;
 
-// EPOLLIN
-// fd is available for read(2): data other than high-priority data can be read.
-// EPOLLPRI
-// There is urgent data available for read(2): high-priority data can be read.
-// EPOLLRDHUP
-// Stream socket peer closes connection, or shut down writing half of connection.
-// This flag is useful to detect peer shutdown when using Edge Triggered.
-// EPOLLOUT
-// fd is available for write(2): normal data can be read.
-// EPOLLHUP
-// Hang up happened on the fd. epoll_wait(2) always wait for this event;
-// it is not necessary to set it in events.
-// EPOLLERR
-// Error condition happened on the fd. epoll_wait(2) always wait for this event.
-// EPOLLET
-// Set the Edge Triggered behavior for fd. Default is Level Triggered.
-// EPOLLONESHOT
-// Set the one-shot behavior for the fd(Disable monitoring after event notification).
-// After an event is pulled out with epoll_wait(2), the associated fd is disabled and
-// no other events will be reported by the epoll interface. The user must call epoll_ctl()
-// with EPOLL_CTL_MOD to rearm the fd with a new event mask.
-const int Channel::kNoneEvent = 0;
-const int Channel::kReadEvent = EPOLLIN | EPOLLPRI | EPOLLRDHUP;
-const int Channel::kWriteEvent = EPOLLOUT;
-const int Channel::kCloseEvent = EPOLLHUP;
-const int Channel::kErrorEvent = EPOLLERR;
-
-// declaration of ‘fd’ shadows a member of 'this' [-Werror=shadow]
 Channel::Channel(EventLoop *loop, int file_descriptor):
 	owner_loop_(loop),
+	state_in_epoller_(-1), // Epoller::kRaw.
 	fd_(file_descriptor),
 	requested_event_(kNoneEvent),
 	returned_event_(kNoneEvent),
-	state_in_epoller_(-1), // Epoller::kRaw.
-	tied_(false),
-	event_handling_(false)
+	event_handling_(false),
+	tied_(false)
 {}
 
 Channel::~Channel()
 {
-	// Assert that this channel object won't destruct in the process of event handling.
 	assert(event_handling_ == false);
 	if(owner_loop_->IsInLoopThread() == true)
 	{
@@ -85,7 +54,6 @@ void Channel::set_requested_event(RequestedEventType type)
 void Channel::AddOrUpdateChannel()
 {
 	owner_loop_->AddOrUpdateChannel(this);
-	// Invoke `void Epoller::AddOrUpdateChannel(Channel*)`
 }
 
 void Channel::set_tie(const shared_ptr<void> &object)
@@ -139,6 +107,7 @@ void Channel::HandleEvent(TimeStamp receive_time)
 {
 	if(tied_ == true)
 	{
+		// Prevent the owner object destructs in HandleEvent.
 		shared_ptr<void> guard = tie_.lock(); // NOTE: Not `shared_ptr<void> &`
 		if(guard)
 		{
@@ -150,8 +119,6 @@ void Channel::HandleEvent(TimeStamp receive_time)
 		HandleEventWithGuard(receive_time);
 	}
 }
-// Call different callbacks based on the value of returned_event_.
-// Invoked by EventLoop::Loop().
 void Channel::HandleEventWithGuard(TimeStamp receive_time)
 {
 	event_handling_ = true;

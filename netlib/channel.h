@@ -1,6 +1,8 @@
 #ifndef NETLIB_NETLIB_CHANNEL_H_
 #define NETLIB_NETLIB_CHANNEL_H_
 
+#include <sys/epoll.h> // EPOLL*
+
 #include <string>
 
 #include <netlib/callback.h>
@@ -11,11 +13,6 @@ namespace netlib
 
 class EventLoop;
 
-// Review:
-// NonFunction: k*Event
-// Function:	Dtor, HandleEventWithGuard#e_h_, RemoveChannel#assert
-//						EventToString
-
 // Interface:
 // Ctor
 // Dtor
@@ -25,7 +22,7 @@ class EventLoop;
 // IsRequested
 // HandleEvent -> -HandleEventWithGuard
 // RemoveChannel
-// RequestedEventToString/Returned -> -EventToString
+// Requested/ReturnedEventToString -> -EventToString
 
 class Channel: public NonCopyable // A selectable I/O channel.
 {
@@ -46,103 +43,73 @@ public:
 		ERROR_CALLBACK
 	};
 
-	Channel(EventLoop*, int);
+	Channel(EventLoop *loop, int file_descriptor);
 	~Channel();
 
 	// Getter.
-	// Called: EventLoop::AddOrUpdateChannel()/RemoveChannel() for assertion.
 	EventLoop *owner_loop() const
 	{
 		return owner_loop_;
+	}
+	int state_in_epoller() const
+	{
+		return state_in_epoller_;
 	}
 	int fd() const
 	{
 		return fd_;
 	}
-	int requested_event() const // Called: Epoller::EpollCtl().
+	int requested_event() const
 	{
 		return requested_event_;
 	}
-	int state_in_epoller() const // Called: Epoller::AddOrUpdate/RemoveChannel().
-	{
-		return state_in_epoller_;
-	}
 
-	// Setter: Since Channel's member functions can be invoked in only loop thread,
-	// thus, we don't need set/release lock before/after updating data members.
-	// Used by Channel object.
-	void set_requested_event(RequestedEventType type);
-	// Called: Epoller::EpollWait().
-	void set_returned_event(int returned_event)
-	{
-		returned_event_ = returned_event;
-	}
-	// Called: Epoller::AddOrUpdateChannel()/RemoveChannel().
+	// Setter
 	void set_state_in_epoller(int new_state)
 	{
 		state_in_epoller_ = new_state;
 	}
-	// Tie this channel to the owner object managed by shared_ptr,
-	// prevent the owner object being destroyed in HandleEvent.
-	// `TcpConnection::ConnectEstablished() {channel_->set_tie(shared_from_this());}
-	void set_tie(const std::shared_ptr<void> &object);
+	void set_requested_event(RequestedEventType type);
+	void set_returned_event(int returned_event)
+	{
+		returned_event_ = returned_event;
+	}
 	void set_event_callback(EventCallbackType type, const EventCallback &callback);
+	void set_tie(const std::shared_ptr<void> &object);
 
-	// Used for assertion.
 	bool IsRequested(RequestedEventType type);
-
-	// Call different callbacks based on returned_event_.
-	// Called: EventLoop::Loop()
 	void HandleEvent(TimeStamp receive_time);
-	// Remove this channel from owner_loop_.
-	// Called: TimerQueue::Dtor().
 	void RemoveChannel();
 
-	// For debug.
 	std::string RequestedEventToString() const;
 	std::string ReturnedEventToString() const;
 
 private:
-	// Used in `set_requested_event()`, `IsRequestedEvent()`
-	static const int kNoneEvent;
-	static const int kReadEvent;
-	static const int kWriteEvent;
-	static const int kCloseEvent;
-	static const int kErrorEvent;
-
-	// set_requested_event() -> here -> EventLoop::AOUC(Channel*) ->
-	// Epoller::AOUC(Channel*)
-	// Add new Channel(O(logN)) or update already existing Channel(O(1))
-	// in `channel_set_`.
 	void AddOrUpdateChannel();
-	// Called by HandleEvent(TimeStamp receive_time);
 	void HandleEventWithGuard(TimeStamp receive_time);
-	// Called by RequestedEventToString() and ReturnedEventToString().
 	static std::string EventToString(int fd, int event);
 
-	// Every Channel object is owned by only one EventLoop, so every Channel
-	// object belongs to one loop thread. Channel object's life time is controlled by its
-	// owner class, in this case, is the EventLoop class.
+	static const int kNoneEvent = 0;
+	static const int kReadEvent = EPOLLIN | EPOLLPRI | EPOLLRDHUP;
+	static const int kWriteEvent = EPOLLOUT;
+	static const int kCloseEvent = EPOLLHUP;
+	static const int kErrorEvent = EPOLLERR;
+
 	EventLoop *owner_loop_;
-	// Every Channel object is responsible for the dispatching of IO events of Only one
-	// file descriptor(through different callbacks that denoted by std::function<>).
-	// But it doesn't own this fd and doesn't close this fd when it destructs. The file
-	// descriptor could be a socket, an event_fd, a timer_fd, or a signal_fd.
-	const int fd_;
-	int requested_event_; // Interested IO event, set by user.
-	int returned_event_; // Active event, set by EventLoop::epoller_.
-	int state_in_epoller_; // This Channel object's state in the Epoller class.
-	// Store TcpConnection object's shared_ptr. Set in `Channel::set_tie()`
-	// Used to judge whether the tied TcpConnection object is still alive in
-	// HandEventWithGuard().
-	std::weak_ptr<void> tie_;
-	bool tied_;
-	bool event_handling_; // See 8.6.
-	// Different callbacks called when corresponding event happens.
+	int state_in_epoller_;
+	int fd_;
+	int requested_event_;
+	int returned_event_;
 	EventCallback read_callback_;
 	EventCallback write_callback_;
 	EventCallback close_callback_;
 	EventCallback error_callback_;
+	// Used to assert that this channel won't destruct in the process of event handling.
+	bool event_handling_;
+	// Store TcpConnection object's weak_ptr. Set in set_tie(); Used to judge whether
+	// the tied TcpConnection object is alive in HandEventWithGuard().
+	std::weak_ptr<void> tie_;
+	bool tied_;
 };
 
 }

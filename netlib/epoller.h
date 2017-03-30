@@ -1,5 +1,5 @@
-#ifndef NETLIB_NETLIB_POLLER_H_
-#define NETLIB_NETLIB_POLLER_H_
+#ifndef NETLIB_NETLIB_EPOLLER_H_
+#define NETLIB_NETLIB_EPOLLER_H_
 
 #include <set>
 #include <vector>
@@ -14,8 +14,6 @@ namespace netlib
 
 class EventLoop;
 class Channel;
-
-// Review:
 
 // Interface:
 // Ctor -> -CreateEpollFd
@@ -57,4 +55,4 @@ private:
 
 }
 
-#endif // NETLIB_NETLIB_POLLER_H_
+#endif // NETLIB_NETLIB_EPOLLER_H_

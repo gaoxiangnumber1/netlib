@@ -79,22 +79,18 @@ void Epoller::AssertInLoopThread() const // Must be in IO thread.
 
 namespace
 {
-// Not in Epoller's channel_set_.
-const int kRaw = -1;
-// In Epoller's channel_set_ and Wait IO event(Added into Epoller's epoll instance).
-const int kAdded = 1;
-// In Epoller's channel_set_ and Not wait IO event(Deleted from Epoller's epoll instance).
-const int kDeleted = 0;
-// Total SIX kinds of states conversions:
+const int kRaw = -1; // Not in channel_set_.
+const int kAdded = 1; // In channel_set_ and Added into epoll's RB-Tree.
+const int kDeleted = 0; // In channel_set_ and Deleted from epoll's RB-Tree.
 // kRaw ->
-// 1.	kAdded: in AOUC(). channel_set_.insert() -> ADD.
+// 1.	kAdded. AOUC() {channel_set_.insert() -> ADD}
 // kAdded ->
-// 1.	kRaw: in RC(). channel_set_.erase() -> DEL.
-// 2.	kAdded: in AOUC(). if(IsRequested(NoneEvent) == false) {MOD}
-// 3.	kDeleted: in AOUC(). if(IR(NE) == true) {DEL}
+// 1.	kRaw. RC() {DEL -> channel_set_.erase()}
+// 2.	kAdded. AOUC() {if(IsRequested(NoneEvent) == false) MOD}
+// 3.	kDeleted. AOUC() {if(IR(NE) == true) DEL}
 // kDeleted ->
-// 1.	kRaw: in RC(). channel_set_.erase().
-// 2.	kAdded: in AOUC(). ADD.
+// 1.	kRaw. RC() {channel_set_.erase()}
+// 2.	kAdded. AOUC() {ADD}
 }
 void Epoller::AddOrUpdateChannel(Channel *channel)
 {
