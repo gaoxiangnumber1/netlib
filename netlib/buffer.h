@@ -11,9 +11,6 @@
 namespace netlib
 {
 
-// Review:	ReadFd#errno, Append(const char*, int)#w_i_, EnsureWritableByte
-//					Retrieve, RetrieveAll, RetrieveUntil#assert, Prepend, PeekInt32#assert
-
 // Interface:
 // Ctor -> +PrependableByte -> +ReadableByte -> +WritableByte
 // Getter: PrependableByte, ReadableByte, WritableByte

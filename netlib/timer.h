@@ -17,14 +17,14 @@ namespace netlib
 class Timer: public NonCopyable
 {
 public:
-	Timer(const TimerCallback &callback, TimeStamp time_stamp, double interval);
-	// TODO: Timer(TimerCallback &&).
+	Timer(const TimerCallback &callback, const TimeStamp &time_stamp, double interval);
+
 	// Getter
 	TimeStamp expired_time() const
 	{
 		return expired_time_;
 	}
-	bool repeat() const // true if interval_ > 0.0
+	bool repeat() const
 	{
 		return repeat_;
 	}
@@ -33,16 +33,16 @@ public:
 		return sequence_;
 	}
 
-	void Restart(TimeStamp now); // Restart timer from now on if interval_ > 0.0.
-	void Run() const; // Run the event callback.
+	void Restart(const TimeStamp &now);
+	void Run() const;
 
 private:
-	TimeStamp expired_time_; // Absolute expiration time.
-	int64_t sequence_;
 	TimerCallback callback_;
+	TimeStamp expired_time_; // Absolute expiration time.
 	double interval_;
 	bool repeat_;
 	static int64_t created_timer_number_; // FIXME: Atomic
+	int64_t sequence_;
 };
 
 }

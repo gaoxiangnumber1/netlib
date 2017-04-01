@@ -4,7 +4,7 @@
 #include <errno.h> // errno
 #include <stdio.h> // *printf()
 
-#include <netlib/copyable.h> // Copyable
+#include <netlib/non_copyable.h> // Copyable
 
 // Interface:
 // log_level
@@ -22,7 +22,7 @@
 namespace netlib
 {
 
-class Logger: public Copyable
+class Logger: public NonCopyable
 {
 public:
 	enum LogLevel

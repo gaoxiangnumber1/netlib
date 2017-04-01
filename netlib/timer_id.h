@@ -8,9 +8,6 @@ namespace netlib
 
 class Timer;
 
-// Used by TimerQueue::Cancel() to find corresponding Timer object
-// when we want to cancel some Timer.
-
 // Interface:
 // Ctor
 
@@ -18,7 +15,6 @@ class TimerId: public Copyable
 {
 	friend class TimerQueue;
 public:
-	// Called in `TimerQueue::AddTimer(const TimerCallback&, TimeStamp, double);
 	explicit TimerId(Timer *timer, int64_t sequence):
 		timer_(timer),
 		sequence_(sequence)

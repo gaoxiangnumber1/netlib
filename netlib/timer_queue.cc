@@ -1,7 +1,7 @@
 #include <netlib/timer_queue.h>
 
 #include <assert.h>
-#include <string.h> // strerror()
+#include <strings.h> // bzero()
 #include <sys/timerfd.h> // timerfd_*
 #include <unistd.h> // close(), read()
 
@@ -22,26 +22,15 @@ using netlib::TimerQueue;
 
 TimerQueue::TimerQueue(EventLoop *owner_loop):
 	owner_loop_(owner_loop),
-	timer_fd_(CreateTimerFd()), // Create a new timer.
+	timer_fd_(CreateTimerFd()),
 	timer_fd_channel_(owner_loop_, timer_fd_)
 {
-	// The function signature can be different. We can choose not use the original
-	// signature's args, if so, the parameter(s) supplied were ignored.
+	// The function signature can be different. We can choose not to use the original
+	// signature's arguments, if so, the parameter(s) supplied were ignored.
 	timer_fd_channel_.set_event_callback(Channel::READ_CALLBACK,
 	                                     bind(&TimerQueue::HandleRead, this));
 	timer_fd_channel_.set_requested_event(Channel::READ_EVENT);
 }
-// #include <sys/timerfd.h>
-// int timerfd_create(int clockid, int flags);
-// timerfd_create() creates a new timer object, and returns a file descriptor that refers to
-// that timer. `clockid` specifies the clock that is used to mark the progress of the timer:
-// 1. CLOCK_REALTIME: a settable system-wide clock.
-// 2. CLOCK_MONOTONIC: a non-settable clock that is not affected by discontinuous
-// changes in the system clock(e.g., manual changes to system time).(ZH:Dan Diao De)
-// `flags`
-// 1. TFD_NONBLOCK: Set `O_NONBLOCK` file status flag on the new file descriptor.
-// 2. TFD_CLOEXEC: Set `close-on-exec(FD_CLOEXEC)` flag.
-// Return a new file descriptor on success. -1 on error and errno is set.
 int TimerQueue::CreateTimerFd()
 {
 	int timer_fd = ::timerfd_create(CLOCK_MONOTONIC,
@@ -52,7 +41,6 @@ int TimerQueue::CreateTimerFd()
 	}
 	return timer_fd;
 }
-// The callback for IO read event, in this case, the timer fd alarms.
 void TimerQueue::HandleRead()
 {
 	owner_loop_->AssertInLoopThread();
@@ -74,7 +62,7 @@ void TimerQueue::HandleRead()
 	Refresh(expired_time);
 }
 // Call ::read to read from `timer_fd` at `time_stamp` time.
-void TimerQueue::ReadTimerFd(TimeStamp time_stamp)
+void TimerQueue::ReadTimerFd(const TimeStamp &time_stamp)
 {
 	// If the timer has expired one or more times since its settings were last modified using
 	// timerfd_settime(), or since the last successful read(2), then the buffer given to read(2)
@@ -93,7 +81,7 @@ void TimerQueue::ReadTimerFd(TimeStamp time_stamp)
 }
 // Get the expired timers relative to `expired_time` and
 // store them in expired_time_vector_.
-void TimerQueue::GetAndRemoveExpiredTimer(TimeStamp expired_time)
+void TimerQueue::GetAndRemoveExpiredTimer(const TimeStamp &expired_time)
 {
 	// 1. Set sentry to search the set and get the first not expired timer iterator.
 	// sentry is the biggest timer-pair whose time-stamp value is `expired_time`.
@@ -121,7 +109,7 @@ void TimerQueue::GetAndRemoveExpiredTimer(TimeStamp expired_time)
 	        it != first_not_expired;
 	        ++it)
 	{
-		expired_timer_vector_.push_back(it->second); // Pass by value: copy a pointer.
+		expired_timer_vector_.push_back(it->second);
 	}
 
 	// 4.	Erase the expired timers in the active_timer_set_, this don't
@@ -129,7 +117,7 @@ void TimerQueue::GetAndRemoveExpiredTimer(TimeStamp expired_time)
 	active_timer_set_.erase(active_timer_set_.begin(), first_not_expired);
 }
 // Restart or delete expired timer and update timer_fd_'s expiration time.
-void TimerQueue::Refresh(TimeStamp expired_time)
+void TimerQueue::Refresh(const TimeStamp &expired_time)
 {
 	// 1. For expired timer:
 	//		(1). Restart if it can repeat and not be canceled.
@@ -162,12 +150,10 @@ void TimerQueue::Refresh(TimeStamp expired_time)
 		SetExpiredTime(active_timer_set_.begin()->first);
 	}
 }
-// Insert the specified timer into timer set. Return true if this timer will expire first.
 bool TimerQueue::InsertIntoActiveTimerSet(Timer *timer)
 {
 	owner_loop_->AssertInLoopThread();
 
-	// Make a new pair for this timer and insert it to the timer set.
 	TimeStamp expired_time = timer->expired_time();
 	active_timer_set_.insert(ExpirationTimerPair(expired_time, timer));
 
@@ -188,7 +174,7 @@ bool TimerQueue::InsertIntoActiveTimerSet(Timer *timer)
 // Set the expiration time to `expiration - Now()`. The argument `expiration` is the
 // absolute expiration time, that is, there will have timers that expire at `expiration`
 // seconds since Epoch.
-void TimerQueue::SetExpiredTime(TimeStamp expiration)
+void TimerQueue::SetExpiredTime(const TimeStamp &expiration)
 {
 	// 1. Convert `expiration` to a `struct timespec`
 	int64_t microsecond = expiration.microsecond()
@@ -236,11 +222,8 @@ TimerQueue::~TimerQueue()
 	timer_fd_channel_.set_requested_event(Channel::NONE_EVENT);
 	timer_fd_channel_.RemoveChannel();
 	::close(timer_fd_);
-	// TODO: What's mean `Do not remove channel, since we're in EventLoop::dtor();`?
-	// Me: This means don't `delete channel_`, otherwise double free?
-	// TODO: If we don't use shared_ptr(since it cost too much) or unique_ptr
-	// (since the const property of set element), we should use what to avoid
-	// `delete Timer*;` by ourself?
+	// TODO: If not use shared_ptr(cost too much) or unique_ptr(const property of
+	// set element), use what to avoid `delete Timer*;` by ourself?
 	for(ExpirationTimerPairSet::iterator it = active_timer_set_.begin();
 	        it != active_timer_set_.end();
 	        ++it)
@@ -251,32 +234,24 @@ TimerQueue::~TimerQueue()
 	}
 }
 
-// Construct a new timer and Call RunInLoop to add timer to set in the loop thread.
-// Return a TimerId object that encapsulates this timer.
 TimerId TimerQueue::AddTimer(const TimerCallback &callback,
-                             TimeStamp expired_time,
+                             const TimeStamp &expired_time,
                              double interval)
 {
-	// 1. Create a Timer object based on arguments.
 	Timer *timer = new Timer(callback, expired_time, interval);
-	// 2. Add this new timer in loop thread by calling RunInLoop().
 	owner_loop_->RunInLoop(bind(&TimerQueue::AddTimerInLoop, this, timer));
-	// 3. Return the inserted timer as a TimerId object.
 	return TimerId(timer, timer->sequence());
 }
-// Add timer in the loop thread. Always as a functor passed to RunInLoop().
 void TimerQueue::AddTimerInLoop(Timer *timer)
 {
 	owner_loop_->AssertInLoopThread();
-	// Insert this timer into timer set. Return true if this timer will expire first.
-	// If this timer will expire first, update timer_fd_'s expiration time.
 	if(InsertIntoActiveTimerSet(timer) == true)
 	{
 		SetExpiredTime(timer->expired_time());
 	}
 }
 
-void TimerQueue::CancelTimer(TimerId timer_id)
+void TimerQueue::CancelTimer(const TimerId &timer_id)
 {
 	owner_loop_->RunInLoop(bind(&TimerQueue::CancelTimerInLoop, this, timer_id));
 }
@@ -289,7 +264,7 @@ void TimerQueue::CancelTimerInLoop(TimerId timer_id)
 	if(it != active_timer_set_.end())
 	{
 		active_timer_set_.erase(it);
-		delete timer; // NOTE: `delete Timer*;`!
+		delete timer;
 		timer = nullptr;
 	}
 	else

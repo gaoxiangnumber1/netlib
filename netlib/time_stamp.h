@@ -3,7 +3,8 @@
 
 #include <stdint.h> // int64_t
 
-#include <string> // string.
+#include <string> // string
+#include <utility>
 
 #include <netlib/copyable.h>
 
@@ -26,7 +27,16 @@ public:
 
 	TimeStamp(): microsecond_(0) {}
 	explicit TimeStamp(int64_t microsecond_arg): microsecond_(microsecond_arg) {}
-	// Default copy-ctor/assignment/dtor is okay.
+	TimeStamp(const TimeStamp &rhs): microsecond_(rhs.microsecond_) {}
+	TimeStamp &operator=(TimeStamp rhs)
+	{
+		Swap(rhs);
+		return *this;
+	}
+	void Swap(TimeStamp &rhs)
+	{
+		std::swap(microsecond_, rhs.microsecond_);
+	}
 
 	int64_t microsecond() const
 	{
