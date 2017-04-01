@@ -191,6 +191,9 @@ private:
 	CloseCallback close_callback_;
 };
 
+void DefaultConnectionCallback(const TcpConnectionPtr&);
+void DefaultMessageCallback(const TcpConnectionPtr&, Buffer*, const TimeStamp&);
+
 }
 
 #endif // NETLIB_NETLIB_TCP_CONNECTION_H_

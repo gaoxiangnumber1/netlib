@@ -3,7 +3,6 @@
 
 #include <pthread.h> // pthread_t
 
-#include <atomic> // atomic<>
 #include <functional> // function<>
 
 #include <netlib/non_copyable.h> // NonCopyable
@@ -33,7 +32,7 @@ public:
 
 	static int created_number()
 	{
-		return created_number_.load();
+		return created_number_;
 	}
 
 	void Start(); // Call pthread_create.
@@ -46,7 +45,7 @@ private:
 	pthread_t pthread_id_; // POSIX thread ID returned by pthread_self(3).
 	int thread_id_; // Can't be const.
 	const ThreadFunction function_; // Start function.
-	static std::atomic<int> created_number_; // The number of created threads.
+	static int created_number_; // FIXME: Atomic
 };
 }
 

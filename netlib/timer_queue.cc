@@ -191,8 +191,8 @@ bool TimerQueue::InsertIntoActiveTimerSet(Timer *timer)
 void TimerQueue::SetExpiredTime(TimeStamp expiration)
 {
 	// 1. Convert `expiration` to a `struct timespec`
-	int64_t microsecond = expiration.microsecond_since_epoch()
-	                      - TimeStamp::Now().microsecond_since_epoch();
+	int64_t microsecond = expiration.microsecond()
+	                      - TimeStamp::Now().microsecond();
 	// Suppose:
 	//					RunEvery(callback, 1);	// Timer 1
 	//					RunEvery(callback, 2);	// Timer 2

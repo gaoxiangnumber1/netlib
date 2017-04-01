@@ -32,10 +32,10 @@ void Benchmark()
 	printf("%f\n", TimeDifferenceInSecond(stamp.back(), stamp.front()));
 
 	int difference[20] = {0};
-	int64_t start = stamp.front().microsecond_since_epoch();
+	int64_t start = stamp.front().microsecond();
 	for(int index = 1; index < kTestNumber; ++index)
 	{
-		int64_t next = stamp[index].microsecond_since_epoch();
+		int64_t next = stamp[index].microsecond();
 		int64_t diff = next - start;
 		start = next;
 		if(diff < 0)

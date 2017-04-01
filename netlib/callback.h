@@ -18,14 +18,11 @@ using TcpConnectionPtr = std::shared_ptr<TcpConnection>;
 using ConnectionCallback = std::function<void(const TcpConnectionPtr&)>;
 using MessageCallback = std::function<void(const TcpConnectionPtr&,
                         Buffer*,
-                        TimeStamp)>;
+                        const TimeStamp&)>;
 using WriteCompleteCallback = std::function<void(const TcpConnectionPtr&)>;
 using HighWaterMarkCallback = std::function<void(const TcpConnectionPtr&, int)>;
 using CloseCallback = std::function<void(const TcpConnectionPtr&)>;
-using EventCallback = std::function<void(TimeStamp)>;
-
-void DefaultConnectionCallback(const TcpConnectionPtr&);
-void DefaultMessageCallback(const TcpConnectionPtr&, Buffer*, TimeStamp);
+using EventCallback = std::function<void(const TimeStamp&)>;
 
 using NewConnectionCallback = std::function<void(int)>;
 

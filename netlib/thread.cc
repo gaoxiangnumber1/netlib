@@ -6,10 +6,9 @@
 
 #include <netlib/logging.h>
 
-using std::atomic;
 using netlib::Thread;
 
-atomic<int> Thread::created_number_(0);
+int Thread::created_number_(0);
 Thread::Thread(const ThreadFunction &function)
 	: started_(false),
 	  joined_(false),

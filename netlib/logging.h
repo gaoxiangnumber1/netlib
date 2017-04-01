@@ -6,10 +6,6 @@
 
 #include <netlib/copyable.h> // Copyable
 
-// Review:
-// NonFunction: LogLevel#OFF, log_level_#static#.cc, log_level_string_#.cc
-// Function: Log#level, CheckNotNull#name
-
 // Interface:
 // log_level
 // set_log_level
@@ -29,8 +25,6 @@ namespace netlib
 class Logger: public Copyable
 {
 public:
-	// By default, enumerator values start at 0 and each enumerator
-	// has a value 1 greater than the preceding one.
 	enum LogLevel
 	{
 		ALL,

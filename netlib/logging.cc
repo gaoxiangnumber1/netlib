@@ -15,17 +15,8 @@ namespace netlib
 
 Logger::LogLevel Logger::log_level_ = Logger::INFO;
 const char *Logger::log_level_string_[OFF] =
-{
-	"ALL  ",
-	"TRACE",
-	"DEBUG",
-	"INFO ",
-	"WARN ",
-	"ERROR",
-	"FATAL",
-};
+{"ALL  ", "TRACE", "DEBUG", "INFO ", "WARN ", "ERROR", "FATAL",};
 
-// Print to standard out. Don't need buffer.
 void Logger::Log(LogLevel level,
                  const char *file,
                  const char *func,
@@ -38,7 +29,10 @@ void Logger::Log(LogLevel level,
 	struct tm tm_time;
 	::localtime_r(&tv.tv_sec, &tm_time);
 	printf("%02d:%02d:%02d.%06d %5d %s %s:%d ",
-	       tm_time.tm_hour, tm_time.tm_min, tm_time.tm_sec, static_cast<int>(tv.tv_usec),
+	       tm_time.tm_hour,
+	       tm_time.tm_min,
+	       tm_time.tm_sec,
+	       static_cast<int>(tv.tv_usec),
 	       Thread::ThreadId(),
 	       log_level_string_[level],
 	       file, line);

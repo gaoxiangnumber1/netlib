@@ -5,16 +5,8 @@
 #include <netlib/non_copyable.h>
 #include <netlib/time_stamp.h>
 
-#include <atomic> // atomic<>
-
 namespace netlib
 {
-
-// Internal class for timer event.
-
-// Review:
-// NonFunction: i/r/s#const, c_t_n_#static, TC#()
-// Function: Restart
 
 // Interface:
 // Ctor
@@ -45,13 +37,12 @@ public:
 	void Run() const; // Run the event callback.
 
 private:
-	const TimerCallback callback_; // Called in TimerQueue::HandleRead().
-	TimeStamp expired_time_; // The absolute expiration time.
-	// The time difference between each two expiration time for RunEvery().
-	const double interval_;
-	const bool repeat_; // true if interval_ > 0.0; false otherwise.
-	const int64_t sequence_; // The global unique number to identify this timer.
-	static std::atomic<int64_t> created_timer_number_;
+	TimeStamp expired_time_; // Absolute expiration time.
+	int64_t sequence_;
+	TimerCallback callback_;
+	double interval_;
+	bool repeat_;
+	static int64_t created_timer_number_; // FIXME: Atomic
 };
 
 }

@@ -24,7 +24,7 @@ void netlib::DefaultConnectionCallback(const TcpConnectionPtr &connection)
 }
 void netlib::DefaultMessageCallback(const TcpConnectionPtr&,
                                     Buffer *buffer,
-                                    TimeStamp)
+                                    const TimeStamp &time_stamp)
 {
 	buffer->RetrieveAll();
 }

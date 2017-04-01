@@ -11,10 +11,6 @@ class Timer;
 // Used by TimerQueue::Cancel() to find corresponding Timer object
 // when we want to cancel some Timer.
 
-// Review:
-// NonFunction: friend
-// Function: Ctor#arg
-
 // Interface:
 // Ctor
 
