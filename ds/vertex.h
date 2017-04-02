@@ -34,18 +34,6 @@ void Visit(const Vertex *root)
 {
 	printf("%d ", root->index_);
 }
-void DFS(int index, Vertex *graph)
-{
-	if(graph[index].visited_ == false)
-	{
-		Visit(&graph[index]);
-		graph[index].visited_ = true;
-		for(Vertex *vertex = graph[index].next_; vertex != nullptr; vertex = vertex->next_)
-		{
-			DFS(vertex->index_, graph);
-		}
-	}
-}
 void BFS(int index, Vertex *graph)
 {
 	Queue<Vertex*> queue;
@@ -66,6 +54,18 @@ void BFS(int index, Vertex *graph)
 				queue.PushBack(&graph[vertex->index_]);
 				graph[vertex->index_].visited_ = true;
 			}
+		}
+	}
+}
+void DFS(int index, Vertex *graph)
+{
+	if(graph[index].visited_ == false)
+	{
+		Visit(&graph[index]);
+		graph[index].visited_ = true;
+		for(Vertex *vertex = graph[index].next_; vertex != nullptr; vertex = vertex->next_)
+		{
+			DFS(vertex->index_, graph);
 		}
 	}
 }

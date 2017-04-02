@@ -16,14 +16,9 @@ class Channel;
 class Epoller;
 class TimerQueue;
 
-// Review:
-// NonFunction: all
-// Function:	CreateWakeupFd, Dtor#t_l_i_t_t_, Loop#looping_#a_c_v_
-//						DoPendingFunctor#c_p_f_, Quit#if, *Channel#assert
-
 // Interface:
 // IgnoreSigPipe
-// Ctor -> -CreateWakeupFd -> -HandleRead
+// Ctor -> -CreateEventFd -> -HandleRead
 // Dtor
 // IsInLoopThread
 // AssertInLoopThread -> +IsInLoopThread. Called in: Loop, *Channel.
@@ -45,20 +40,18 @@ public:
 	using Functor = std::function<void()>;
 	using FunctorVector = std::vector<Functor>;
 
-	EventLoop(); // Check whether satisfy `one loop per thread`.
-	~EventLoop(); // Force out-line dtor, for unique_ptr members.
+	EventLoop();
+	~EventLoop(); // Force outline dtor, for unique_ptr members.
 
 	void Quit();
-
 	void AssertInLoopThread();
-	// Loop forever. Must be called in the same thread as creation of the object.
 	bool IsInLoopThread() const
 	{
 		return thread_id_ == Thread::ThreadId();
 	}
 	void Loop();
 
-	// Runs callback at `time_stamp`. Safe to call from other threads.
+	// Run callback at `time_stamp`. Safe to call from other threads.
 	TimerId RunAt(const TimerCallback &callback, const TimeStamp &time_stamp);
 	// Run callback after `delay` seconds. Safe to call from other threads.
 	TimerId RunAfter(const TimerCallback &callback, double delay);
@@ -83,30 +76,23 @@ public:
 private:
 	using ChannelVector = std::vector<Channel*>;
 
-	// Create a wakeup_fd_ by calling `eventfd()`
-	int CreateWakeupFd();
+	int CreateEventFd();
 	void HandleRead();
 	void DoPendingFunctor();
-	// Wakeup the loop thread by writing to the wakeup_fd_.
-	// Called: Quit(), QueueInLoop().
 	void Wakeup();
 	void PrintActiveChannel() const;
 
-	bool looping_; // Atomic.
-	bool quit_; // Atomic.
-	const int thread_id_; // The loop thread's id.
-	// Only one unique_ptr at a time can point to a given object. The object to which a
-	// unique_ptr points is destroyed when the unique_ptr is destroyed.
+	bool looping_; // FIXME: Atomic.
+	bool quit_; // FIXME: Atomic.
+	const int thread_id_; // TID of thread that creates this EventLoop object.
 	std::unique_ptr<Epoller> epoller_;
 	ChannelVector active_channel_vector_;
-	TimeStamp epoll_return_time_; // Time when poll returns, usually means data arrival.
-	// Set in DoPendingFunctor(); Used for judge in QueueInLoop().
+	TimeStamp epoll_return_time_;
 	MutexLock mutex_;
-	// Since p_f_v_ is exposed to other threads, protect it by mutex_.
-	FunctorVector pending_functor_vector_;
-	bool calling_pending_functor_; // Atomic.
-	int wakeup_fd_; // An eventfd. Closed in Dtor().
-	std::unique_ptr<Channel> wakeup_fd_channel_;
+	FunctorVector pending_functor_vector_; // Guarded by mutex_.
+	bool calling_pending_functor_; // FIXME: Atomic.
+	int event_fd_;
+	std::unique_ptr<Channel> event_fd_channel_;
 	std::unique_ptr<TimerQueue> timer_queue_;
 };
 

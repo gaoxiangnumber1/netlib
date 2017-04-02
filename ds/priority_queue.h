@@ -100,3 +100,71 @@ void PriorityQueue<Key, Value>::ShowContent() const
 	printf("\n");
 }
 #endif // CPPLIB_DS_PRIORITY_QUEUE_H_
+/*
+void Graph::DijkstraShortestPath(int src)
+{
+	int pre_index[size_], path_cost[size_];
+	const int kMax = 0x7fffffff;
+	for(int index = 0; index < size_; ++index)
+	{
+		pre_index[index] = -1;
+		path_cost[index] = kMax;
+	}
+
+	pre_index[src] = src;
+	path_cost[src] = 0;
+	PriorityQueue<int, int> priority_queue(size_);
+	for(Vertex *vertex = graph_[src].next_; vertex != nullptr; vertex = vertex->next_)
+	{
+		pre_index[vertex->index_] = src;
+		path_cost[vertex->index_] = vertex->weight_;
+		priority_queue.Insert(path_cost[vertex->index_], vertex->index_);
+	}
+	while(priority_queue.Empty() == false)
+	{
+		int min_cost_index = priority_queue.ExtractMin();
+		for(Vertex *vertex = graph_[min_cost_index].next_;
+		        vertex != nullptr;
+		        vertex = vertex->next_)
+		{
+			if(path_cost[vertex->index_] > path_cost[min_cost_index] + vertex->weight_)
+			{
+				path_cost[vertex->index_] = path_cost[min_cost_index] + vertex->weight_;
+				if(pre_index[vertex->index_] == -1)
+				{
+					priority_queue.Insert(path_cost[vertex->index_], vertex->index_);
+				}
+				else
+				{
+					// TODO: How implement DecreaseKey() in O(logn)???
+					priority_queue.DecreaseKey(path_cost[vertex->index_], vertex->index_);
+				}
+				pre_index[vertex->index_] = min_cost_index;
+			}
+		}
+	}
+
+	for(int index = 0; index < size_; ++index)
+	{
+		int temp_index = index, path[size_], edge_number = 0;
+		while(pre_index[temp_index] != src)
+		{
+			path[edge_number++] = pre_index[temp_index];
+			temp_index = pre_index[temp_index];
+		}
+		printf("(%d, %d) cost = %d edge = %d: %d",
+		       src,
+		       index,
+		       path_cost[index],
+		       index == src ? 0 : edge_number + 1,
+		       src);
+		for(int cnt = edge_number - 1; cnt >= 0; --cnt)
+		{
+			printf(" -> %d", path[cnt]);
+		}
+		printf(" -> %d\n", index);
+	}
+	Refresh();
+}
+
+*/

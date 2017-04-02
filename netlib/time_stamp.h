@@ -28,6 +28,10 @@ public:
 	TimeStamp(): microsecond_(0) {}
 	explicit TimeStamp(int64_t microsecond_arg): microsecond_(microsecond_arg) {}
 	TimeStamp(const TimeStamp &rhs): microsecond_(rhs.microsecond_) {}
+	TimeStamp(TimeStamp &&rhs): microsecond_(rhs.microsecond_)
+	{
+		rhs.microsecond_ = 0;
+	}
 	TimeStamp &operator=(TimeStamp rhs)
 	{
 		Swap(rhs);

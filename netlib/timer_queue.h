@@ -17,7 +17,7 @@ class Timer;
 class TimerId;
 
 // Interface:
-// Ctor -> -CreateTimerFd -> -HandleRead.
+// Ctor -> -CreateTimerFd -> -HandleRead
 //			-HandleRead -> -ReadTimerFd -> -GetAndRemoveExpiredTimer -> -Refresh.
 //						-Refresh -> -InsertIntoActiveTimerSet -> -SetExpiredTime.
 // Dtor.
@@ -48,14 +48,14 @@ private:
 	bool InsertIntoActiveTimerSet(Timer *timer); // Return true if `timer` will expire first.
 	void SetExpiredTime(const TimeStamp &expiration);
 	void AddTimerInLoop(Timer *timer);
-	void CancelTimerInLoop(TimerId timer_id);
+	void CancelTimerInLoop(const TimerId &timer_id);
 
 	EventLoop *owner_loop_;
 	const int timer_fd_;
 	Channel timer_fd_channel_;
 	ExpirationTimerPairSet active_timer_set_;
 	TimerVector expired_timer_vector_;
-	std::set<int64_t> canceling_timer_sequence_set_;
+	std::set<int64_t> canceling_timer_set_;
 };
 
 }

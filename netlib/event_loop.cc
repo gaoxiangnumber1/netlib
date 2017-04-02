@@ -43,8 +43,8 @@ EventLoop::EventLoop():
 	epoll_return_time_(),
 	mutex_(),
 	calling_pending_functor_(false),
-	wakeup_fd_(CreateWakeupFd()),
-	wakeup_fd_channel_(new Channel(this, wakeup_fd_)),
+	event_fd_(CreateEventFd()),
+	event_fd_channel_(new Channel(this, event_fd_)),
 	timer_queue_(new TimerQueue(this))
 {
 	LOG_DEBUG("EventLoop created %p in thread %d", this, thread_id_);
@@ -61,9 +61,9 @@ EventLoop::EventLoop():
 		// whose main function is running EventLoop::Loop().
 		t_loop_in_this_thread = this;
 	}
-	wakeup_fd_channel_->set_event_callback(Channel::READ_CALLBACK,
+	event_fd_channel_->set_event_callback(Channel::READ_CALLBACK,
 	                                       bind(&EventLoop::HandleRead, this));
-	wakeup_fd_channel_->set_requested_event(Channel::READ_EVENT);
+	event_fd_channel_->set_requested_event(Channel::READ_EVENT);
 }
 // int eventfd(unsigned int initval, int flags);
 // eventfd() creates an "eventfd object" that can be used as an event wait/notify
@@ -73,7 +73,7 @@ EventLoop::EventLoop():
 // EFD_CLOEXEC		Set close-on-exec(FD_CLOEXEC) flag on the returned fd.
 // EFD_NONBLOCK	Set the O_NONBLOCK file status flag.
 // Return a new file descriptor on success; -1 on error and errno is set.
-int EventLoop::CreateWakeupFd()
+int EventLoop::CreateEventFd()
 {
 	int wakeup_fd = ::eventfd(0, EFD_NONBLOCK | EFD_CLOEXEC);
 	if(wakeup_fd < 0)
@@ -91,7 +91,7 @@ int EventLoop::CreateWakeupFd()
 void EventLoop::HandleRead()
 {
 	uint64_t value;
-	int read_byte = static_cast<int>(::read(wakeup_fd_, &value, sizeof value));
+	int read_byte = static_cast<int>(::read(event_fd_, &value, sizeof value));
 	if(read_byte != sizeof value)
 	{
 		LOG_ERROR("EventLoop::HandleRead() reads %d bytes instead of 8", read_byte);
@@ -109,9 +109,9 @@ EventLoop::~EventLoop()
 	// 3. Close this file descriptor.
 	// We must close file descriptor at last, otherwise
 	// `epoll_ctl(): FATAL. operation = DEL fd = X Bad file descriptor(errno=9)`
-	wakeup_fd_channel_->set_requested_event(Channel::NONE_EVENT);
-	wakeup_fd_channel_->RemoveChannel();
-	::close(wakeup_fd_);
+	event_fd_channel_->set_requested_event(Channel::NONE_EVENT);
+	event_fd_channel_->RemoveChannel();
+	::close(event_fd_);
 	t_loop_in_this_thread = nullptr;
 }
 
@@ -212,7 +212,7 @@ void EventLoop::Quit()
 void EventLoop::Wakeup()
 {
 	uint64_t one = 1;
-	int write_byte = static_cast<int>(::write(wakeup_fd_, &one, sizeof one));
+	int write_byte = static_cast<int>(::write(event_fd_, &one, sizeof one));
 	if(write_byte != sizeof one)
 	{
 		LOG_ERROR("EventLoop::Wakeup() write %d bytes instead of 8", write_byte);

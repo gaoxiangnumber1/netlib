@@ -1,5 +1,4 @@
 #include "vertex.h"
-#include "priority_queue.h"
 
 class Graph
 {
@@ -9,8 +8,8 @@ public:
 
 	void Create();
 	void Insert(int src, int dest, int weight);
-	void DFS(int src);
 	void BFS(int src);
+	void DFS(int src);
 	void TopologicalSort();
 	void DijkstraShortestPath(int src);
 
@@ -93,23 +92,22 @@ void Graph::Insert(int src, int dest, int weight)
 	++graph_[src].out_degree_;
 	++graph_[dest].in_degree_;
 }
-void Graph::DFS(int src)
-{
-	printf("DFS: ");
-	::DFS(src, graph_);
-	Refresh();
-}
 void Graph::BFS(int src)
 {
 	printf("BFS: ");
 	::BFS(src, graph_);
 	Refresh();
 }
+void Graph::DFS(int src)
+{
+	printf("DFS: ");
+	::DFS(src, graph_);
+	Refresh();
+}
 void Graph::TopologicalSort()
 {
 	printf("TLS: ");
-	int topo_index[size_];
-	int sorted_index = -1;
+	int topo_index[size_], sorted_index = -1;
 	for(int index = 0; index < size_; ++index)
 	{
 		// No need check visited_ because after we record vertex that in_degree is 0,
@@ -145,38 +143,53 @@ void Graph::TopologicalSort()
 }
 void Graph::DijkstraShortestPath(int src)
 {
+	int pre_index[size_], path_cost[size_ + 1];
+	bool flag[size_];
+	int flag_true_number = 0;
 	const int kMax = 0x7fffffff;
-	int pre_vertex[size_], path_cost[size_];
 	for(int index = 0; index < size_; ++index)
 	{
-		pre_vertex[index] = -1;
+		pre_index[index] = -1;
 		path_cost[index] = kMax;
+		flag[index] = false;
 	}
+	path_cost[size_] = kMax; // Initialize min_cost_index as size_.
 
-	pre_vertex[src] = src;
+	pre_index[src] = src;
 	path_cost[src] = 0;
-	PriorityQueue<int, int> priority_queue(size_);
 	for(Vertex *vertex = graph_[src].next_; vertex != nullptr; vertex = vertex->next_)
 	{
-		pre_vertex[vertex->index_] = src;
+		pre_index[vertex->index_] = src;
 		path_cost[vertex->index_] = vertex->weight_;
-		priority_queue.Insert(path_cost[vertex->index_], vertex->index_);
+		flag[vertex->index_] = true; // Insert: O(1)
+		++flag_true_number;
 	}
-	while(priority_queue.Empty() == false)
+	while(flag_true_number > 0)
 	{
-		int min_cost_index = priority_queue.ExtractMin();
+		int min_cost_index = size_;
+		for(int index = 0; index < size_; ++index) // ExtractMin: O(V)
+		{
+			if(flag[index] == true && path_cost[min_cost_index] > path_cost[index])
+			{
+				min_cost_index = index;
+			}
+		}
+		flag[min_cost_index] = false;
+		--flag_true_number;
 		for(Vertex *vertex = graph_[min_cost_index].next_;
 		        vertex != nullptr;
 		        vertex = vertex->next_)
 		{
 			if(path_cost[vertex->index_] > path_cost[min_cost_index] + vertex->weight_)
 			{
+				// DecreaseKey: O(1)
 				path_cost[vertex->index_] = path_cost[min_cost_index] + vertex->weight_;
-				if(pre_vertex[vertex->index_] == -1)
+				if(pre_index[vertex->index_] == -1)
 				{
-					priority_queue.Insert(path_cost[vertex->index_], vertex->index_);
+					flag[vertex->index_] = true; // Insert: O(1)
+					++flag_true_number;
 				}
-				pre_vertex[vertex->index_] = min_cost_index;
+				pre_index[vertex->index_] = min_cost_index;
 			}
 		}
 	}
@@ -184,10 +197,10 @@ void Graph::DijkstraShortestPath(int src)
 	for(int index = 0; index < size_; ++index)
 	{
 		int temp_index = index, path[size_], edge_number = 0;
-		while(pre_vertex[temp_index] != src)
+		while(pre_index[temp_index] != src)
 		{
-			path[edge_number++] = pre_vertex[temp_index];
-			temp_index = pre_vertex[temp_index];
+			path[edge_number++] = pre_index[temp_index];
+			temp_index = pre_index[temp_index];
 		}
 		printf("(%d, %d) cost = %d edge = %d: %d",
 		       src,

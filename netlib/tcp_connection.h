@@ -15,10 +15,6 @@ class EventLoop;
 class Socket;
 class Channel;
 
-// Review:
-// NonFunction: All
-// Function: All
-
 // Interface:
 // Ctor -> -HandleRead -> -HandleWrite -> -HandleClose -> -HandleError
 //			-HandleRead -> -HandleClose -> -HandleError
