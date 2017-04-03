@@ -103,7 +103,7 @@ bool Channel::IsRequested(RequestedEventType type)
 	}
 }
 
-void Channel::HandleEvent(TimeStamp receive_time)
+void Channel::HandleEvent(const TimeStamp &receive_time)
 {
 	if(tied_ == true)
 	{
@@ -119,7 +119,7 @@ void Channel::HandleEvent(TimeStamp receive_time)
 		HandleEventWithGuard(receive_time);
 	}
 }
-void Channel::HandleEventWithGuard(TimeStamp receive_time)
+void Channel::HandleEventWithGuard(const TimeStamp &receive_time)
 {
 	event_handling_ = true;
 	LOG_TRACE("%s", ReturnedEventToString().c_str());

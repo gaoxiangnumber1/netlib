@@ -78,7 +78,7 @@ public:
 	void set_tie(const std::shared_ptr<void> &object);
 
 	bool IsRequested(RequestedEventType type);
-	void HandleEvent(TimeStamp receive_time);
+	void HandleEvent(const TimeStamp &receive_time);
 	void RemoveChannel();
 
 	std::string RequestedEventToString() const;
@@ -86,7 +86,7 @@ public:
 
 private:
 	void AddOrUpdateChannel();
-	void HandleEventWithGuard(TimeStamp receive_time);
+	void HandleEventWithGuard(const TimeStamp &receive_time);
 	static std::string EventToString(int fd, int event);
 
 	static const int kNoneEvent = 0;
