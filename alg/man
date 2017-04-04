@@ -1,6 +1,6 @@
- void *memmove(void *dest, const void *src, size_t n);
-The memmove() function copies n bytes from memory area src to memory area dest.
-The memory areas may overlap: copying takes place as though the bytes in src are
-first copied into a temporary array that does not overlap src or dest, and the
-bytes are then copied from the temporary array to dest.
-The memmove() function returns a pointer to dest.
+       size_t strlen(const char *s);
+DESCRIPTION
+       The  strlen() function calculates the length of the string s, excluding the termi‐
+       nating null byte ('\0').
+RETURN VALUE
+       The strlen() function returns the number of bytes in the string s.

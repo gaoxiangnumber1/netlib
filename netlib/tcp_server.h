@@ -35,11 +35,10 @@ public:
 	using InitialTask = std::function<void(EventLoop*)>;
 
 	TcpServer(EventLoop *loop,
-	          const SocketAddress &listen_address,
+	          const SocketAddress &server_address,
 	          const std::string &name,
 	          int thread_number = 0,
-	          const InitialTask &initial_task = InitialTask(),
-	          bool is_reuse_port = false);
+	          const InitialTask &initial_task = InitialTask());
 	~TcpServer(); // Force outline destructor, for unique_ptr members.
 
 	// Following set_*_callback are all NOT thread safe.

@@ -32,6 +32,8 @@ class Connector: public NonCopyable,
 	public std::enable_shared_from_this<Connector>
 {
 public:
+	using NewConnectionCallback = std::function<void(int)>;
+
 	Connector(EventLoop *loop, const SocketAddress &server_address);
 	~Connector();
 

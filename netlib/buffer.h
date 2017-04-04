@@ -1,7 +1,7 @@
 #ifndef NETLIB_NETLIB_BUFFER_H_
 #define NETLIB_NETLIB_BUFFER_H_
 
-#include <assert.h> // assert()
+#include <assert.h>
 
 #include <vector>
 #include <string>
@@ -28,13 +28,11 @@ namespace netlib
 class Buffer: public Copyable
 {
 public:
-	static const int kPrepend = 8;
+	static const int kInitialPrependableByte = 8;
 	static const int kOneKilobyte = 1024;
 
 	explicit Buffer(int initial_size = kOneKilobyte);
-	// Default dtor/copy-ctor/assignment-op are okay.
 
-	// Getter.
 	int PrependableByte() const
 	{
 		return read_index_;
@@ -47,14 +45,13 @@ public:
 	{
 		return static_cast<int>(buffer_.size()) - write_index_;
 	}
-
-	const char *FindCRLF(const char *start) const;
-	const char *FindCRLF() const;
-	// The begin pointer of data to be read. Must be read-only.
 	const char *ReadableBegin() const
 	{
 		return BufferBegin() + read_index_;
 	}
+
+	const char *FindCRLF(const char *start) const;
+	const char *FindCRLF() const;
 
 	// Input API: Read from socket and store the data in buffer.
 	int ReadFd(int fd, int &saved_errno);
@@ -71,16 +68,14 @@ public:
 
 	int32_t PeekInt32();
 
-	void swap(Buffer &rhs);
-
 private:
 	const char *BufferBegin() const
 	{
-		return &(*buffer_.begin());
+		return buffer_.data();
 	}
 	char *BufferBegin()
 	{
-		return &(*buffer_.begin());
+		return buffer_.data();
 	}
 	const char *WritableBegin() const
 	{
@@ -92,7 +87,7 @@ private:
 	}
 
 	void EnsureWritableByte(int length);
-	void Copy(const char *to_copy, const int length, char *to_write);
+	void *MemoryCopy(void *dest, const void *src, size_t length);
 
 	std::vector<char> buffer_;
 	int read_index_;

@@ -11,8 +11,6 @@ namespace netlib
 
 class EventLoop;
 
-// Review: all
-
 // Interface:
 // Ctor -> -ThreadFunction
 // Dtor
@@ -23,7 +21,7 @@ class EventLoopThread: public NonCopyable
 public:
 	using InitialTask = std::function<void(EventLoop*)>;
 
-	EventLoopThread(const InitialTask &task = InitialTask());
+	EventLoopThread(const InitialTask &initial_task = InitialTask());
 	~EventLoopThread();
 	EventLoop *StartLoop();
 

@@ -6,46 +6,44 @@ using netlib::EventLoop;
 using netlib::EventLoopThread;
 using netlib::EventLoopThreadPool;
 
-EventLoopThreadPool::EventLoopThreadPool(EventLoop *base_loop,
-        const InitialTask &initial_task,
-        const int thread_number):
-	base_loop_(base_loop),
-	initial_task_(initial_task),
+EventLoopThreadPool::EventLoopThreadPool(EventLoop *main_loop,
+        const int loop_number,
+        const InitialTask &initial_task):
+	main_loop_(main_loop),
+	loop_number_(loop_number),
+	loop_pool_(loop_number_),
 	started_(false),
-	thread_number_(thread_number),
-	thread_pool_(thread_number_),
-	loop_pool_(thread_number_),
-	next_loop_index_(0)
+	next_loop_index_(0),
+	initial_task_(initial_task)
 {}
 
 void EventLoopThreadPool::Start()
 {
 	assert(started_ == false);
-	base_loop_->AssertInLoopThread();
+	main_loop_->AssertInLoopThread();
 
 	started_ = true;
-	if(thread_number_ == 0 && initial_task_)
+	if(loop_number_ == 0 && initial_task_)
 	{
-		initial_task_(base_loop_);
+		initial_task_(main_loop_);
 	}
-	for(int index = 0; index < thread_number_; ++index)
+	for(int index = 0; index < loop_number_; ++index)
 	{
 		EventLoopThread *thread = new EventLoopThread(initial_task_);
-		thread_pool_[index] = thread;
 		loop_pool_[index] = thread->StartLoop();
 	}
 }
 
 EventLoop *EventLoopThreadPool::GetNextLoop()
 {
-	base_loop_->AssertInLoopThread();
+	main_loop_->AssertInLoopThread();
 	assert(started_ == true);
 
-	EventLoop *next_loop = base_loop_;
-	if(thread_number_ > 0)
+	EventLoop *next_loop = main_loop_;
+	if(loop_number_ > 0)
 	{
 		next_loop = loop_pool_[next_loop_index_];
-		next_loop_index_ = (next_loop_index_ + 1) % thread_number_;
+		next_loop_index_ = (next_loop_index_ + 1) % loop_number_;
 	}
 	return next_loop;
 }

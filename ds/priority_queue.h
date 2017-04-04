@@ -9,15 +9,16 @@ class PriorityQueue
 {
 public:
 	PriorityQueue(int size = 0): data_(size) {}
-
 	void Create();
+
 	void Insert(const Key &key, const Value &value);
 	Value ExtractMin();
+	// TODO: How to implement DecreaseKey() in O(logn)?
+
 	bool Empty() const
 	{
 		return data_.Empty();
 	}
-
 	void ShowContent() const;
 
 private:
@@ -100,6 +101,7 @@ void PriorityQueue<Key, Value>::ShowContent() const
 	printf("\n");
 }
 #endif // CPPLIB_DS_PRIORITY_QUEUE_H_
+
 /*
 void Graph::DijkstraShortestPath(int src)
 {

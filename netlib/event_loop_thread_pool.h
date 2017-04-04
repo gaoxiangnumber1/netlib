@@ -12,8 +12,6 @@ namespace netlib
 class EventLoop;
 class EventLoopThread;
 
-// Review: all
-
 // Interface:
 // Ctor
 // Start
@@ -24,20 +22,19 @@ class EventLoopThreadPool: public NonCopyable
 public:
 	using InitialTask = std::function<void(EventLoop*)>;
 
-	explicit EventLoopThreadPool(EventLoop *base_loop,
-	                             const InitialTask &initial_task = InitialTask(),
-	                             const int thread_number = 0);
+	explicit EventLoopThreadPool(EventLoop *main_loop,
+	                             const int loop_number = 0,
+	                             const InitialTask &initial_task = InitialTask());
 	void Start();
 	EventLoop *GetNextLoop();
 
 private:
-	EventLoop *base_loop_;
-	InitialTask initial_task_;
-	bool started_;
-	const int thread_number_;
-	std::vector<EventLoopThread*> thread_pool_; // No need. Should be deleted.
+	EventLoop *main_loop_;
+	const int loop_number_;
 	std::vector<EventLoop*> loop_pool_;
-	int next_loop_index_; // Always in loop thread.
+	bool started_;
+	int next_loop_index_;
+	const InitialTask initial_task_;
 };
 
 }

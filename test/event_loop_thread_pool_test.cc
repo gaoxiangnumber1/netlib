@@ -29,7 +29,7 @@ int main()
 
 	{
 		printf("Single thread %p:\n", &loop);
-		EventLoopThreadPool model(&loop, InitialTask, 0);
+		EventLoopThreadPool model(&loop, 0, InitialTask);
 		model.Start();
 		assert(model.GetNextLoop() == &loop);
 		assert(model.GetNextLoop() == &loop);
@@ -38,7 +38,7 @@ int main()
 
 	{
 		printf("Another thread:\n");
-		EventLoopThreadPool model(&loop, InitialTask, 1);
+		EventLoopThreadPool model(&loop, 1, InitialTask);
 		model.Start();
 		EventLoop *next_loop = model.GetNextLoop();
 		next_loop->RunAfter(bind(Print, next_loop), 2);
@@ -50,7 +50,7 @@ int main()
 
 	{
 		printf("Three threads:\n");
-		EventLoopThreadPool model(&loop, InitialTask, 3);
+		EventLoopThreadPool model(&loop, 3, InitialTask);
 		model.Start();
 		EventLoop *next_loop = model.GetNextLoop();
 		next_loop->RunInLoop(bind(Print, next_loop));

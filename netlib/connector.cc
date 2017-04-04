@@ -56,10 +56,10 @@ void Connector::StartInLoop()
 // Return 0 on success, -1 on error and errno is set.
 void Connector::Connect()
 {
-	int socket_fd = nso::CreateNonblockingSocket(server_address_.socket_family());
+	int socket_fd = nso::CreateNonblockingTcpSocket(server_address_.socket_family());
 	int ret = ::connect(socket_fd,
 	                    server_address_.socket_address(),
-	                    static_cast<socklen_t>(sizeof(struct sockaddr_in)));
+	                    sizeof(struct sockaddr_in));
 	int saved_errno = (ret == 0) ? 0 : errno;
 	switch(saved_errno)
 	{

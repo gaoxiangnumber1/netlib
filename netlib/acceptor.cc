@@ -9,7 +9,7 @@
 #include <netlib/event_loop.h>
 #include <netlib/logging.h>
 #include <netlib/socket_address.h>
-#include <netlib/socket_operation.h> // CreateNonblockingSocket()
+#include <netlib/socket_operation.h> // CreateNonblockingTcpSocket()
 
 using std::bind;
 using netlib::Acceptor;
@@ -25,25 +25,24 @@ using netlib::Acceptor;
 // descriptor at the same time as another thread does a fork(2) plus execve(2).
 // Return the new fd, -1 on error and errno is set.
 Acceptor::Acceptor(EventLoop *owner_loop,
-                   const SocketAddress &listen_address,
-                   bool is_reuse_port):
+                   const SocketAddress &server_address):
 	owner_loop_(owner_loop),
 	// Create an IPv4/6, nonblocking, TCP socket file descriptor, abort if any error.
-	accept_socket_(nso::CreateNonblockingSocket(listen_address.socket_family())),
-	accept_channel_(owner_loop_, accept_socket_.socket_fd()),
+	server_socket_(nso::CreateNonblockingTcpSocket(server_address.socket_family())),
+	server_channel_(owner_loop_, server_socket_.socket()),
 	listening_(false),
 	idle_fd_(::open("/dev/null", O_RDONLY | O_CLOEXEC))
 {
 	assert(idle_fd_ >= 0);
-	accept_socket_.SetReuseAddress(true); // Enable SO_REUSEADDR
-	accept_socket_.SetReusePort(is_reuse_port);
-	accept_socket_.Bind(listen_address);
-	accept_channel_.set_event_callback(Channel::READ_CALLBACK,
+	server_socket_.SetReuseAddress(true); // Enable SO_REUSEADDR
+	server_socket_.SetReusePort(true);
+	server_socket_.Bind(server_address);
+	server_channel_.set_event_callback(Channel::READ_CALLBACK,
 	                                   bind(&Acceptor::HandleRead, this));
 }
-// When the listening socket(i.e., the accept_socket_) is readable, Poller::Poll()
+// When the listening socket(i.e., the server_socket_) is readable, Poller::Poll()
 // will return and calls Channel::HandleEvent(), which in turn calls this function.
-// Call accept_socket_.Accept() to accept(2) new connections
+// Call server_socket_.Accept() to accept(2) new connections
 // and call new connection callback if user supply.
 void Acceptor::HandleRead()
 {
@@ -53,7 +52,7 @@ void Acceptor::HandleRead()
 	// connection. There two strategies for short-connection:
 	// 1.	accept(2) until no more new connections arrive.
 	// 2.	accept(2) N connections at a time, N normally is 10.
-	int connection_fd = accept_socket_.Accept(peer_address);
+	int connection_fd = server_socket_.Accept(peer_address);
 	// TODO: See 7.7 "How to avoid the use all of file descriptors?"
 	if(connection_fd >= 0)
 	{
@@ -71,7 +70,7 @@ void Acceptor::HandleRead()
 	}
 	else
 	{
-		LOG_ERROR("accept_socket_.Accept()");
+		LOG_ERROR("server_socket_.Accept()");
 		// TODO: "The special problem of accept()ing when you can't" - libev's doc.
 		// The per-process limit of open file descriptors has been reached.
 		if(errno == EMFILE)
@@ -80,7 +79,7 @@ void Acceptor::HandleRead()
 			// #include <sys/socket.h>
 			// int accept(int sockfd, struct sockaddr *addr, socklen_t *addrlen);
 			// addr = NULL: nothing is filled in, and addrlen should also be NULL.
-			idle_fd_ = ::accept(accept_socket_.socket_fd(), NULL, NULL);
+			idle_fd_ = ::accept(server_socket_.socket(), NULL, NULL);
 			::close(idle_fd_);
 			idle_fd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
 		}
@@ -89,12 +88,12 @@ void Acceptor::HandleRead()
 
 Acceptor::~Acceptor()
 {
-	accept_channel_.set_requested_event(Channel::NONE_EVENT);
-	accept_channel_.RemoveChannel();
+	server_channel_.set_requested_event(Channel::NONE_EVENT);
+	server_channel_.RemoveChannel();
 	::close(idle_fd_);
 }
 
-// Let accept_channel_ monitor IO readable events and let accept_socket_ to listen().
+// Let server_channel_ monitor IO readable events and let server_socket_ to listen().
 // Called by `TcpServer::Start()`
 void Acceptor::Listen()
 {
@@ -102,7 +101,7 @@ void Acceptor::Listen()
 	listening_ = true;
 	// Monitor IO readable events. The trigger for Channel::HandleEvent() is
 	// that the listening socket is readable, which indicates new connection arrives.
-	accept_channel_.set_requested_event(Channel::READ_EVENT);
-	accept_socket_.Listen();
+	server_channel_.set_requested_event(Channel::READ_EVENT);
+	server_socket_.Listen();
 }
 

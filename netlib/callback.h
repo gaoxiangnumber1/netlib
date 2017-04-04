@@ -24,8 +24,6 @@ using HighWaterMarkCallback = std::function<void(const TcpConnectionPtr&, int)>;
 using CloseCallback = std::function<void(const TcpConnectionPtr&)>;
 using EventCallback = std::function<void(const TimeStamp&)>;
 
-using NewConnectionCallback = std::function<void(int)>;
-
 }
 
 #endif // NETLIB_NETLIB_CALLBACK_H_

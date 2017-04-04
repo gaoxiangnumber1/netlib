@@ -20,16 +20,15 @@ using netlib::TcpServer;
 //	(3) N:	Create a thread pool of N threads, new connections are assigned
 //				on a round-robin basis.
 TcpServer::TcpServer(EventLoop *loop,
-                     const SocketAddress &listen_address,
+                     const SocketAddress &server_address,
                      const string &name,
                      int thread_number,
-                     const InitialTask &initial_task,
-                     bool is_reuse_port):
+                     const InitialTask &initial_task):
 	loop_(CHECK_NOT_NULL(loop)),
-	ip_port_(listen_address.ToIpPortString()),
+	ip_port_(server_address.ToIpPortString()),
 	name_(name),
-	acceptor_(new Acceptor(loop_, listen_address, is_reuse_port)),
-	thread_pool_(new EventLoopThreadPool(loop_, initial_task, thread_number)),
+	acceptor_(new Acceptor(loop_, server_address)),
+	thread_pool_(new EventLoopThreadPool(loop_, thread_number, initial_task)),
 	started_(false),
 	next_connection_id_(0),
 	connection_callback_(DefaultConnectionCallback),

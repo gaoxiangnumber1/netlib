@@ -1,7 +1,16 @@
 #include <stdio.h>
 #include <string.h>
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void *MemoryCopy(void *dest, const void *src, size_t length)
+void ShowContent(const char *str, int length)
+{
+	for(int index = 0; index < length; ++index)
+	{
+		printf("%c", str[index] ? str[index] : '*');
+	}
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void *MemoryCopyOrMove(void *dest, const void *src, size_t length)
 {
 	if(dest == nullptr || src == nullptr || dest == src)
 	{
@@ -26,27 +35,22 @@ void *MemoryCopy(void *dest, const void *src, size_t length)
 	}
 	return dest;
 }
-void TestMemoryCopy()
+void TestMemoryCopyOrMove()
 {
-	printf("TestMemoryCopy:\n");
+	printf("----------TestMemoryCopyOrMove----------\n");
 	const int kCaseNumber = 7, kStringSize = 12;
 	int offset[kCaseNumber] = {0, 1, 2, 4, 5, 7, 8};
 	const char answer[kCaseNumber][kStringSize] =
 	{
 		// .1. [2src - length] .3. [4src] .5. [6src + length] .7.
-		"abc0abc0000",
-		"0abcabc0000",
-		"00abcbc0000",
-		"0000abc0000",
-		"0000aabc000",
-		"0000abcabc0",
-		"0000abc0abc",
+		"abc.abc....", ".abcabc....", "..abcbc....", "....abc....",
+		"....aabc...", "....abcabc.", "....abc.abc",
 	};
 	bool pass = true;
 	for(int cnt = 0; cnt < kCaseNumber; ++cnt)
 	{
-		char str[kStringSize] = "0000abc0000";
-		MemoryCopy(str + offset[cnt], str + 4, 3);
+		char str[kStringSize] = "....abc....";
+		MemoryCopyOrMove(str + offset[cnt], str + 4, 3);
 		if(strcmp(str, answer[cnt]) != 0)
 		{
 			printf("Case %d Not Pass. your = `%s` right = `%s`\n", cnt, str, answer[cnt]);
@@ -59,8 +63,60 @@ void TestMemoryCopy()
 	}
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/*
+size_t StringLength(const char *str)
+{
+	if(str == nullptr)
+	{
+		return 0;
+	}
+	size_t length = 0;
+	for(int index = 0; str[index] != '\0'; ++index, ++length);
+	return length;
+}
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+char *StringCopy(char *dest, const char *src)
+{
+	if(dest == nullptr || src == nullptr || dest == src)
+	{
+		return dest;
+	}
+	MemoryCopyOrMove(dest, src, StringLength(src) + 1);
+	return dest;
+}
+void TestStringCopy()
+{
+	printf("----------TestStringCopy----------\n");
+	const int kCaseNumber = 7, kStringSize = 16;
+	int offset[kCaseNumber] = {0, 1, 2, 5, 7, 9, 10};
+	const char answer[kCaseNumber][kStringSize] =
+	{
+		// .1. [2src - length] .3. [4src] .5. [6src + length] .7.
+		"abc\0.abc\0", ".abc\0abc\0", "..abc\0bc\0", ".....abc\0",
+		".....ababc\0", ".....abc\0abc\0", ".....abc\0\0abc\0"
+	};
+	const int answer_length[kCaseNumber] = {9, 9, 9, 9, 11, 13, 14};
+	bool pass = true;
+	for(int cnt = 0; cnt < kCaseNumber; ++cnt)
+	{
+		char str[kStringSize] = ".....abc\0\0\0\0\0\0";
+		StringCopy(str + offset[cnt], str + 5);
+		if(memcmp(str, answer[cnt], answer_length[cnt]) != 0)
+		{
+			printf("Case %d Not Pass. your = ", cnt);
+			ShowContent(str, answer_length[cnt]);
+			printf(",right = ");
+			ShowContent(answer[cnt], answer_length[cnt]);
+			printf("\n");
+			pass = false;
+		}
+	}
+	if(pass == true)
+	{
+		printf("All Case Pass.\n");
+	}
+}
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/*
 // Function Test: +1234, -566, 5625
 // Edge Test: none
 // Negative Test:	NULL pointer, "", "+" "-", character that is not '0123456789+-'
@@ -119,7 +175,8 @@ int StringToInt(const char *str)
 	}
 	return return_result;
 }
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+*/
+/*
 //Compare two strings:
 //1.	Empty string's size is 0. All empty strings are equal. All empty strings are smaller
 //	than nonempty strings.
@@ -188,5 +245,6 @@ int StringCompare(string string1, string string2)
 
 int main()
 {
-	TestMemoryCopy();
+	TestMemoryCopyOrMove();
+	TestStringCopy();
 }
