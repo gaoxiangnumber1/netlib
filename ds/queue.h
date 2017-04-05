@@ -10,9 +10,8 @@ public:
 	~Queue();
 
 	void Create();
-	void PushBack(const T &data);
-	void PopFront();
-	T Front() const;
+	void Enqueue(const T &data);
+	T Dequeue();
 
 	bool Empty() const;
 	int Size() const;
@@ -45,11 +44,11 @@ void Queue<T>::Create()
 	{
 		int data;
 		scanf("%d", &data);
-		PushBack(data);
+		Enqueue(data);
 	}
 }
 template<typename T>
-void Queue<T>::PushBack(const T &data)
+void Queue<T>::Enqueue(const T &data)
 {
 	Node<T> *new_node = new Node<T>(data);
 	if(Empty() == true)
@@ -64,12 +63,14 @@ void Queue<T>::PushBack(const T &data)
 	++length_;
 }
 template<typename T>
-void Queue<T>::PopFront()
+T Queue<T>::Dequeue()
 {
 	if(Empty() == true)
 	{
-		return;
+		return T();
 	}
+
+	T data = front_->data_;
 	if(Size() == 1)
 	{
 		back_ = nullptr;
@@ -78,15 +79,7 @@ void Queue<T>::PopFront()
 	delete front_;
 	front_ = new_front;
 	--length_;
-}
-template<typename T>
-T Queue<T>::Front() const
-{
-	if(Empty() == true)
-	{
-		return T();
-	}
-	return front_->data_;
+	return data;
 }
 template<typename T>
 bool Queue<T>::Empty() const

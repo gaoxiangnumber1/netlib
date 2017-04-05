@@ -5,7 +5,7 @@ using std::bind;
 using netlib::ThreadPool;
 
 ThreadPool::ThreadPool(const int thread_number,
-                       const Task &initial_task,
+                       const ThreadTask &initial_task,
                        const int max_queue_size):
 	thread_number_(thread_number),
 	thread_pool_(thread_number_),
@@ -74,15 +74,15 @@ void ThreadPool::RunInThread()
 	}
 	while(running_ == true)
 	{
-		Task task(GetAndRemoveTask());
+		ThreadTask task(GetAndRemoveTask());
 		if(task)
 		{
 			task();
 		}
 	}
 }
-// NOTE: Not return `Task&` since we delete(pop_front()) the task from task queue.
-ThreadPool::Task ThreadPool::GetAndRemoveTask()
+// NOTE: Not return `ThreadTask&` since we delete(pop_front()) the task from task queue.
+ThreadPool::ThreadTask ThreadPool::GetAndRemoveTask()
 {
 	MutexLockGuard lock(mutex_);
 	// Always use a while-loop, due to spurious wakeup.
@@ -93,7 +93,7 @@ ThreadPool::Task ThreadPool::GetAndRemoveTask()
 		// 1.	New task is added by RunOrAddTask() into task_queue_, return valid task.
 		// 2.	Call Stop() and running_ is false now, return invalid task(null).
 	}
-	Task task;
+	ThreadTask task;
 	if(running_ == true)
 	{
 		task = task_queue_.front();
@@ -103,7 +103,7 @@ ThreadPool::Task ThreadPool::GetAndRemoveTask()
 	return task;
 }
 
-void ThreadPool::RunOrAddTask(const Task &task)
+void ThreadPool::RunOrAddTask(const ThreadTask &task)
 {
 	assert(running_ == true);
 	if(thread_number_ == 0)

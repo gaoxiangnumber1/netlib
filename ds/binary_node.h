@@ -171,19 +171,18 @@ template<typename T>
 void LevelOrder(BinaryNode<T> *root)
 {
 	Queue<BinaryNode<T>*> queue;
-	queue.PushBack(root);
+	queue.Enqueue(root);
 	while(queue.Empty() == false)
 	{
-		BinaryNode<T> *node = queue.Front();
-		queue.PopFront();
+		BinaryNode<T> *node = queue.Dequeue();
 		Visit(node);
 		if(node->left_ != nullptr)
 		{
-			queue.PushBack(node->left_);
+			queue.Enqueue(node->left_);
 		}
 		if(node->right_ != nullptr)
 		{
-			queue.PushBack(node->right_);
+			queue.Enqueue(node->right_);
 		}
 	}
 }

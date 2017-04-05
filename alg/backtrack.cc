@@ -45,7 +45,7 @@ void GetSubset(int *data, bool *exist, int last)
 	}
 	printf("\n");
 }
-void Subset(int *data, bool *exist, int first, int last) // [first, last)
+void Subset(int *data, bool *exist, int first, int last) // [first, last). Can't handle same subset.
 {
 	if(last - first == 1)
 	{
@@ -68,8 +68,8 @@ void TestPermutationAndSubset()
 	for(int index = 0; index < kCaseNumber; ++index)
 	{
 		g_permutation_number = 0;
-		Permutation(data[index], 0, kDataLength);
-		printf("Case %d: total %d permutation.\n", index, g_permutation_number);
+		//Permutation(data[index], 0, kDataLength);
+		//printf("Case %d: total %d permutation.\n", index, g_permutation_number);
 	}
 	for(int index = 0; index < kCaseNumber; ++index)
 	{

@@ -3,7 +3,7 @@
 
 #include <string>
 
-#include <netlib/callback.h>
+#include <netlib/function.h>
 #include <netlib/mutex.h>
 #include <netlib/non_copyable.h>
 #include <netlib/tcp_connection.h>

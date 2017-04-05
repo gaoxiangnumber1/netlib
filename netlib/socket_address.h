@@ -20,7 +20,7 @@ namespace netlib
 class SocketAddress: public Copyable
 {
 public:
-	SocketAddress(int port); // Usually used in server listening.
+	SocketAddress(int port = 0); // Usually used in server listening.
 	SocketAddress(std::string ip, int port); // ip should be "1.2.3.4".
 	SocketAddress(const struct sockaddr_in &address): // Usually used in server accepting.
 		address_(address) {}

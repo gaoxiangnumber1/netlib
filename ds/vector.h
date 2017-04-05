@@ -47,7 +47,7 @@ public:
 		return data_[index];
 	}
 
-	void PushBack(const T &data_arg);
+	void Enqueue(const T &data_arg);
 	void PopBack();
 	void Resize(int new_capacity);
 	void Swap(Vector &rhs);
@@ -65,7 +65,7 @@ private:
 };
 
 template<typename T>
-void Vector<T>::PushBack(const T &data_arg)
+void Vector<T>::Enqueue(const T &data_arg)
 {
 	if(size_ == capacity_)
 	{

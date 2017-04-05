@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include <netlib/callback.h>
+#include <netlib/function.h>
 #include <netlib/non_copyable.h>
 
 namespace netlib

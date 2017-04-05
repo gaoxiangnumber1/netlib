@@ -145,7 +145,7 @@ void Graph::DijkstraShortestPath(int src)
 {
 	int pre_index[size_], path_cost[size_ + 1];
 	bool flag[size_];
-	int flag_true_number = 0;
+	int true_flag_number = 0;
 	const int kMax = 0x7fffffff;
 	for(int index = 0; index < size_; ++index)
 	{
@@ -162,9 +162,9 @@ void Graph::DijkstraShortestPath(int src)
 		pre_index[vertex->index_] = src;
 		path_cost[vertex->index_] = vertex->weight_;
 		flag[vertex->index_] = true; // Insert: O(1)
-		++flag_true_number;
+		++true_flag_number;
 	}
-	while(flag_true_number > 0)
+	while(true_flag_number > 0)
 	{
 		int min_cost_index = size_;
 		for(int index = 0; index < size_; ++index) // ExtractMin: O(V)
@@ -175,7 +175,7 @@ void Graph::DijkstraShortestPath(int src)
 			}
 		}
 		flag[min_cost_index] = false;
-		--flag_true_number;
+		--true_flag_number;
 		for(Vertex *vertex = graph_[min_cost_index].next_;
 		        vertex != nullptr;
 		        vertex = vertex->next_)
@@ -187,7 +187,7 @@ void Graph::DijkstraShortestPath(int src)
 				if(pre_index[vertex->index_] == -1)
 				{
 					flag[vertex->index_] = true; // Insert: O(1)
-					++flag_true_number;
+					++true_flag_number;
 				}
 				pre_index[vertex->index_] = min_cost_index;
 			}

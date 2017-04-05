@@ -5,15 +5,7 @@
 
 struct Vertex
 {
-	Vertex():
-		index_(),
-		weight_(0),
-		in_degree_(0),
-		out_degree_(0),
-		visited_(false),
-		next_(nullptr)
-	{}
-	Vertex(int index, int weight = 0, Vertex *next = nullptr):
+	Vertex(int index = 0, int weight = 0, Vertex *next = nullptr):
 		index_(index),
 		weight_(weight),
 		in_degree_(0),
@@ -34,36 +26,35 @@ void Visit(const Vertex *root)
 {
 	printf("%d ", root->index_);
 }
-void BFS(int index, Vertex *graph)
+void BFS(int src, Vertex *graph)
 {
 	Queue<Vertex*> queue;
-	if(graph[index].visited_ == false)
+	if(graph[src].visited_ == false)
 	{
-		queue.PushBack(&graph[index]);
-		graph[index].visited_ = true;
+		queue.Enqueue(&graph[src]);
+		graph[src].visited_ = true;
 	}
 	while(queue.Empty() == false)
 	{
-		Vertex *root = queue.Front();
-		queue.PopFront();
-		Visit(root);
-		for(Vertex *vertex = root->next_; vertex != nullptr; vertex = vertex->next_)
+		Vertex *src_vertex = queue.Dequeue();
+		Visit(src_vertex);
+		for(Vertex *vertex = src_vertex->next_; vertex != nullptr; vertex = vertex->next_)
 		{
 			if(graph[vertex->index_].visited_ == false)
 			{
-				queue.PushBack(&graph[vertex->index_]);
+				queue.Enqueue(&graph[vertex->index_]);
 				graph[vertex->index_].visited_ = true;
 			}
 		}
 	}
 }
-void DFS(int index, Vertex *graph)
+void DFS(int src, Vertex *graph)
 {
-	if(graph[index].visited_ == false)
+	if(graph[src].visited_ == false)
 	{
-		Visit(&graph[index]);
-		graph[index].visited_ = true;
-		for(Vertex *vertex = graph[index].next_; vertex != nullptr; vertex = vertex->next_)
+		Visit(&graph[src]);
+		graph[src].visited_ = true;
+		for(Vertex *vertex = graph[src].next_; vertex != nullptr; vertex = vertex->next_)
 		{
 			DFS(vertex->index_, graph);
 		}

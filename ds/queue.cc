@@ -3,7 +3,7 @@
 int main()
 {
 	Queue<int> object;
-	printf("0: Exit\n1: Create\n2: PushBack\n3: PopFront\n4: Front\n");
+	printf("0: Exit\n1: Create\n2: Enqueue\n3: Dequeue\n");
 	int operation, data;
 	while(scanf("%d", &operation) == 1)
 	{
@@ -17,15 +17,11 @@ int main()
 			break;
 		case 2:
 			scanf("%d", &data);
-			object.PushBack(data);
+			object.Enqueue(data);
 			object.ShowContent();
 			break;
 		case 3:
-			object.PopFront();
-			object.ShowContent();
-			break;
-		case 4:
-			printf("Front = %d\n", object.Front());
+			object.Dequeue();
 			object.ShowContent();
 		}
 	}
@@ -33,10 +29,9 @@ int main()
 /*
 1 5 1 2 3 4 5
 2 6 2 7
-3 3 3 3 3 3 3 3 3 3
-4
+3 3 3 3 3 3 3 3
 2 0
-4
+3
 0
 Input: data_number data_content
 05 data: 1 2 3 4 5
@@ -50,11 +45,6 @@ Input: data_number data_content
 01 data: 7
 00 data:
 00 data:
-00 data:
-00 data:
-Front = 0
-00 data:
 01 data: 0
-Front = 0
-01 data: 0
+00 data:
 */

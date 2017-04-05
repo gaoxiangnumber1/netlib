@@ -4,7 +4,7 @@
 #include <set>
 #include <vector>
 
-#include <netlib/callback.h>
+#include <netlib/function.h>
 #include <netlib/channel.h>
 #include <netlib/non_copyable.h>
 #include <netlib/time_stamp.h>

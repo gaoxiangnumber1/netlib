@@ -45,7 +45,7 @@ void PriorityQueue<Key, Value>::Create()
 template<typename Key, typename Value>
 void PriorityQueue<Key, Value>::Insert(const Key &key, const Value &value)
 {
-	data_.PushBack(Pair<Key, Value>(key, value));
+	data_.Enqueue(Pair<Key, Value>(key, value));
 	FixUp(data_.Size() - 1);
 }
 template<typename Key, typename Value>

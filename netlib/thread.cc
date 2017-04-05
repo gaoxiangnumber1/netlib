@@ -9,7 +9,7 @@
 using netlib::Thread;
 
 int Thread::created_number_(0);
-Thread::Thread(const ThreadFunction &function)
+Thread::Thread(const ThreadStartFunction &function)
 	: started_(false),
 	  joined_(false),
 	  pthread_id_(0),
@@ -29,26 +29,23 @@ Thread::~Thread()
 
 namespace netlib
 {
-struct ThreadData // Store the arguments that need passed to pthread_create.
+struct ThreadData
 {
-	using ThreadFunction = Thread::ThreadFunction;
-	// All data members are references: bind to the data member in Thread object.
-	const ThreadFunction &function_;
+	const Thread::ThreadStartFunction &function_;
 	int &thread_id_;
 
-	ThreadData(const ThreadFunction &function, int &thread_id)
+	ThreadData(const Thread::ThreadStartFunction &function, int &thread_id)
 		: function_(function),
 		  thread_id_(thread_id)
 	{}
 
 	void RunInThread()
 	{
-		// 1. Set thread id.
 		thread_id_ = Thread::ThreadId();
-		// 2. Call thread work function.
 		function_();
 	}
 };
+Make it as a member function.
 void *StartThread(void *object) // Thread start function passed to pthread_create.
 {
 	ThreadData *data = static_cast<ThreadData*>(object);

@@ -1,7 +1,7 @@
 #ifndef NETLIB_NETLIB_CONNECTOR_H_
 #define NETLIB_NETLIB_CONNECTOR_H_
 
-#include <netlib/callback.h>
+#include <netlib/function.h>
 #include <netlib/non_copyable.h>
 #include <netlib/socket_address.h>
 

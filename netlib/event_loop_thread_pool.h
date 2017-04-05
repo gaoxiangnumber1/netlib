@@ -5,6 +5,7 @@
 #include <functional>
 
 #include <netlib/non_copyable.h>
+#include <netlib/function.h>
 
 namespace netlib
 {
@@ -20,8 +21,6 @@ class EventLoopThread;
 class EventLoopThreadPool: public NonCopyable
 {
 public:
-	using InitialTask = std::function<void(EventLoop*)>;
-
 	explicit EventLoopThreadPool(EventLoop *main_loop,
 	                             const int loop_number = 0,
 	                             const InitialTask &initial_task = InitialTask());

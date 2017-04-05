@@ -8,12 +8,12 @@ using netlib::EventLoop;
 
 EventLoopThread::EventLoopThread(const InitialTask &initial_task):
 	loop_(nullptr),
-	thread_(bind(&EventLoopThread::ThreadFunction, this)),
+	thread_(bind(&EventLoopThread::ThreadStartFunction, this)),
 	initial_task_(initial_task),
 	mutex_(),
 	condition_(mutex_)
 {}
-void EventLoopThread::ThreadFunction()
+void EventLoopThread::ThreadStartFunction()
 {
 	EventLoop loop;
 	{

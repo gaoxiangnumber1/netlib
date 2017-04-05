@@ -1,6 +1,10 @@
-       size_t strlen(const char *s);
-DESCRIPTION
-       The  strlen() function calculates the length of the string s, excluding the termi‐
-       nating null byte ('\0').
+ int atoi(const char *nptr);
+The atoi() function converts the initial portion of the string pointed to by nptr
+to int. The behavior is the same as
+ strtol(nptr, NULL, 10);
+except that atoi() does not detect errors.
+The atol() and atoll() functions behave the same as atoi(), except that they con‐
+vert the initial portion of the string to their return type of long or long long.
+atoq() is an obsolete name for atoll().
 RETURN VALUE
-       The strlen() function returns the number of bytes in the string s.
+The converted value.

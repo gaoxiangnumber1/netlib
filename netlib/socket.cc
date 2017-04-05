@@ -71,9 +71,9 @@ int Socket::Accept(SocketAddress &peer_address)
 		case ENOBUFS:
 		case ENOMEM:
 		case ENOTSOCK:
-			LOG_FATAL("unexpected error of ::accept");
+			LOG_FATAL("accept(): FATAL");
 		default:
-			LOG_FATAL("unknown error of ::accept");
+			LOG_FATAL("accept(): Unknown");
 		}
 	}
 	return connected_fd;

@@ -45,17 +45,16 @@ void BinaryTree<T>::CreateCompleteBinaryTreeByLevel()
 	int data_index = 0;
 	root_ = new BinaryNode<T>(data_array[data_index++]);
 	Queue<BinaryNode<T>*> queue;
-	queue.PushBack(root_);
+	queue.Enqueue(root_);
 	while(data_index < data_number)
 	{
-		BinaryNode<T> *node = queue.Front();
-		queue.PopFront();
+		BinaryNode<T> *node = queue.Dequeue();
 		node->left_ = new BinaryNode<T>(data_array[data_index++]);
-		queue.PushBack(node->left_);
+		queue.Enqueue(node->left_);
 		if(data_index < data_number)
 		{
 			node->right_ = new BinaryNode<T>(data_array[data_index++]);
-			queue.PushBack(node->right_);
+			queue.Enqueue(node->right_);
 		}
 	}
 }

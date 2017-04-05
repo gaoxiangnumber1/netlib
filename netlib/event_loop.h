@@ -3,7 +3,7 @@
 
 #include <vector> // vector<>
 
-#include <netlib/callback.h>
+#include <netlib/function.h>
 #include <netlib/mutex.h>
 #include <netlib/non_copyable.h>
 #include <netlib/timer_id.h>
@@ -36,7 +36,6 @@ class TimerQueue;
 class EventLoop: public NonCopyable
 {
 public:
-	using TaskCallback = std::function<void()>;
 	using TaskCallbackVector = std::vector<TaskCallback>;
 
 	EventLoop();
