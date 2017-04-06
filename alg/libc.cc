@@ -21,8 +21,9 @@ size_t StringLength(const char *string)
 		g_invalid_input = true;
 		return 0;
 	}
+
 	size_t length = 0;
-	for(int index = 0; string[index] != '\0'; ++index, ++length);
+	for(; string[length] != '\0'; ++length);
 	return length;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -91,6 +92,7 @@ char *StringCopy(char *dest, const char *src)
 		g_invalid_input = true;
 		return dest;
 	}
+
 	MemoryCopyOrMove(dest, src, StringLength(src) + 1);
 	return dest;
 }
@@ -134,6 +136,7 @@ int MemoryCompare(const void *data1, const void *data2, size_t length)
 		g_invalid_input = true;
 		return 0;
 	}
+
 	if(data1 == data2)
 	{
 		return 0;
@@ -162,6 +165,7 @@ int StringCompare(const char *string1, const char *string2)
 		g_invalid_input = true;
 		return 0;
 	}
+
 	if(string1 == string2)
 	{
 		return 0;
@@ -186,6 +190,7 @@ void *MemorySet(void *data, int value, size_t length)
 		g_invalid_input = true;
 		return data;
 	}
+
 	unsigned char *char_data = static_cast<unsigned char*>(data);
 	unsigned char char_value = static_cast<unsigned char>(value);
 	for(size_t index = 0; index < length; ++index)
@@ -212,6 +217,7 @@ int StringToInt(const char *string)
 		g_invalid_input = true;
 		return 0;
 	}
+
 	size_t length = StringLength(string);
 	if(length == 0)
 	{
