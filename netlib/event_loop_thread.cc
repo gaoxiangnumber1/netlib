@@ -6,24 +6,19 @@ using std::bind;
 using netlib::EventLoopThread;
 using netlib::EventLoop;
 
-EventLoopThread::EventLoopThread(const InitialTask &initial_task):
+EventLoopThread::EventLoopThread():
 	loop_(nullptr),
-	thread_(bind(&EventLoopThread::ThreadStartFunction, this)),
-	initial_task_(initial_task),
+	thread_(bind(&EventLoopThread::ThreadMainFunction, this)),
 	mutex_(),
 	condition_(mutex_)
 {}
-void EventLoopThread::ThreadStartFunction()
+void EventLoopThread::ThreadMainFunction()
 {
 	EventLoop loop;
 	{
 		MutexLockGuard lock(mutex_);
 		loop_ = &loop;
 		condition_.Signal();
-	}
-	if(initial_task_)
-	{
-		initial_task_(loop_);
 	}
 	loop.Loop();
 	loop_ = nullptr;

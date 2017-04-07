@@ -14,23 +14,22 @@ namespace netlib
 class EventLoop;
 
 // Interface:
-// Ctor -> -ThreadStartFunction
+// Ctor -> -ThreadMainFunction
 // Dtor
 // StartLoop
 
 class EventLoopThread: public NonCopyable
 {
 public:
-	EventLoopThread(const InitialTask &initial_task = InitialTask());
+	EventLoopThread();
 	~EventLoopThread();
 	EventLoop *StartLoop();
 
 private:
-	void ThreadStartFunction();
+	void ThreadMainFunction();
 
 	EventLoop *loop_;
 	Thread thread_;
-	const InitialTask initial_task_;
 	MutexLock mutex_;
 	Condition condition_;
 };

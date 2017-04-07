@@ -52,8 +52,8 @@ private:
 	{
 		bool connected = connection->Connected();
 		LOG_INFO("ChatClient - %s -> %s is %s",
-		         connection->local_address().ToIpPortString().c_str(),
-		         connection->peer_address().ToIpPortString().c_str(),
+		         connection->client_address().ToIpPortString().c_str(),
+		         connection->server_address().ToIpPortString().c_str(),
 		         (connected ? "UP" : "DOWN"));
 		MutexLockGuard lock(mutex_);
 		if(connected == true)

@@ -13,6 +13,7 @@ namespace netlib
 
 class EventLoop;
 class SocketAddress;
+class Connector;
 
 // Interface:
 // Ctor -> -HandleNewConnection

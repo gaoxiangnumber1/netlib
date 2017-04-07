@@ -14,11 +14,6 @@ void Print(EventLoop *loop = nullptr)
 	printf("pid = %d, tid = %d, loop = %p\n", getpid(), Thread::ThreadId(), loop);
 }
 
-void InitialTask(EventLoop *loop)
-{
-	printf("InitialTask(): pid = %d, tid = %d, loop = %p\n", getpid(), Thread::ThreadId(), loop);
-}
-
 int main()
 {
 	printf("main enter.\n");
@@ -29,7 +24,7 @@ int main()
 
 	{
 		printf("Single thread %p:\n", &loop);
-		EventLoopThreadPool model(&loop, 0, InitialTask);
+		EventLoopThreadPool model(&loop, 0);
 		model.Start();
 		assert(model.GetNextLoop() == &loop);
 		assert(model.GetNextLoop() == &loop);
@@ -38,7 +33,7 @@ int main()
 
 	{
 		printf("Another thread:\n");
-		EventLoopThreadPool model(&loop, 1, InitialTask);
+		EventLoopThreadPool model(&loop, 1);
 		model.Start();
 		EventLoop *next_loop = model.GetNextLoop();
 		next_loop->RunAfter(bind(Print, next_loop), 2);
@@ -50,7 +45,7 @@ int main()
 
 	{
 		printf("Three threads:\n");
-		EventLoopThreadPool model(&loop, 3, InitialTask);
+		EventLoopThreadPool model(&loop, 3);
 		model.Start();
 		EventLoop *next_loop = model.GetNextLoop();
 		next_loop->RunInLoop(bind(Print, next_loop));

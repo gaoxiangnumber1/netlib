@@ -13,16 +13,14 @@ using std::bind;
 using std::placeholders::_1;
 using netlib::TcpConnection;
 
-void netlib::DefaultConnectionCallback(const TcpConnectionPtr &connection)
+void netlib::DefaultConnectionCallback(const TcpConnectionPtr &connection_ptr)
 {
-	LOG_TRACE("%s -> %s is %s",
-	          connection->local_address().ToIpPortString().c_str(),
-	          connection->peer_address().ToIpPortString().c_str(),
-	          (connection->Connected() ? "UP" : "DOWN"));
-	// Do not call connection->ForceClose() because some users
-	// want to register message callback only.
+	LOG_INFO("%s -> %s is %s",
+	         connection_ptr->client_address().ToIpPortString().c_str(),
+	         connection_ptr->server_address().ToIpPortString().c_str(),
+	         (connection_ptr->Connected() ? "UP" : "DOWN"));
 }
-void netlib::DefaultMessageCallback(const TcpConnectionPtr&,
+void netlib::DefaultMessageCallback(const TcpConnectionPtr &connection_ptr,
                                     Buffer *buffer,
                                     const TimeStamp &time_stamp)
 {
@@ -32,16 +30,16 @@ void netlib::DefaultMessageCallback(const TcpConnectionPtr&,
 TcpConnection::TcpConnection(EventLoop *event_loop,
                              const string &string_name,
                              int socket,
-                             const SocketAddress &local,
-                             const SocketAddress &peer):
-	loop_(CHECK_NOT_NULL(event_loop)),
+                             const SocketAddress &client,
+                             const SocketAddress &server):
+	loop_(event_loop),
 	name_(string_name),
 	state_(CONNECTING),
 	context_(nullptr),
 	socket_(new Socket(socket)),
 	channel_(new Channel(loop_, socket)),
-	local_address_(local),
-	peer_address_(peer),
+	client_address_(client),
+	server_address_(server),
 	high_water_mark_(kInitialHighWaterMark)
 {
 	channel_->set_event_callback(Channel::READ_CALLBACK,

@@ -21,9 +21,7 @@ class EventLoopThread;
 class EventLoopThreadPool: public NonCopyable
 {
 public:
-	explicit EventLoopThreadPool(EventLoop *main_loop,
-	                             const int loop_number = 0,
-	                             const InitialTask &initial_task = InitialTask());
+	explicit EventLoopThreadPool(EventLoop *main_loop, const int loop_number = 0);
 	void Start();
 	EventLoop *GetNextLoop();
 
@@ -33,7 +31,6 @@ private:
 	std::vector<EventLoop*> loop_pool_;
 	bool started_;
 	int next_loop_index_;
-	const InitialTask initial_task_;
 };
 
 }

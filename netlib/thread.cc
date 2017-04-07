@@ -9,7 +9,7 @@
 using netlib::Thread;
 
 int Thread::created_number_(0);
-Thread::Thread(const ThreadStartFunction &function)
+Thread::Thread(const ThreadMainFunction &function)
 	: started_(false),
 	  joined_(false),
 	  pthread_id_(0),
@@ -31,10 +31,10 @@ namespace netlib
 {
 struct ThreadData
 {
-	const Thread::ThreadStartFunction &function_;
+	const Thread::ThreadMainFunction &function_;
 	int &thread_id_;
 
-	ThreadData(const Thread::ThreadStartFunction &function, int &thread_id)
+	ThreadData(const Thread::ThreadMainFunction &function, int &thread_id)
 		: function_(function),
 		  thread_id_(thread_id)
 	{}
@@ -45,8 +45,7 @@ struct ThreadData
 		function_();
 	}
 };
-Make it as a member function.
-void *StartThread(void *object) // Thread start function passed to pthread_create.
+void *StartRoutine(void *object) // Thread start function passed to pthread_create.
 {
 	ThreadData *data = static_cast<ThreadData*>(object);
 	data->RunInThread();
@@ -61,12 +60,17 @@ void Thread::Start()
 	started_ = true;
 	// TODO: C++11 move(function_)
 	ThreadData *data = new ThreadData(function_, thread_id_);
-	if(pthread_create(&pthread_id_, NULL, &netlib::StartThread, data) != 0)
+	if(pthread_create(&pthread_id_, NULL, &netlib::StartRoutine, data) != 0)
 	{
 		started_ = false;
 		delete data; // NOTE: delete data!
 		LOG_FATAL("pthread_create: FATAL");
 	}
+	// error:	ISO C++ forbids taking the address of an unqualified or parenthesized
+	//				non-static member function to form a pointer to member function.
+	//				Say ‘&netlib::Thread::StartRoutine’ [-fpermissive]
+	// error:	cannot convert ‘void*(netlib::Thread::*)(void*)’ to ‘void*(*)(void*)’
+	//				for argument‘3’ to pthread_create
 }
 
 // Every thread has its own instance of __thread variable.

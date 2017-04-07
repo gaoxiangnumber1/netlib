@@ -16,8 +16,8 @@ EchoServer::EchoServer(EventLoop *loop, const SocketAddress &listen_address):
 void EchoServer::HandleConnection(const TcpConnectionPtr &connection)
 {
 	LOG_INFO("EchoServer - %s -> %s is %s",
-	         connection->peer_address().ToIpPortString().c_str(),
-	         connection->local_address().ToIpPortString().c_str(),
+	         connection->server_address().ToIpPortString().c_str(),
+	         connection->client_address().ToIpPortString().c_str(),
 	         (connection->Connected() ? "UP" : "DOWN"));
 }
 void EchoServer::HandleMessage(const TcpConnectionPtr &connection,

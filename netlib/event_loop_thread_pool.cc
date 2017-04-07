@@ -7,14 +7,12 @@ using netlib::EventLoopThread;
 using netlib::EventLoopThreadPool;
 
 EventLoopThreadPool::EventLoopThreadPool(EventLoop *main_loop,
-        const int loop_number,
-        const InitialTask &initial_task):
+        const int loop_number):
 	main_loop_(main_loop),
 	loop_number_(loop_number),
 	loop_pool_(loop_number_),
 	started_(false),
-	next_loop_index_(0),
-	initial_task_(initial_task)
+	next_loop_index_(0)
 {}
 
 void EventLoopThreadPool::Start()
@@ -23,13 +21,9 @@ void EventLoopThreadPool::Start()
 	main_loop_->AssertInLoopThread();
 
 	started_ = true;
-	if(loop_number_ == 0 && initial_task_)
-	{
-		initial_task_(main_loop_);
-	}
 	for(int index = 0; index < loop_number_; ++index)
 	{
-		EventLoopThread *thread = new EventLoopThread(initial_task_);
+		EventLoopThread *thread = new EventLoopThread();
 		loop_pool_[index] = thread->StartLoop();
 	}
 }

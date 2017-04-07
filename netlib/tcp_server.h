@@ -30,11 +30,9 @@ public:
 	TcpServer(EventLoop *main_loop,
 	          const SocketAddress &server_address,
 	          const std::string &name,
-	          int thread_number = 0,
-	          const InitialTask &initial_task = InitialTask());
-	~TcpServer(); // Force outline destructor, for unique_ptr members.
+	          int loop_number = 0);
+	~TcpServer(); // Force outline destructor, for smart_ptr members.
 
-	// Following set_*_callback are all NOT thread safe.
 	void set_connection_callback(const ConnectionCallback &callback)
 	{
 		connection_callback_ = callback;
@@ -48,8 +46,6 @@ public:
 		write_complete_callback_ = callback;
 	}
 
-	// Start the server if it's not listening. It's harmless to call it multiple times.
-	// Thread safe.
 	void Start();
 
 private:

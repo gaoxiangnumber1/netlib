@@ -47,8 +47,8 @@ public:
 	TcpConnection(EventLoop *event_loop,
 	              const std::string &string_name,
 	              int socket,
-	              const SocketAddress &local,
-	              const SocketAddress &peer);
+	              const SocketAddress &client,
+	              const SocketAddress &server);
 	~TcpConnection();
 
 	// Getter.
@@ -60,13 +60,13 @@ public:
 	{
 		return name_;
 	}
-	const SocketAddress &local_address() const
+	const SocketAddress &client_address() const
 	{
-		return local_address_;
+		return client_address_;
 	}
-	const SocketAddress &peer_address() const
+	const SocketAddress &server_address() const
 	{
-		return peer_address_;
+		return server_address_;
 	}
 	Buffer *input_buffer()
 	{
@@ -168,8 +168,8 @@ private:
 	// TcpConnection deals with the writable IO events by itself,
 	// and pass readable events to user by message_callback_.
 	std::unique_ptr<Channel> channel_;
-	const SocketAddress local_address_;
-	const SocketAddress peer_address_;
+	const SocketAddress client_address_;
+	const SocketAddress server_address_;
 	Buffer input_buffer_;
 	Buffer output_buffer_; // FIXME: Use list<Buffer> as output buffer.
 	// TcpServer::HandleNewConnection -> TcpConnection::ConnectEstablished() ->

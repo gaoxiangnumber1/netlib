@@ -7,13 +7,9 @@
 
 namespace netlib
 {
-// TODO: Move each std::function to it own class.
-class EventLoop;
+
 class Buffer;
 class TcpConnection;
-class Connector;
-
-using InitialTask = std::function<void(EventLoop*)>;
 
 using TimerCallback = std::function<void()>;
 using TcpConnectionPtr = std::shared_ptr<TcpConnection>;

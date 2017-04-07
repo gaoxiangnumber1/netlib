@@ -13,22 +13,15 @@ using std::placeholders::_1;
 using std::placeholders::_2;
 using netlib::TcpServer;
 
-// Always accept new connection_ptr in the main_loop thread.
-// thread_number =
-//	(1) 0:	All I/O in the main_loop thread, no thread will be created. This is the default value.
-//	(2) 1:	All I/O in another thread.
-//	(3) N:	Create a thread pool of N threads, new connections are assigned
-//				on a round-robin basis.
 TcpServer::TcpServer(EventLoop *main_loop,
                      const SocketAddress &server_address,
                      const string &name,
-                     int thread_number,
-                     const InitialTask &initial_task):
+                     int loop_number):
 	main_loop_(CHECK_NOT_NULL(main_loop)),
 	server_ip_port_(server_address.ToIpPortString()),
 	server_name_(name),
 	acceptor_(new Acceptor(main_loop_, server_address)),
-	loop_pool_(new EventLoopThreadPool(main_loop_, thread_number, initial_task)),
+	loop_pool_(new EventLoopThreadPool(main_loop_, loop_number)),
 	started_(false),
 	next_connection_id_(0),
 	connection_callback_(DefaultConnectionCallback),
@@ -37,39 +30,36 @@ TcpServer::TcpServer(EventLoop *main_loop,
 	acceptor_->set_new_connection_callback(
 	    bind(&TcpServer::HandleNewConnection, this, _1, _2));
 }
-// Create the TcpConnection object, add it to the connection_ptr map,
-// set callbacks, and call `connection_object->ConnectionEstablished()`, which
-// calls the user's ConnectionCallback.
-void TcpServer::HandleNewConnection(int socket, const SocketAddress &client_address)
+void TcpServer::HandleNewConnection(int connected_socket,
+                                    const SocketAddress &client_address)
 {
 	main_loop_->AssertInLoopThread();
 
-	char buffer[32] = "";
-	::snprintf(buffer, sizeof buffer, "-%s#%d", server_ip_port_.c_str(), ++next_connection_id_);
-	string connection_name = server_name_ + buffer;
-	LOG_INFO("TcpServer::HandleNewConnection [%s] - new connection_ptr [%s] from %s",
-	         server_name_.c_str(), connection_name.c_str(), client_address.ToIpPortString().c_str());
+	char buf[32];
+	snprintf(buf, sizeof buf, "-%s#%d", server_ip_port_.c_str(), ++next_connection_id_);
+	string connection_name = server_name_ + buf;
+	LOG_INFO("TcpServer::HandleNewConnection [%s] - new connection [%s] from %s",
+	         server_name_.c_str(),
+	         connection_name.c_str(),
+	         client_address.ToIpPortString().c_str());
 
-	SocketAddress local_address(nso::GetLocalAddress(socket));
-	// FIXME poll with zero timeout to double confirm the new connection_ptr
-	EventLoop *io_loop = loop_pool_->GetNextLoop();
-	// TODO: use make_shared() to avoid the use of new.
-	TcpConnectionPtr connection_ptr(new TcpConnection(io_loop,
+	SocketAddress server_address(nso::GetLocalAddress(connected_socket));
+	EventLoop *sub_loop = loop_pool_->GetNextLoop();
+	// TODO: use make_shared() instead of new.
+	TcpConnectionPtr connection_ptr(new TcpConnection(sub_loop,
 	                                connection_name,
-	                                socket,
-	                                local_address,
-	                                client_address));
-	connection_name_ptr_map_[connection_name] = connection_ptr;
-
+	                                connected_socket,
+	                                client_address,
+	                                server_address));
 	connection_ptr->set_connection_callback(connection_callback_);
 	connection_ptr->set_message_callback(message_callback_);
 	connection_ptr->set_write_complete_callback(write_complete_callback_);
-	// Register to TcpConnection close_callback_ in order to know
-	// the connection_ptr is down. Called in TcpConnection::HandleClose().
-	// FIXME: unsafe.
 	connection_ptr->set_close_callback(bind(&TcpServer::RemoveConnection, this, _1));
-	io_loop->RunInLoop(bind(&TcpConnection::ConnectEstablished, connection_ptr));
+
+	connection_name_ptr_map_[connection_name] = connection_ptr;
+	sub_loop->RunInLoop(bind(&TcpConnection::ConnectEstablished, connection_ptr));
 }
+
 void TcpServer::RemoveConnection(const TcpConnectionPtr &connection_ptr)
 {
 	// FIXME: unsafe.

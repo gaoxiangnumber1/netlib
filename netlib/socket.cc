@@ -35,11 +35,11 @@ int Socket::Accept(SocketAddress &peer_address)
 	struct sockaddr_in address;
 	bzero(&address, sizeof address);
 	socklen_t address_length = sizeof address;
-	int connected_fd = ::accept4(socket_,
+	int connected_socket = ::accept4(socket_,
 	                             nso::CastToNonConstsockaddr(&address),
 	                             &address_length,
 	                             SOCK_NONBLOCK | SOCK_CLOEXEC);
-	if(connected_fd >= 0)
+	if(connected_socket >= 0)
 	{
 		peer_address.set_socket_address(address);
 	}
@@ -76,7 +76,7 @@ int Socket::Accept(SocketAddress &peer_address)
 			LOG_FATAL("accept(): Unknown");
 		}
 	}
-	return connected_fd;
+	return connected_socket;
 }
 
 void Socket::ShutdownOnWrite()

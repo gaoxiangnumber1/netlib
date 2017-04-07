@@ -32,23 +32,23 @@ TcpClient::TcpClient(EventLoop *event_loop,
 void TcpClient::HandleNewConnection(int socket_fd)
 {
 	loop_->AssertInLoopThread();
-	SocketAddress peer_address(nso::GetPeerAddress(socket_fd));
+	SocketAddress server_address(nso::GetPeerAddress(socket_fd));
 	char buffer[32];
 	::snprintf(buffer, sizeof buffer, ":%s#%d",
-	           peer_address.ToIpPortString().c_str(),
+	           server_address.ToIpPortString().c_str(),
 	           ++next_connection_id_);
 	string connection_name = name_ + buffer;
 	LOG_INFO("TcpClient::HandleNewConnection [%s] - new connection [%s] to %s",
-	         name_.c_str(), connection_name.c_str(), peer_address.ToIpPortString().c_str());
+	         name_.c_str(), connection_name.c_str(), server_address.ToIpPortString().c_str());
 
-	SocketAddress local_address(nso::GetLocalAddress(socket_fd));
+	SocketAddress client_address(nso::GetLocalAddress(socket_fd));
 	// FIXME poll with zero timeout to double confirm the new connection.
 	// FIXME use make_shared if necessary.
 	TcpConnectionPtr connection(new TcpConnection(loop_,
 	                            connection_name,
 	                            socket_fd,
-	                            local_address,
-	                            peer_address));
+	                            client_address,
+	                            server_address));
 
 	connection->set_connection_callback(connection_callback_);
 	connection->set_message_callback(message_callback_);

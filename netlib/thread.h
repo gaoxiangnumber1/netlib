@@ -24,10 +24,10 @@ namespace netlib
 class Thread: public NonCopyable
 {
 public:
-	using ThreadStartFunction = std::function<void()>;
+	using ThreadMainFunction = std::function<void()>;
 
-	explicit Thread(const ThreadStartFunction&);
-	// TODO: explicit Thread(ThreadStartFunction&&);
+	explicit Thread(const ThreadMainFunction&);
+	// TODO: explicit Thread(ThreadMainFunction&&);
 	~Thread(); // May call pthread_detach.
 
 	static int created_number()
@@ -44,7 +44,7 @@ private:
 	bool joined_;
 	pthread_t pthread_id_; // POSIX thread ID returned by pthread_self(3).
 	int thread_id_; // Can't be const.
-	const ThreadStartFunction function_; // Start function.
+	const ThreadMainFunction function_; // Start function.
 	static int created_number_; // FIXME: Atomic
 };
 }

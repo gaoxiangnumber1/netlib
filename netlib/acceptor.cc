@@ -33,16 +33,16 @@ void Acceptor::HandleRead()
 	owner_loop_->AssertInLoopThread();
 
 	SocketAddress client_address;
-	int connected_fd = server_socket_.Accept(client_address);
-	if(connected_fd >= 0)
+	int connected_socket = server_socket_.Accept(client_address);
+	if(connected_socket >= 0)
 	{
 		if(new_connection_callback_)
 		{
-			new_connection_callback_(connected_fd, client_address);
+			new_connection_callback_(connected_socket, client_address);
 		}
 		else
 		{
-			::close(connected_fd);
+			::close(connected_socket);
 		}
 	}
 	else
