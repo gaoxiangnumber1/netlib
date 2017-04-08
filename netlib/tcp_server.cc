@@ -62,20 +62,19 @@ void TcpServer::HandleNewConnection(int connected_socket,
 
 void TcpServer::RemoveConnection(const TcpConnectionPtr &connection_ptr)
 {
-	// FIXME: unsafe.
-	main_loop_->RunInLoop(bind(&TcpServer::RemoveConnectionInLoop, this, connection_ptr));
+	main_loop_->RunInLoop(bind(&TcpServer::RemoveConnectionInLoop,
+	                           this,
+	                           connection_ptr));
 }
 void TcpServer::RemoveConnectionInLoop(const TcpConnectionPtr &connection_ptr)
 {
 	main_loop_->AssertInLoopThread();
-	LOG_INFO("TcpServer::RemoveConnectionInLoop [%s] - connection_ptr %s",
+	LOG_INFO("TcpServer::RemoveConnection [%s] - connection %s",
 	         server_name_.c_str(),
 	         connection_ptr->name().c_str());
+
 	assert(connection_name_ptr_map_.erase(connection_ptr->name()) == 1);
-	// TODO: Must use QueueInLoop(), see 7.15.3.
-	// bind() will make this TcpConnection object live to the time
-	// when calling ConnectDestroyed(). See 1.10.
-	connection_ptr->loop()->QueueInLoop(
+	connection_ptr->loop()->RunInLoop(
 	    bind(&TcpConnection::ConnectDestroyed, connection_ptr));
 }
 
@@ -83,28 +82,23 @@ TcpServer::~TcpServer()
 {
 	main_loop_->AssertInLoopThread();
 	LOG_TRACE("TcpServer::Dtor [%s] destructing.", server_name_.c_str());
+
 	for(ConnectionNamePtrMap::iterator it = connection_name_ptr_map_.begin();
 	        it != connection_name_ptr_map_.end();
 	        ++it)
 	{
-		TcpConnectionPtr connection_ptr = it->second;
+		it->second->loop()->RunInLoop(
+		    bind(&TcpConnection::ConnectDestroyed, it->second));
 		it->second.reset();
-		connection_ptr->loop()->RunInLoop(
-		    bind(&TcpConnection::ConnectDestroyed, connection_ptr));
-		connection_ptr.reset();
 	}
 }
 
-// Start the server if it's not listening.
 void TcpServer::Start()
 {
 	if(started_ == false)
 	{
 		started_ = true;
 		loop_pool_->Start();
-		assert(acceptor_->listening() == false);
-		// u.get() returns the pointer in u. Warn: the object to which the returned pointer
-		// points will disappear when the smart pointer deletes it.
-		main_loop_->RunInLoop(bind(&Acceptor::Listen, acceptor_.get()));
+		main_loop_->RunInLoop(bind(&Acceptor::Listen, acceptor_));
 	}
 }

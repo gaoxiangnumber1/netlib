@@ -20,8 +20,10 @@ class Channel;
 //			-HandleRead -> -HandleClose -> -HandleError
 //			-HandleWrite -> -ShutdownInLoop
 // Dtor
-// Getter: loop, name, local_address, peer_address, input_buffer, output_buffer, context
-// Setter: connection/message/high_water_mark/write_complete/close_callback/context
+// Getter:	loop, name, context, client_address, server_address
+//				input_buffer, output_buffer
+// Setter:	connection/message/write_complete/high_water_mark/close_callback
+//				context
 // Connected/Disconnected
 // SetTcpNoDelay
 // ConnectEstablished -> -set_state
@@ -90,15 +92,15 @@ public:
 	{
 		message_callback_ = callback;
 	}
+	void set_write_complete_callback(const WriteCompleteCallback &callback)
+	{
+		write_complete_callback_ = callback;
+	}
 	void set_high_water_mark_callback(const HighWaterMarkCallback &callback,
 	                                  int high_water_mark)
 	{
 		high_water_mark_callback_ = callback;
 		high_water_mark_ = high_water_mark;
-	}
-	void set_write_complete_callback(const WriteCompleteCallback &callback)
-	{
-		write_complete_callback_ = callback;
 	}
 	// Internal use only.
 	void set_close_callback(const CloseCallback &callback)
@@ -158,33 +160,22 @@ private:
 	void ForceCloseInLoop();
 
 	EventLoop *loop_;
-	// "listen_address.ToIpPortString()" + "#next_connection_id_". Set by TcpServer.
 	const std::string name_;
-	State state_; // FIXME: Use atomic variable
-	void *context_;
-	// TcpConnection owns the connection_fd returned by `accept_socket_.Accept(p_a)`,
-	// its destructor will `::close(socket_)` in the destructor of the Socket object.
-	std::unique_ptr<Socket> socket_;
-	// TcpConnection deals with the writable IO events by itself,
-	// and pass readable events to user by message_callback_.
+	State state_; // FIXME: Atomic.
+	void *context_; // TODO: use struct encapsulate it.
+	std::unique_ptr<Socket> socket_; // connected_socket
 	std::unique_ptr<Channel> channel_;
 	const SocketAddress client_address_;
 	const SocketAddress server_address_;
 	Buffer input_buffer_;
-	Buffer output_buffer_; // FIXME: Use list<Buffer> as output buffer.
-	// TcpServer::HandleNewConnection -> TcpConnection::ConnectEstablished() ->
-	// connection_callback_.
+	Buffer output_buffer_;
 	ConnectionCallback connection_callback_;
-	MessageCallback message_callback_; // Called in HandleRead().
+	MessageCallback message_callback_;
+	WriteCompleteCallback write_complete_callback_;
 	HighWaterMarkCallback high_water_mark_callback_;
 	int high_water_mark_;
-	static const int kInitialHighWaterMark = 64 * 1024 * 1024;
-	WriteCompleteCallback write_complete_callback_;
-	// close_callback_ can be only used by TcpServer and TcpClient, to notify that
-	// they should remove this TcpConnection object's shared_ptr; not used by user,
-	// user only use connection_callback_.
-	// Called in HandleClose(). Bind to TcpServer/TcpClient::RemoveConnection().
-	CloseCallback close_callback_;
+	static const int kInitialHighWaterMark = 64 * 1024 * 1024; // 64KB
+	CloseCallback close_callback_; // TcpServer\TcpClient::RemoveConnection().
 };
 
 void DefaultConnectionCallback(const TcpConnectionPtr&);

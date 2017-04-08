@@ -58,8 +58,8 @@ private:
 	EventLoop *main_loop_;
 	const std::string server_ip_port_;
 	const std::string server_name_;
-	std::unique_ptr<Acceptor> acceptor_;
-	std::shared_ptr<EventLoopThreadPool> loop_pool_;
+	std::shared_ptr<Acceptor> acceptor_;
+	std::unique_ptr<EventLoopThreadPool> loop_pool_;
 	bool started_; // FIXME: Atomic.
 	ConnectionNamePtrMap connection_name_ptr_map_;
 	int next_connection_id_; // Start from 1.

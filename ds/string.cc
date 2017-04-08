@@ -3,14 +3,14 @@
 #include <vector>
 #include <utility> // swap()
 
-// Review: length_, String(const char*, size_t), Swap(), ~String()
+// Review: ~String()
 
 class String
 {
 public:
 	String(): data_(new char[1]), length_(0) // Default ctor
 	{
-		*data_ = 0;
+		*data_ = '\0';
 		printf("Default_ctor    ");
 	}
 	String(const char *data, size_t length):
@@ -18,7 +18,7 @@ public:
 		length_(length)
 	{
 		memcpy(data_, data, length_);
-		data_[length] = 0;
+		data_[length] = '\0';
 		printf("Const_char_*length_ctor    ");
 	}
 	String(const char *data): String(data, strlen(data))
