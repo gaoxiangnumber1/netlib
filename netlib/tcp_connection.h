@@ -21,10 +21,9 @@ class Channel;
 //			-HandleWrite -> -ShutdownInLoop
 // Dtor
 // Getter:	loop, name, context, client_address, server_address
-//				input_buffer, output_buffer
 // Setter:	connection/message/write_complete/high_water_mark/close_callback
 //				context
-// Connected/Disconnected
+// Connected
 // SetTcpNoDelay
 // ConnectEstablished -> -set_state
 // Send(const void*, int)/(const string&)/(Buffer*) -> -SendInLoop
@@ -34,18 +33,11 @@ class Channel;
 // ConnectDestroyed
 
 // TCP connection, for both client and server usage.
-// Because of the ambiguous lifetime of TcpConnection, we use shared_ptr<> to
-// manage TcpConnection object by default.
-// One TcpConnection object represents "one TCP connection". Once the TCP
-// connection is closed, the object of this TCP connection has no use at all.
-// This class can't connect positively, its constructor's arguments are the connected
-// socket file descriptor. So its initial state is CONNECTING.
 class TcpConnection: public NonCopyable,
 	public std::enable_shared_from_this<TcpConnection>
 {
 public:
-	// Construct a TcpConnection with a connected socket.
-	// User should not create this object.
+	// Construct with a connected socket.
 	TcpConnection(EventLoop *event_loop,
 	              const std::string &string_name,
 	              int socket,
@@ -70,20 +62,16 @@ public:
 	{
 		return server_address_;
 	}
-	Buffer *input_buffer()
-	{
-		return &input_buffer_;
-	}
-	Buffer *output_buffer()
-	{
-		return &output_buffer_;
-	}
 	void *context()
 	{
 		return context_;
 	}
 
 	// Setter.
+	void set_context(void *context_arg)
+	{
+		context_ = context_arg;
+	}
 	void set_connection_callback(const ConnectionCallback &callback)
 	{
 		connection_callback_ = callback;
@@ -96,43 +84,28 @@ public:
 	{
 		write_complete_callback_ = callback;
 	}
+	void set_close_callback(const CloseCallback &callback)
+	{
+		close_callback_ = callback;
+	}
 	void set_high_water_mark_callback(const HighWaterMarkCallback &callback,
 	                                  int high_water_mark)
 	{
 		high_water_mark_callback_ = callback;
 		high_water_mark_ = high_water_mark;
 	}
-	// Internal use only.
-	void set_close_callback(const CloseCallback &callback)
-	{
-		close_callback_ = callback;
-	}
-	void set_context(void *context_arg)
-	{
-		context_ = context_arg;
-	}
 
 	bool Connected() const
 	{
 		return state_ == CONNECTED;
 	}
-	bool Disconnected() const
-	{
-		return state_ == DISCONNECTED;
-	}
 	void SetTcpNoDelay(bool on);
-
-	// Called when TcpServer accept a new connection. Should be called only once.
 	void ConnectEstablished();
-	// Thread safe.
 	void Send(const void *data, int length);
-	void Send(const std::string &message);
-	void Send(Buffer *message); // Swap data
-	// TODO: NOT thread safe, no simultaneous calling.
+	void Send(const std::string &string_data);
+	void Send(Buffer *buffer_data); // TODO: Swap!
 	void Shutdown();
 	void ForceClose();
-	// Called when TcpServer remove this TcpConnection from its map.
-	// Should be called only once.
 	void ConnectDestroyed();
 
 private:
@@ -147,10 +120,9 @@ private:
 	{
 		state_ = state;
 	}
-	const char * StateToCString() const;
+	const char *StateToCString() const;
 
-	// Channel's *_callback_ is Handle*() here.
-	void HandleRead(TimeStamp receive_time);
+	void HandleRead(const TimeStamp &receive_time);
 	void HandleWrite();
 	void HandleClose();
 	void HandleError();
@@ -172,10 +144,10 @@ private:
 	ConnectionCallback connection_callback_;
 	MessageCallback message_callback_;
 	WriteCompleteCallback write_complete_callback_;
+	CloseCallback close_callback_; // TcpServer/TcpClient::RemoveConnection().
 	HighWaterMarkCallback high_water_mark_callback_;
 	int high_water_mark_;
 	static const int kInitialHighWaterMark = 64 * 1024 * 1024; // 64KB
-	CloseCallback close_callback_; // TcpServer\TcpClient::RemoveConnection().
 };
 
 void DefaultConnectionCallback(const TcpConnectionPtr&);

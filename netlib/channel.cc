@@ -29,6 +29,10 @@ Channel::~Channel()
 
 void Channel::set_requested_event(RequestedEventType type)
 {
+	if(IsRequested(type) == true)
+	{
+		return;
+	}
 	switch(type)
 	{
 	case READ_EVENT:

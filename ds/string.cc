@@ -2,13 +2,15 @@
 #include <string.h> // str*()
 #include <vector>
 #include <utility> // swap()
+#include <queue>
 
 // Review: ~String()
 
 class String
 {
 public:
-	String(): data_(new char[1]), length_(0) // Default ctor
+	// Default ctor
+	String(): data_(new char[1]), length_(0)
 	{
 		*data_ = '\0';
 		printf("Default_ctor    ");
@@ -21,48 +23,53 @@ public:
 		data_[length] = '\0';
 		printf("Const_char_*length_ctor    ");
 	}
-	String(const char *data): String(data, strlen(data))
+	String(const char *data): String(data, strlen(data)) // Delegating ctor
 	{
 		printf("Const_char_*ctor    ");
 	}
-	String(const String &rhs): String(rhs.data_, rhs.length_) // Copy ctor
+	// Copy ctor
+	String(const String &rhs): String(rhs.data_, rhs.length_)
 	{
 		printf("Copy_ctor    ");
 	}
-	String(String &&rhs): data_(rhs.data_), length_(rhs.length_) // Move ctor
+	// Move ctor
+	String(String &&rhs): data_(rhs.data_), length_(rhs.length_)
 	{
 		rhs.data_ = nullptr;
 		rhs.length_ = 0;
 		printf("Move_ctor    ");
 	}
 
+	// Non-throwing swap
 	void Swap(String &rhs) noexcept
 	{
 		std::swap(data_, rhs.data_);
 		std::swap(length_, rhs.length_);
 		printf("Swap    ");
 	}
-	//
-	String &operator=(String rhs) // Unifying-assignment operator: copy and move.
+	// Unifying assignment operator: no need to write copy/move assignment operator.
+	String &operator=(String rhs) // Copy and Swap idiom.
 	{
 		Swap(rhs);
 		printf("Unifying-AO    ");
 		return *this;
 	}
 	/*
-	String &operator=(const String &rhs) // Copy-assignment operator
+	// Traditional copy assignment operator
+	String &operator=(const String &rhs)
 	{
-		if(this != &rhs)
+		if(this != &rhs) // If not self assignment.
 		{
 			printf("Enter if    ");
-			String temp(rhs);
-			Swap(temp);
+			String temp(rhs); // RAII acquire new resource.
+			Swap(temp); // Non-throwing swap.
 		}
+		// RAII auto release old resource.
 		printf("Copy-AO    ");
 		return *this;
 	}
-
-	String &operator=(String &&rhs) // Move-assignment operator
+	// Move-assignment operator
+	String &operator=(String &&rhs)
 	{
 		Swap(rhs);
 		printf("Move_AO    ");
@@ -70,7 +77,8 @@ public:
 	}
 	*/
 
-	~String() // Dtor
+	// Dtor
+	~String()
 	{
 		delete [] data_;
 		printf("Dtor    ");

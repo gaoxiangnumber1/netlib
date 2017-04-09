@@ -4,7 +4,6 @@
 #include <stdint.h>
 
 bool g_invalid_input = false;
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void ShowContent(const void *data, int length)
 {
 	const char *char_data = static_cast<const char*>(data);
@@ -23,7 +22,7 @@ size_t StringLength(const char *string)
 	}
 
 	size_t length = 0;
-	for(; string[length] != '\0'; ++length);
+	for(; *string != 0; ++string, ++length);
 	return length;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,6 +92,10 @@ char *StringCopy(char *dest, const char *src)
 		return dest;
 	}
 
+	if(dest == src)
+	{
+		return dest;
+	}
 	MemoryCopyOrMove(dest, src, StringLength(src) + 1);
 	return dest;
 }
@@ -191,8 +194,8 @@ void *MemorySet(void *data, int value, size_t length)
 		return data;
 	}
 
-	unsigned char *char_data = static_cast<unsigned char*>(data);
-	unsigned char char_value = static_cast<unsigned char>(value);
+	char *char_data = static_cast<char*>(data);
+	char char_value = static_cast<char>(value);
 	for(size_t index = 0; index < length; ++index)
 	{
 		char_data[index] = char_value;
@@ -265,7 +268,7 @@ void TestStringToInt()
 {
 	// Function: -2147483648, -999, -0, 0, +0, 999, +999, 2147483647, +2147483647
 	// Edge: ""
-	// Negative: nullptr, "+" "-", "999*9"(char not in '0123456789+-'),
+	// Negative: nullptr, "+" "-", "999*9"(char not in '0123456789'),
 	//					 -9999999999999, -2147483649, 2147483648, +2147483648, 9999999999999
 	printf("----------TestStringToInt----------\n");
 	const int kCaseNumber = 19;
@@ -300,6 +303,15 @@ void TestStringToInt()
 
 int main()
 {
+	for(char ch = -128; ch != 127; ++ch)
+	{
+		printf("%d: (%c)\n", static_cast<int>(ch), ch);
+	}
+	printf("\n\n\n\n\n\n");
+	for(unsigned char ch = 0; ch != 255; ++ch)
+	{
+		printf("%d: (%c)\n", static_cast<int>(ch), ch);
+	}
 	TestMemoryCopyOrMove();
 	TestStringCopy();
 	TestMemoryCompare();
