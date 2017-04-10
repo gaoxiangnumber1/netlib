@@ -11,11 +11,11 @@ using std::string;
 using std::placeholders::_1;
 using netlib::TcpClient;
 
-TcpClient::TcpClient(EventLoop *event_loop,
+TcpClient::TcpClient(EventLoop *main_loop,
                      const SocketAddress &server_address,
                      const string &name):
-	loop_(CHECK_NOT_NULL(event_loop)),
-	connector_(new Connector(loop_, server_address)),
+	main_loop_(CHECK_NOT_NULL(main_loop)),
+	connector_(new Connector(main_loop_, server_address)),
 	name_(name),
 	retry_(false),
 	connect_(true),
@@ -29,10 +29,10 @@ TcpClient::TcpClient(EventLoop *event_loop,
 	         name_.c_str(),
 	         connector_.get());
 }
-void TcpClient::HandleNewConnection(int socket_fd)
+void TcpClient::HandleNewConnection(int socket)
 {
-	loop_->AssertInLoopThread();
-	SocketAddress server_address(nso::GetPeerAddress(socket_fd));
+	main_loop_->AssertInLoopThread();
+	SocketAddress server_address(nso::GetPeerAddress(socket));
 	char buffer[32];
 	::snprintf(buffer, sizeof buffer, ":%s#%d",
 	           server_address.ToIpPortString().c_str(),
@@ -41,12 +41,12 @@ void TcpClient::HandleNewConnection(int socket_fd)
 	LOG_INFO("TcpClient::HandleNewConnection [%s] - new connection [%s] to %s",
 	         name_.c_str(), connection_name.c_str(), server_address.ToIpPortString().c_str());
 
-	SocketAddress client_address(nso::GetLocalAddress(socket_fd));
+	SocketAddress client_address(nso::GetLocalAddress(socket));
 	// FIXME poll with zero timeout to double confirm the new connection.
 	// FIXME use make_shared if necessary.
-	TcpConnectionPtr connection(new TcpConnection(loop_,
+	TcpConnectionPtr connection(new TcpConnection(main_loop_,
 	                            connection_name,
-	                            socket_fd,
+	                            socket,
 	                            client_address,
 	                            server_address));
 
@@ -63,14 +63,14 @@ void TcpClient::HandleNewConnection(int socket_fd)
 }
 void TcpClient::RemoveConnection(const TcpConnectionPtr &connection)
 {
-	loop_->AssertInLoopThread();
-	assert(loop_ == connection->loop());
+	main_loop_->AssertInLoopThread();
+	assert(main_loop_ == connection->loop());
 	{
 		MutexLockGuard lock(mutex_);
 		assert(connection_ == connection);
 		connection_.reset();
 	}
-	loop_->QueueInLoop(bind(&TcpConnection::ConnectDestroyed, connection));
+	main_loop_->QueueInLoop(bind(&TcpConnection::ConnectDestroyed, connection));
 	if(retry_ == true && connect_ == true)
 	{
 		LOG_INFO("TcpClient::connect[%s] - Reconnecting to %s",
@@ -94,11 +94,11 @@ TcpClient::~TcpClient()
 	}
 	if(connection)
 	{
-		assert(loop_ == connection->loop());
+		assert(main_loop_ == connection->loop());
 		// TODO: Already set_close_callback in HandleNewConnection(), why set it again?
 		// FIXME: not 100% safe, if we are in different thread
-		// CloseCallback cb = bind(&detail::removeConnection, loop_, _1);
-		// loop_->runInLoop(bind(&TcpConnection::setCloseCallback, connection, cb));
+		// CloseCallback cb = bind(&detail::removeConnection, main_loop_, _1);
+		// main_loop_->runInLoop(bind(&TcpConnection::setCloseCallback, connection, cb));
 		if(is_unique == true)
 		{
 			connection->ForceClose();
@@ -108,7 +108,7 @@ TcpClient::~TcpClient()
 	{
 		connector_->Stop();
 		// FIXME: hack.
-		// loop_->RunAfter(1, bind(&detail::removeConnector, connector_));
+		// main_loop_->RunAfter(1, bind(&detail::removeConnector, connector_));
 	}
 }
 

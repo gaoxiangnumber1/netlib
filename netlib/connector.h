@@ -17,16 +17,16 @@ class Channel;
 // server_address
 // set_new_connection_callback
 // Start -> -StartInLoop
-//			-StartInLoop -> -Connect
-//						-Connect -> -Connecting -> -Retry
-//									-Connecting -> -HandleWrite -> -HandleError
-//												-HandleWrite -> -RemoveAndResetChannel -> -Retry -> -IsSelfConnect
-//															-RemoveAndResetChannel -> -ResetChannel
-//												-HandleError -> -RemoveAndResetChannel -> -Retry
-//									-Retry -> -StartInLoop
-// Restart -> -StartInLoop
+//		-StartInLoop -> -Connect
+//			-Connect -> -Connecting -> -Retry
+//				-Connecting -> -HandleWrite -> -HandleError
+//					-HandleWrite -> -RemoveAndResetChannel -> -Retry -> -IsSelfConnect
+//						-RemoveAndResetChannel -> -ResetChannel
+//					-HandleError -> -RemoveAndResetChannel -> -Retry
+//				-Retry -> -StartInLoop
 // Stop -> -StopInLoop
-//			-StopInLoop -> -RemoveAndResetChannel -> -Retry
+//		-StopInLoop -> -RemoveAndResetChannel -> -Retry
+// Restart -> -StartInLoop
 
 class Connector: public NonCopyable,
 	public std::enable_shared_from_this<Connector>
@@ -34,7 +34,7 @@ class Connector: public NonCopyable,
 public:
 	using NewConnectionCallback = std::function<void(int)>;
 
-	Connector(EventLoop *loop, const SocketAddress &server_address);
+	Connector(EventLoop *owner_loop, const SocketAddress &server_address);
 	~Connector();
 
 	const SocketAddress &server_address() const
@@ -46,12 +46,17 @@ public:
 		new_connection_callback_ = callback;
 	}
 
-	void Start(); // Can be called in any thread.
-	void Restart(); // Must be called in loop thread.
-	void Stop(); // Can be called in any thread.
+	void Start();
+	void Stop();
+	void Restart();
 
 private:
-	enum State {DISCONNECTED, CONNECTING, CONNECTED};
+	enum State
+	{
+		DISCONNECTED,
+		CONNECTING,
+		CONNECTED
+	};
 	static const double kMaxRetryDelaySecond;
 	static const double kInitialRetryDelaySecond;
 
@@ -61,19 +66,19 @@ private:
 	}
 	void StartInLoop();
 	void Connect();
-	void Connecting(int socket_fd);
-	void Retry(int socket_fd);
+	void Connecting(int socket);
+	void Retry(int socket);
 	void StopInLoop();
 	int RemoveAndResetChannel();
 	void ResetChannel();
 	void HandleWrite();
-	bool IsSelfConnect(int socket_fd);
+	bool IsSelfConnect(int socket);
 	void HandleError();
 
-	EventLoop *loop_;
+	EventLoop *owner_loop_;
 	SocketAddress server_address_;
-	bool connect_; // FIXME: use atomic variable.
-	State state_; // FIXME: use atomic variable.
+	bool connectable_; // FIXME: Atomic
+	State state_; // FIXME: Atomic
 	double retry_delay_second_;
 	std::unique_ptr<Channel> channel_;
 	NewConnectionCallback new_connection_callback_;

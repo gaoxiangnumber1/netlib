@@ -2,7 +2,7 @@
 #define NETLIB_EXAMPLE_CHAT_CODEC_H_
 
 #include <netlib/non_copyable.h>
-#include <netlib/callback.h>
+#include <netlib/function.h>
 
 class Codec: public netlib::NonCopyable
 {

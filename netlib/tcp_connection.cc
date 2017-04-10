@@ -243,9 +243,6 @@ void TcpConnection::SendInLoop(const char *data, int length)
 			if(errno != EWOULDBLOCK && errno != EAGAIN)
 			{
 				LOG_ERROR("TcpConnection::SendInLoop");
-				// EPIPE: fd is connected to a pipe or socket whose reading end is closed.
-				// When this happens the writing process will receive a SIGPIPE signal.
-				// ECONNRESET: Connection reset
 				if(errno == EPIPE || errno == ECONNRESET)
 				{
 					has_error = true;

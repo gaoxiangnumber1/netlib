@@ -36,7 +36,7 @@ public:
 
 	EventLoop *loop() const
 	{
-		return loop_;
+		return main_loop_;
 	}
 	// All three set_*_callback are Not thread safe!
 	void set_connection_callback(const ConnectionCallback &callback)
@@ -63,11 +63,11 @@ public:
 private:
 	using ConnectorPtr = std::shared_ptr<Connector>;
 	// Not thread safe, but in loop.
-	void HandleNewConnection(int socket_fd);
+	void HandleNewConnection(int socket);
 	// Not thread safe, but in loop.
 	void RemoveConnection(const TcpConnectionPtr &connection);
 
-	EventLoop *loop_;
+	EventLoop *main_loop_;
 	ConnectorPtr connector_;
 	const std::string name_;
 	bool retry_; // FIXME: atomic.
