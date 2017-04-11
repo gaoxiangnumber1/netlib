@@ -17,17 +17,18 @@ TcpClient::TcpClient(EventLoop *main_loop,
 	main_loop_(CHECK_NOT_NULL(main_loop)),
 	connector_(new Connector(main_loop_, server_address)),
 	name_(name),
-	retry_(false),
-	connect_(true),
+	retryable_(false),
+	connectable_(true),
 	next_connection_id_(0),
 	connection_callback_(DefaultConnectionCallback),
 	message_callback_(DefaultMessageCallback)
 {
-	connector_->set_new_connection_callback(
-	    bind(&TcpClient::HandleNewConnection, this, _1));
 	LOG_INFO("TcpClient::TcpClient[%s] - connector %p",
 	         name_.c_str(),
 	         connector_.get());
+
+	connector_->set_new_connection_callback(
+	    bind(&TcpClient::HandleNewConnection, this, _1));
 }
 void TcpClient::HandleNewConnection(int socket)
 {
@@ -42,36 +43,35 @@ void TcpClient::HandleNewConnection(int socket)
 	         name_.c_str(), connection_name.c_str(), server_address.ToIpPortString().c_str());
 
 	SocketAddress client_address(nso::GetLocalAddress(socket));
-	// FIXME poll with zero timeout to double confirm the new connection.
-	// FIXME use make_shared if necessary.
-	TcpConnectionPtr connection(new TcpConnection(main_loop_,
-	                            connection_name,
-	                            socket,
-	                            client_address,
-	                            server_address));
+	TcpConnectionPtr connection_ptr(new TcpConnection(main_loop_,
+	                                connection_name,
+	                                socket,
+	                                client_address,
+	                                server_address));
+	connection_ptr->set_connection_callback(connection_callback_);
+	connection_ptr->set_message_callback(message_callback_);
+	connection_ptr->set_write_complete_callback(write_complete_callback_);
+	connection_ptr->set_close_callback(bind(&TcpClient::RemoveConnection, this, _1));
 
-	connection->set_connection_callback(connection_callback_);
-	connection->set_message_callback(message_callback_);
-	connection->set_write_complete_callback(write_complete_callback_);
-	// FIXME: unsafe
-	connection->set_close_callback(bind(&TcpClient::RemoveConnection, this, _1));
 	{
 		MutexLockGuard lock(mutex_);
-		connection_ = connection;
+		connection_ptr_ = connection_ptr;
 	}
-	connection->ConnectEstablished();
+	connection_ptr->ConnectEstablished();
 }
-void TcpClient::RemoveConnection(const TcpConnectionPtr &connection)
+void TcpClient::RemoveConnection(const TcpConnectionPtr &connection_ptr)
 {
 	main_loop_->AssertInLoopThread();
-	assert(main_loop_ == connection->loop());
+	assert(main_loop_ == connection_ptr->loop());
+
 	{
 		MutexLockGuard lock(mutex_);
-		assert(connection_ == connection);
-		connection_.reset();
+		assert(connection_ptr_ == connection_ptr);
+		connection_ptr_.reset();
 	}
-	main_loop_->QueueInLoop(bind(&TcpConnection::ConnectDestroyed, connection));
-	if(retry_ == true && connect_ == true)
+	main_loop_->QueueInLoop(bind(&TcpConnection::ConnectDestroyed,
+	                             connection_ptr));
+	if(retryable_ == true && connectable_ == true)
 	{
 		LOG_INFO("TcpClient::connect[%s] - Reconnecting to %s",
 		         name_.c_str(),
@@ -86,22 +86,22 @@ TcpClient::~TcpClient()
 	         name_.c_str(),
 	         connector_.get());
 	bool is_unique = false;
-	TcpConnectionPtr connection;
+	TcpConnectionPtr connection_ptr;
 	{
 		MutexLockGuard lock(mutex_);
-		is_unique = connection_.unique();
-		connection = connection_;
+		is_unique = connection_ptr_.unique();
+		connection_ptr = connection_ptr_;
 	}
-	if(connection)
+	if(connection_ptr)
 	{
-		assert(main_loop_ == connection->loop());
+		assert(main_loop_ == connection_ptr->loop());
 		// TODO: Already set_close_callback in HandleNewConnection(), why set it again?
 		// FIXME: not 100% safe, if we are in different thread
 		// CloseCallback cb = bind(&detail::removeConnection, main_loop_, _1);
-		// main_loop_->runInLoop(bind(&TcpConnection::setCloseCallback, connection, cb));
+		// main_loop_->runInLoop(bind(&TcpConnection::setCloseCallback, connection_ptr, cb));
 		if(is_unique == true)
 		{
-			connection->ForceClose();
+			connection_ptr->ForceClose();
 		}
 	}
 	else
@@ -118,24 +118,24 @@ void TcpClient::Connect()
 	LOG_INFO("TcpClient::connect[%s] - connecting to %s",
 	         name_.c_str(),
 	         connector_->server_address().ToIpPortString().c_str());
-	connect_ = true;
+	connectable_ = true;
 	connector_->Start();
 }
 
 void TcpClient::Disconnect()
 {
-	connect_ = false;
+	connectable_ = false;
 	{
 		MutexLockGuard lock(mutex_);
-		if(connection_)
+		if(connection_ptr_)
 		{
-			connection_->Shutdown();
+			connection_ptr_->Shutdown();
 		}
 	}
 }
 
 void TcpClient::Stop()
 {
-	connect_ = false;
+	connectable_ = false;
 	connector_->Stop();
 }

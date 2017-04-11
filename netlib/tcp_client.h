@@ -19,7 +19,6 @@ class Connector;
 // Ctor -> -HandleNewConnection
 //			-HandleNewConnection -> -RemoveConnection
 // Dtor
-// Getter: loop
 // Setter: set_connection/message/write_complete_callback
 // EnableRetry
 // Connect
@@ -32,13 +31,8 @@ public:
 	TcpClient(EventLoop *event_loop,
 	          const SocketAddress &server_address,
 	          const std::string &name);
-	~TcpClient(); // Force out-line dtor, for shared_ptr members.
+	~TcpClient(); // Force outline dtor, for shared_ptr members.
 
-	EventLoop *loop() const
-	{
-		return main_loop_;
-	}
-	// All three set_*_callback are Not thread safe!
 	void set_connection_callback(const ConnectionCallback &callback)
 	{
 		connection_callback_ = callback;
@@ -54,27 +48,24 @@ public:
 
 	void EnableRetry()
 	{
-		retry_ = true;
+		retryable_ = true;
 	}
 	void Connect();
 	void Disconnect();
 	void Stop();
 
 private:
-	using ConnectorPtr = std::shared_ptr<Connector>;
-	// Not thread safe, but in loop.
 	void HandleNewConnection(int socket);
-	// Not thread safe, but in loop.
-	void RemoveConnection(const TcpConnectionPtr &connection);
+	void RemoveConnection(const TcpConnectionPtr &connection_ptr);
 
 	EventLoop *main_loop_;
-	ConnectorPtr connector_;
+	std::shared_ptr<Connector> connector_;
 	const std::string name_;
-	bool retry_; // FIXME: atomic.
-	bool connect_; // FIXME: atomic.
-	int next_connection_id_; // FIXME: Let server pass its connection_id as client's id.
+	bool retryable_; // FIXME: Atomic.
+	bool connectable_; // FIXME: Atomic.
+	int next_connection_id_; // FIXME: Get from server.
 	MutexLock mutex_;
-	TcpConnectionPtr connection_; // Guarded by mutex_.
+	TcpConnectionPtr connection_ptr_; // Guarded by mutex_.
 	ConnectionCallback connection_callback_;
 	MessageCallback message_callback_;
 	WriteCompleteCallback write_complete_callback_;

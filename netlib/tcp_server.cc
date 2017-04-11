@@ -45,7 +45,8 @@ void TcpServer::HandleNewConnection(int connected_socket,
 
 	SocketAddress server_address(nso::GetLocalAddress(connected_socket));
 	EventLoop *sub_loop = loop_pool_->GetNextLoop();
-	// TODO: use make_shared() instead of new.
+	// FIXME poll with zero timeout to double confirm the new connection.
+	// FIXME use make_shared if necessary.
 	TcpConnectionPtr connection_ptr(new TcpConnection(sub_loop,
 	                                connection_name,
 	                                connected_socket,
