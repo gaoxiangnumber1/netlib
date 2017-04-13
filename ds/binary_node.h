@@ -3,22 +3,24 @@
 
 #include "stack.h"
 #include "queue.h"
-#include <stdio.h>
 
 template<typename T>
 struct BinaryNode
 {
 	BinaryNode(const T &data,
 	           BinaryNode<T> *left = nullptr,
-	           BinaryNode<T> *right = nullptr):
+	           BinaryNode<T> *right = nullptr,
+	           int weight = 0):
 		data_(data),
 		left_(left),
-		right_(right)
+		right_(right),
+		weight_(weight)
 	{}
 
 	T data_;
 	BinaryNode<T> *left_;
 	BinaryNode<T> *right_;
+	int weight_;
 };
 
 template<typename T>

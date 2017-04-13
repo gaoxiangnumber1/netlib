@@ -3,6 +3,7 @@
 
 #include "pair.h"
 #include "vector.h"
+#include "binary_node.h"
 
 template<typename Key, typename Value>
 class PriorityQueue
@@ -12,8 +13,11 @@ public:
 	void Create();
 
 	void Insert(const Key &key, const Value &value);
-	Value ExtractMin();
 	// TODO: How to implement DecreaseKey() in O(logn)?
+	Value Minimum();
+	Value ExtractMinimum();
+
+	void HuffmanCode();
 
 	bool Empty() const
 	{
@@ -49,7 +53,16 @@ void PriorityQueue<Key, Value>::Insert(const Key &key, const Value &value)
 	FixUp(data_.Size() - 1);
 }
 template<typename Key, typename Value>
-Value PriorityQueue<Key, Value>::ExtractMin()
+Value PriorityQueue<Key, Value>::Minimum()
+{
+	if(Empty() == false)
+	{
+		return data_[0].value_;
+	}
+	return Value();
+}
+template<typename Key, typename Value>
+Value PriorityQueue<Key, Value>::ExtractMinimum()
 {
 	if(Empty() == false)
 	{
@@ -92,15 +105,44 @@ void PriorityQueue<Key, Value>::FixDown(int parent_index, int last)
 	}
 }
 template<typename Key, typename Value>
+void PriorityQueue<Key, Value>::HuffmanCode()
+{
+	int value_kind;
+	scanf("%d", &value_kind);
+	for(int index = 0; index < value_kind; ++index)
+	{
+		BinaryNode<int> *new_node = new BinaryNode<int>(0);
+		scanf("%d %d", &new_node->weight_, &new_node->data_);
+		Insert(new_node->weight_, new_node);
+	}
+	for(int cnt = 1; cnt <= value_kind - 1; ++cnt)
+	{
+		BinaryNode<int> *left_child = ExtractMinimum();
+		BinaryNode<int> *right_child = ExtractMinimum();
+		BinaryNode<int> *new_node = new BinaryNode<int>(0,
+		        left_child,
+		        right_child,
+		        left_child->weight_ + right_child->weight_);
+		Insert(new_node->weight_, new_node);
+	}
+
+	BinaryNode<int> *root = ExtractMinimum();
+	printf("LevelOrder: ");
+	LevelOrder(root);
+	Delete(root);
+	printf("\n");
+}
+template<typename Key, typename Value>
 void PriorityQueue<Key, Value>::ShowContent() const
 {
-	for(int index = 0; index < data_.Capacity(); ++index)
+	for(int index = 0; index < data_.Size(); ++index)
 	{
 		printf("<%d, %d> ", data_[index].key_, data_[index].value_);
 	}
 	printf("\n");
 }
 #endif // CPPLIB_DS_PRIORITY_QUEUE_H_
+
 
 /*
 void Graph::DijkstraShortestPath(int src)
