@@ -190,11 +190,12 @@ void MinHeapFixDown(int *data, int parent_index, int last)
 void HeapSort(int *data, int first, int last)
 {
 	// 1. Convert array to min heap. [first, first + length/2 - 1] has children.
+	// O(n): See ITA Page 159
 	for(int parent_index = first + (last - first) / 2 - 1; parent_index >= first; --parent_index)
 	{
 		MinHeapFixDown(data, parent_index, last);
 	}
-	// 2. Extract min.
+	// 2. Extract min. O(nlogn)
 	for(int index = last - 1; index >= first; --index)
 	{
 		if(data[first] != data[index]) // Guarantee stable.
