@@ -1,4 +1,5 @@
 #include "vertex.h"
+#include "priority_queue.h"
 
 class Graph
 {
@@ -11,9 +12,11 @@ public:
 	void BFS(int src);
 	void DFS(int src);
 	void TopologicalSort();
-	void DijkstraShortestPath(int src);
+	void DijkstraByArrayPQ(int src);
+	void DijkstraByHeapPQ(int src);
 
 private:
+	void DijkstraPrint(int src, int *previous, int *cost);
 	void Refresh();
 
 	int size_;
@@ -141,71 +144,104 @@ void Graph::TopologicalSort()
 	}
 	Refresh();
 }
-void Graph::DijkstraShortestPath(int src)
+void Graph::DijkstraByArrayPQ(int src)
 {
-	int pre_index[size_], path_cost[size_ + 1];
-	bool flag[size_];
-	int true_flag_number = 0;
+	int previous[size_], cost[size_ + 1];
+	bool in_pq[size_];
+	int pq_size = 0;
 	const int kMax = 0x7fffffff;
 	for(int index = 0; index < size_; ++index)
 	{
-		pre_index[index] = -1;
-		path_cost[index] = kMax;
-		flag[index] = false;
+		previous[index] = -1;
+		cost[index] = kMax;
+		in_pq[index] = false;
 	}
-	path_cost[size_] = kMax; // Initialize min_cost_index as size_.
+	cost[size_] = kMax; // Initialize min_cost_index as size_.
 
-	pre_index[src] = src;
-	path_cost[src] = 0;
-	for(Vertex *vertex = graph_[src].next_; vertex != nullptr; vertex = vertex->next_)
-	{
-		pre_index[vertex->index_] = src;
-		path_cost[vertex->index_] = vertex->weight_;
-		flag[vertex->index_] = true; // Insert: O(1)
-		++true_flag_number;
-	}
-	while(true_flag_number > 0)
+	cost[src] = 0;
+	in_pq[src] = true;
+	++pq_size;
+	previous[src] = src;
+	while(pq_size > 0)
 	{
 		int min_cost_index = size_;
 		for(int index = 0; index < size_; ++index) // ExtractMin: O(V)
 		{
-			if(flag[index] == true && path_cost[min_cost_index] > path_cost[index])
+			if(in_pq[index] == true && cost[min_cost_index] > cost[index])
 			{
 				min_cost_index = index;
 			}
 		}
-		flag[min_cost_index] = false;
-		--true_flag_number;
+		in_pq[min_cost_index] = false;
+		--pq_size;
+
 		for(Vertex *vertex = graph_[min_cost_index].next_;
 		        vertex != nullptr;
 		        vertex = vertex->next_)
 		{
-			if(path_cost[vertex->index_] > path_cost[min_cost_index] + vertex->weight_)
+			if(cost[vertex->index_] > cost[min_cost_index] + vertex->weight_)
 			{
 				// DecreaseKey: O(1)
-				path_cost[vertex->index_] = path_cost[min_cost_index] + vertex->weight_;
-				if(pre_index[vertex->index_] == -1)
+				cost[vertex->index_] = cost[min_cost_index] + vertex->weight_;
+				if(previous[vertex->index_] == -1)
 				{
-					flag[vertex->index_] = true; // Insert: O(1)
-					++true_flag_number;
+					in_pq[vertex->index_] = true; // Insert: O(1)
+					++pq_size;
 				}
-				pre_index[vertex->index_] = min_cost_index;
+				previous[vertex->index_] = min_cost_index;
+			}
+		}
+	}
+	DijkstraPrint(src, previous, cost);
+}
+void Graph::DijkstraByHeapPQ(int src)
+{
+	int previous[size_], cost[size_];
+	const int kMax = 0x7fffffff;
+	for(int index = 0; index < size_; ++index)
+	{
+		previous[index] = -1;
+		cost[index] = kMax;
+	}
+
+	PriorityQueue<int, int> priority_queue;
+	cost[src] = 0;
+	priority_queue.Insert(cost[src], src);
+	previous[src] = src;
+	while(priority_queue.Empty() == false)
+	{
+		int min_cost_index = priority_queue.ExtractMinimum();
+		for(Vertex *vertex = graph_[min_cost_index].next_;
+		        vertex != nullptr;
+		        vertex = vertex->next_)
+		{
+			if(cost[vertex->index_] > cost[min_cost_index] + vertex->weight_)
+			{
+				cost[vertex->index_] = cost[min_cost_index] + vertex->weight_;
+				priority_queue.Insert(cost[vertex->index_], vertex->index_);
+				// TODO: Since we can't DecreaseKey() in O(logn), we may duplicate
+				// insert some indexes, this is still right, but may waste some time.
+				previous[vertex->index_] = min_cost_index;
 			}
 		}
 	}
 
+	DijkstraPrint(src, previous, cost);
+}
+void Graph::DijkstraPrint(int src, int *previous, int *cost)
+{
 	for(int index = 0; index < size_; ++index)
 	{
 		int temp_index = index, path[size_], edge_number = 0;
-		while(pre_index[temp_index] != src)
+		while(previous[temp_index] != src)
 		{
-			path[edge_number++] = pre_index[temp_index];
-			temp_index = pre_index[temp_index];
+			path[edge_number++] = previous[temp_index];
+			temp_index = previous[temp_index];
 		}
 		printf("(%d, %d) cost = %d edge = %d: %d",
 		       src,
 		       index,
-		       path_cost[index],
+		       cost[index],
 		       index == src ? 0 : edge_number + 1,
 		       src);
 		for(int cnt = edge_number - 1; cnt >= 0; --cnt)
@@ -253,7 +289,8 @@ int main()
 		graph.DFS(0);
 		graph.BFS(0);
 		graph.TopologicalSort();
-		graph.DijkstraShortestPath(0);
+		graph.DijkstraByArrayPQ(0);
+		graph.DijkstraByHeapPQ(0);
 	}
 }
 /*

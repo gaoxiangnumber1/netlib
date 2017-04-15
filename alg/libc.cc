@@ -148,7 +148,7 @@ int MemoryCompare(const void *data1, const void *data2, size_t length)
 	const unsigned char *char_data2 = static_cast<const unsigned char*>(data2);
 	size_t index = 0;
 	for(; index < length && char_data1[index] == char_data2[index]; ++index);
-	return (index == length ? 0 : char_data1[index] - char_data2[index]);
+	return index == length ? 0 : char_data1[index] - char_data2[index];
 }
 void TestMemoryCompare()
 {
@@ -195,7 +195,7 @@ void *MemorySet(void *data, int value, size_t length)
 	}
 
 	char *char_data = static_cast<char*>(data);
-	char char_value = static_cast<char>(value);
+	const char char_value = static_cast<const char>(value);
 	for(size_t index = 0; index < length; ++index)
 	{
 		char_data[index] = char_value;
@@ -213,52 +213,53 @@ void TestMemorySet()
 	printf("All Case Pass.\n");
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#define ERROR() g_invalid_input = true; return 0;
 int StringToInt(const char *string)
 {
-	if(string == nullptr)
+	if(string == nullptr) // Negative
 	{
-		g_invalid_input = true;
-		return 0;
+		ERROR();
 	}
-
-	size_t length = StringLength(string);
-	if(length == 0)
+	if(*string == 0) // Edge
 	{
 		return 0;
 	}
-	size_t index = 0;
-	if(string[0] == '+' || string[0] == '-')
+	// Process sign.
+	bool negative = false;
+	if(*string == '-')
 	{
-		if(length == 1)
+		negative = true;
+	}
+	if(*string == '+' || *string == '-')
+	{
+		++string;
+		if(*string == 0)
 		{
-			g_invalid_input = true;
-			return 0;
+			ERROR();
 		}
-		++index;
 	}
-	int64_t int64_value = 0;
+	// Process number.
+	int64_t num = 0;
 	const int kIntMin = 0x80000000, kIntMax = 0x7fffffff;
-	while(index < length)
+	while(*string != 0)
 	{
-		if('0' <= string[index] && string[index] <= '9')
+		if('0' <= *string && *string <= '9')
 		{
-			int64_value = int64_value * 10 + string[index] - '0';
-			if((string[0] == '-' && -1 * int64_value < kIntMin) ||
-			        (string[0] != '-' && int64_value > kIntMax))
+			num = num * 10 + *string - '0';
+			if((negative == true && -1 * num < kIntMin) ||
+			        (negative == false && num > kIntMax)) // Under/Overflow.
 			{
-				g_invalid_input = true;
-				return 0;
+				ERROR();
 			}
-			++index;
+			++string;
 		}
 		else
 		{
-			g_invalid_input = true;
-			return 0;
+			ERROR();
 		}
 	}
-	int result = static_cast<int>(int64_value);
-	if(string[0] == '-')
+	int result = static_cast<int>(num);
+	if(negative == true)
 	{
 		result *= -1;
 	}
@@ -266,23 +267,22 @@ int StringToInt(const char *string)
 }
 void TestStringToInt()
 {
-	// Function: -2147483648, -999, -0, 0, +0, 999, +999, 2147483647, +2147483647
+	// Function: -2147483648, -999, -0, 0, +0, 999, +999, 2147483647
 	// Edge: ""
-	// Negative: nullptr, "+" "-", "999*9"(char not in '0123456789'),
-	//					 -9999999999999, -2147483649, 2147483648, +2147483648, 9999999999999
+	// Negative: nullptr, "+" "-", "9a", -2147483649, 2147483648
 	printf("----------TestStringToInt----------\n");
-	const int kCaseNumber = 19;
+	const int kCaseNumber = 15;
 	const char *string[kCaseNumber] =
 	{
-		"-2147483648", "-999", "-0", "0", "+0", "999", "+999", "2147483647", "+2147483647",
+		"-2147483648", "-999", "-0", "0", "+0", "999", "+999", "2147483647",
 		"",
-		nullptr, "-9999999999999","-2147483649","2147483648","+2147483648","9999999999999",
+		nullptr,"+","-","9a","-2147483649","2147483648"
 	};
 	const int answer[kCaseNumber] =
 	{
-		-2147483648, -999, 0, 0, 0, 999, 999, 2147483647, 2147483647,
+		-2147483648, -999, 0, 0, 0, 999, 999, 2147483647,
 		0,
-		0, 0, 0, 0, 0, 0,
+		0, 0, 0, 0,0,0
 	};
 	bool pass = true;
 	for(int index = 0; index < kCaseNumber; ++index)
@@ -303,15 +303,6 @@ void TestStringToInt()
 
 int main()
 {
-	for(char ch = -128; ch != 127; ++ch)
-	{
-		printf("%d: (%c)\n", static_cast<int>(ch), ch);
-	}
-	printf("\n\n\n\n\n\n");
-	for(unsigned char ch = 0; ch != 255; ++ch)
-	{
-		printf("%d: (%c)\n", static_cast<int>(ch), ch);
-	}
 	TestMemoryCopyOrMove();
 	TestStringCopy();
 	TestMemoryCompare();
