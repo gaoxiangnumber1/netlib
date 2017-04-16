@@ -206,26 +206,37 @@ void Graph::DijkstraByHeapPQ(int src)
 
 	PriorityQueue<int, int> priority_queue;
 	cost[src] = 0;
-	priority_queue.Insert(cost[src], src);
+	priority_queue.InsertWithIndex(cost[src], src, &graph_[src].pq_index_);
 	previous[src] = src;
+	int cnt = 0;
 	while(priority_queue.Empty() == false)
 	{
+		priority_queue.ShowContent();
 		int min_cost_index = priority_queue.ExtractMinimum();
 		for(Vertex *vertex = graph_[min_cost_index].next_;
 		        vertex != nullptr;
 		        vertex = vertex->next_)
 		{
-			if(cost[vertex->index_] > cost[min_cost_index] + vertex->weight_)
+			int index = vertex->index_;
+			if(cost[index] > cost[min_cost_index] + vertex->weight_)
 			{
-				cost[vertex->index_] = cost[min_cost_index] + vertex->weight_;
-				priority_queue.Insert(cost[vertex->index_], vertex->index_);
-				// TODO: Since we can't DecreaseKey() in O(logn), we may duplicate
-				// insert some indexes, this is still right, but may waste some time.
-				previous[vertex->index_] = min_cost_index;
+				cost[index] = cost[min_cost_index] + vertex->weight_;
+				if(previous[index] == -1)
+				{
+					priority_queue.InsertWithIndex(cost[index], index, &graph_[index].pq_index_);
+				}
+				else
+				{
+					// FIXME: Still has BUG!
+					priority_queue.DecreaseKey(graph_[index].pq_index_, cost[index]);
+				}
+				previous[index] = min_cost_index;
 			}
 		}
+		++cnt;
 	}
 
+	printf("CNT = %d\n", cnt);
 	DijkstraPrint(src, previous, cost);
 }
 void Graph::DijkstraPrint(int src, int *previous, int *cost)

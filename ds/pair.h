@@ -7,8 +7,18 @@
 template<typename Key, typename Value>
 struct Pair
 {
-	Pair(): key_(Key()), value_(Value()) {}
-	Pair(const Key &key, const Value &value): key_(key), value_(value) {}
+	Pair(const Key &key = Key(),
+	     const Value &value = Value(),
+	     int *index_ptr = nullptr):
+		key_(key),
+		value_(value),
+		index_ptr_(index_ptr)
+	{}
+	Pair(const Pair &rhs):
+		key_(rhs.key_),
+		value_(rhs.value_),
+		index_ptr_(rhs.index_ptr_)
+	{}
 	Pair &operator=(Pair rhs)
 	{
 		Swap(rhs);
@@ -18,10 +28,16 @@ struct Pair
 	{
 		std::swap(key_, rhs.key_);
 		std::swap(value_, rhs.value_);
+		std::swap(index_ptr_, rhs.index_ptr_);
+	}
+	void SwapIndex(Pair &rhs)
+	{
+		std::swap(*index_ptr_, *rhs.index_ptr_);
 	}
 
 	Key key_;
 	Value value_;
+	int *index_ptr_;
 };
 template<typename Key, typename Value>
 inline bool operator>(const Pair<Key, Value> &lhs,

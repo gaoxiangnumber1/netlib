@@ -11,7 +11,8 @@ struct Vertex
 		in_degree_(0),
 		out_degree_(0),
 		visited_(false),
-		next_(next)
+		next_(next),
+		pq_index_(0)
 	{}
 
 	int index_;
@@ -20,6 +21,7 @@ struct Vertex
 	int out_degree_;
 	bool visited_;
 	Vertex *next_;
+	int pq_index_; // Index in PriorityQueue.
 };
 
 void Visit(const Vertex *root)

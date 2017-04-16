@@ -100,6 +100,36 @@ void RKStringSearch(const char *long_string, const char *short_string)
 	}
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void ComputePrefix(const char *string, int *prefix, int length)
+{
+	prefix[0] = 0;
+	for(int k = 0, index = 1; index < length; ++index)
+	{
+		while(k > 0 && string[k] != string[index])
+		{
+			k = prefix[k];
+		}
+		if(string[k] == string[index])
+		{
+			++k;
+		}
+		prefix[index] = k;
+	}
+}
+void KMPStringSearch(const char *long_string, const char *short_string)
+{
+	//int long_length = static_cast<int>(strlen(long_string));
+	int short_length = static_cast<int>(strlen(short_string));
+	// Pre-process
+	int prefix[short_length];
+	ComputePrefix(short_string, prefix, short_length);
+	for(int index = 0; index < short_length; ++index)
+	{
+		printf("%d ", prefix[index]);
+	}
+	printf("\n");
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int main()
 {
 	const int kLongStringSize = 1024;
@@ -107,7 +137,8 @@ int main()
 	char long_string[kLongStringSize], short_string[kShortStringSize];
 	while(scanf("%s %s", long_string, short_string) == 2)
 	{
-		RKStringSearch(long_string, short_string);
+		//RKStringSearch(long_string, short_string);
+		KMPStringSearch(long_string, short_string);
 		printf("\n");
 	}
 }

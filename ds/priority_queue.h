@@ -13,8 +13,8 @@ public:
 	void Create();
 
 	void Insert(const Key &key, const Value &value);
-	// TODO: How implement DecreaseKey() in O(logn)? ->
-	// How memorize object's index in the heap?
+	void InsertWithIndex(const Key &key, const Value &value, int *pq_index);
+	void DecreaseKey(int index, const Key &new_key);
 	Value Minimum();
 	Value ExtractMinimum();
 
@@ -62,6 +62,26 @@ void PriorityQueue<Key, Value>::Insert(const Key &key, const Value &value)
 	FixUp(data_.Size() - 1);
 }
 template<typename Key, typename Value>
+void PriorityQueue<Key, Value>::InsertWithIndex(const Key &key,
+        const Value &value,
+        int *pq_index_ptr)
+{
+	data_.PushBack(Pair<Key, Value>(key, value, pq_index_ptr));
+	*pq_index_ptr = data_.Size() - 1;
+	FixUp(*pq_index_ptr);
+}
+template<typename Key, typename Value>
+void PriorityQueue<Key, Value>::DecreaseKey(int index, const Key &new_key)
+{
+	if(new_key < data_[index].key_)
+	{
+		printf("value = %d, key = %d, new_key = %d\n", data_[index].value_,
+				data_[index].key_, new_key);
+		data_[index].key_ = new_key;
+		FixUp(index);
+	}
+}
+template<typename Key, typename Value>
 Value PriorityQueue<Key, Value>::Minimum()
 {
 	if(Empty() == false)
@@ -88,6 +108,7 @@ void PriorityQueue<Key, Value>::FixUp(int child_index)
 	int parent_index = (child_index - 1) / 2;
 	while(parent_index >= 0 && data_[parent_index] > data_[child_index])
 	{
+		data_[parent_index].SwapIndex(data_[child_index]);
 		std::swap(data_[parent_index], data_[child_index]);
 		child_index = parent_index;
 		parent_index = (child_index - 1) / 2;
@@ -146,7 +167,7 @@ void PriorityQueue<Key, Value>::ShowContent() const
 {
 	for(int index = 0; index < data_.Size(); ++index)
 	{
-		printf("<%d, %d> ", data_[index].key_, data_[index].value_);
+		printf("<%2d,%2d> ", data_[index].key_, data_[index].value_);
 	}
 	printf("\n");
 }
