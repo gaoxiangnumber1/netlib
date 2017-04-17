@@ -75,6 +75,7 @@ int HashValue(const char *data, const int length) // O(length)
 }
 void RKStringSearch(const char *long_string, const char *short_string)
 {
+	printf("RKStringSearch\n");
 	int long_length = static_cast<int>(strlen(long_string));
 	int short_length = static_cast<int>(strlen(short_string));
 	// Pre-process
@@ -98,6 +99,7 @@ void RKStringSearch(const char *long_string, const char *short_string)
 			    (hash_value[index] - to_subtract) * kNumberOfChar + to_add; // %
 		}
 	}
+	printf("\n");
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void ComputePrefix(const char *string, int *prefix, int length)
@@ -118,14 +120,28 @@ void ComputePrefix(const char *string, int *prefix, int length)
 }
 void KMPStringSearch(const char *long_string, const char *short_string)
 {
-	//int long_length = static_cast<int>(strlen(long_string));
+	printf("KMPStringSearch\n");
+	int long_length = static_cast<int>(strlen(long_string));
 	int short_length = static_cast<int>(strlen(short_string));
 	// Pre-process
 	int prefix[short_length];
 	ComputePrefix(short_string, prefix, short_length);
-	for(int index = 0; index < short_length; ++index)
+	int matched = 0;
+	for(int index = 0; index < long_length; ++index)
 	{
-		printf("%d ", prefix[index]);
+		while(matched > 0 && short_string[matched] != long_string[index])
+		{
+			matched = prefix[matched];
+		}
+		if(short_string[matched] == long_string[index])
+		{
+			++matched;
+		}
+		if(matched == short_length - 1)
+		{
+			printf("%d ", index - matched + 1);
+			matched = prefix[matched];
+		}
 	}
 	printf("\n");
 }
@@ -137,8 +153,10 @@ int main()
 	char long_string[kLongStringSize], short_string[kShortStringSize];
 	while(scanf("%s %s", long_string, short_string) == 2)
 	{
-		//RKStringSearch(long_string, short_string);
+		RKStringSearch(long_string, short_string);
 		KMPStringSearch(long_string, short_string);
-		printf("\n");
 	}
 }
+/*
+ababaca aba
+*/

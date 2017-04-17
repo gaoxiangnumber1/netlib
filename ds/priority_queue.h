@@ -75,8 +75,6 @@ void PriorityQueue<Key, Value>::DecreaseKey(int index, const Key &new_key)
 {
 	if(new_key < data_[index].key_)
 	{
-		printf("value = %d, key = %d, new_key = %d\n", data_[index].value_,
-				data_[index].key_, new_key);
 		data_[index].key_ = new_key;
 		FixUp(index);
 	}
@@ -108,7 +106,6 @@ void PriorityQueue<Key, Value>::FixUp(int child_index)
 	int parent_index = (child_index - 1) / 2;
 	while(parent_index >= 0 && data_[parent_index] > data_[child_index])
 	{
-		data_[parent_index].SwapIndex(data_[child_index]);
 		std::swap(data_[parent_index], data_[child_index]);
 		child_index = parent_index;
 		parent_index = (child_index - 1) / 2;

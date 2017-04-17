@@ -28,11 +28,11 @@ struct Pair
 	{
 		std::swap(key_, rhs.key_);
 		std::swap(value_, rhs.value_);
+		if(index_ptr_ != nullptr && rhs.index_ptr_ != nullptr)
+		{
+			std::swap(*index_ptr_, *rhs.index_ptr_);
+		}
 		std::swap(index_ptr_, rhs.index_ptr_);
-	}
-	void SwapIndex(Pair &rhs)
-	{
-		std::swap(*index_ptr_, *rhs.index_ptr_);
 	}
 
 	Key key_;

@@ -208,7 +208,6 @@ void Graph::DijkstraByHeapPQ(int src)
 	cost[src] = 0;
 	priority_queue.InsertWithIndex(cost[src], src, &graph_[src].pq_index_);
 	previous[src] = src;
-	int cnt = 0;
 	while(priority_queue.Empty() == false)
 	{
 		priority_queue.ShowContent();
@@ -227,16 +226,13 @@ void Graph::DijkstraByHeapPQ(int src)
 				}
 				else
 				{
-					// FIXME: Still has BUG!
 					priority_queue.DecreaseKey(graph_[index].pq_index_, cost[index]);
 				}
 				previous[index] = min_cost_index;
 			}
 		}
-		++cnt;
 	}
 
-	printf("CNT = %d\n", cnt);
 	DijkstraPrint(src, previous, cost);
 }
 void Graph::DijkstraPrint(int src, int *previous, int *cost)
@@ -324,6 +320,17 @@ int main()
 DFS: 0 1 2 3 4
 BFS: 0 1 3 2 4
 TLS: 0 3 1 4 2
+(0, 0) cost = 0 edge = 0: 0 -> 0
+(0, 1) cost = 8 edge = 2: 0 -> 3 -> 1
+(0, 2) cost = 9 edge = 3: 0 -> 3 -> 1 -> 2
+(0, 3) cost = 5 edge = 1: 0 -> 3
+(0, 4) cost = 7 edge = 2: 0 -> 3 -> 4
+
+< 0, 0>
+< 5, 3> <10, 1>
+< 7, 4> <14, 2> < 8, 1>
+< 8, 1> <13, 2>
+< 9, 2>
 (0, 0) cost = 0 edge = 0: 0 -> 0
 (0, 1) cost = 8 edge = 2: 0 -> 3 -> 1
 (0, 2) cost = 9 edge = 3: 0 -> 3 -> 1 -> 2
