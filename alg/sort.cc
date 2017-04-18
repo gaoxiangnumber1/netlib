@@ -168,26 +168,26 @@ void MergeSort(int *data, int first, int last) // [first, last)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void MinHeapFixDown(int *data, int parent_index, int last)
 {
-	int min_child_index = parent_index * 2 + 1;
-	while(min_child_index < last)
+	int max_child_index = parent_index * 2 + 1;
+	while(max_child_index < last)
 	{
-		if(min_child_index < last - 1 &&
-		        data[min_child_index] > data[min_child_index + 1])
+		if(max_child_index < last - 1 &&
+		        data[max_child_index] < data[max_child_index + 1])
 		{
-			++min_child_index;
+			++max_child_index;
 		}
-		if(data[parent_index] <= data[min_child_index]) // `=` guarantee stable.
+		if(data[parent_index] >= data[max_child_index]) // `=` guarantee stable.
 		{
 			return;
 		}
-		std::swap(data[parent_index], data[min_child_index]);
-		parent_index = min_child_index;
-		min_child_index = parent_index * 2 + 1;
+		std::swap(data[parent_index], data[max_child_index]);
+		parent_index = max_child_index;
+		max_child_index = parent_index * 2 + 1;
 	}
 }
 // TC: Best = O(nlogn), Average = O(nlogn), Worst = O(nlogn)
 // SC: O(1)
-void HeapSort(int *data, int first, int last)
+void HeapSort(int *data, int first, int last)// 改成正序！！！
 {
 	// 1. Convert array to min heap. [first, first + length/2 - 1] has children.
 	// O(n): See ITA Page 159
