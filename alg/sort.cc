@@ -4,14 +4,14 @@
 using namespace std;
 
 // Assume all inputs are invalid.
-
 // Assume n is the number of elements to be sorted.
+
 // TC: Best = O(n^2), Average = O(n^2), Worst = O(n^2)
 // SC: O(1)
 void SelectionSort(int *data, int first, int last)
 {
 	// [first, first_unsorted) is sorted, [first_unsorted, last) is unsorted.
-	for(int first_unsorted = first; first_unsorted < last - 1; ++first_unsorted)
+	for(int first_unsorted = first; first_unsorted < last; ++first_unsorted)
 	{
 		int min_index = first_unsorted;
 		for(int compare_index = first_unsorted + 1; compare_index < last; ++compare_index)
@@ -34,19 +34,20 @@ void SelectionSort(int *data, int first, int last)
 // SC: O(1)
 void BubbleSort(int *data, int first, int last) // [first, last)
 {
-	// [first, first + unsorted_number) is unsorted, [first + unsorted_number, last) is sorted.
+	// [first, first + unsorted_number) is unsorted
+	// [first + unsorted_number, last) is sorted.
 	for(int unsorted_number = last - first; unsorted_number > 0; )
 	{
 		int last_swap_index = -1;
 		// Traverse [first, first + unsorted_number)
-		for(int latter_swap_index = first + 1;
-		        latter_swap_index < first + unsorted_number;
-		        ++latter_swap_index)
+		for(int latter_index = first + 1;
+		        latter_index < first + unsorted_number;
+		        ++latter_index)
 		{
-			if(data[latter_swap_index - 1] > data[latter_swap_index])
+			if(data[latter_index - 1] > data[latter_index])
 			{
-				swap(data[latter_swap_index - 1], data[latter_swap_index]);
-				last_swap_index = latter_swap_index;
+				swap(data[latter_index - 1], data[latter_index]);
+				last_swap_index = latter_index;
 			}
 		}
 		// [first, last_swap_index) is unsorted, [last_swap_index, last) is sorted.
@@ -61,12 +62,11 @@ void InsertionSort(int *data, int first, int last)
 	// [first, first_unsorted) is sorted, [first_unsorted, last) is unsorted.
 	for(int first_unsorted = first; first_unsorted < last; ++first_unsorted)
 	{
-		int latter_swap_index = first_unsorted;
-		while(latter_swap_index > first &&
-		        data[latter_swap_index - 1] > data[latter_swap_index])
+		for(int latter_index = first_unsorted;
+		        latter_index - 1 >= first && data[latter_index - 1] > data[latter_index];
+		        --latter_index)
 		{
-			swap(data[latter_swap_index - 1], data[latter_swap_index]);
-			--latter_swap_index;
+			swap(data[latter_index - 1], data[latter_index]);
 		}
 		// One more element is sorted.
 		// [first, first_unsorted + 1) is sorted; [first_unsorted + 1, last) is unsorted.
@@ -76,43 +76,38 @@ void InsertionSort(int *data, int first, int last)
 int Partition(int *data, int first, int last) // O(n)
 {
 	int pivot = data[last - 1];
-	int divide = first;
-	// value in [first, divide) <= pivot[divide, divide + 1) < value in [divide + 1, last)
+	int not_greater_number = 0;
 	for(int index = first; index < last - 1; ++index)
 	{
-		if(data[index] <= pivot) // `<=` guarantee the stability.
+		if(data[index] <= pivot)
 		{
-			if(index != divide) // No need swap when both points to the same element.
+			++not_greater_number;
+			if(index != first + not_greater_number - 1)
 			{
-				// data[divide] > pivot >= data[index]
-				swap(data[index], data[divide]);
+				swap(data[index], data[first + not_greater_number - 1]);
 			}
-			++divide;
 		}
 	}
-	// divide has two possible values:
-	// 1. divide < last - 1: [divide] > pivot(i.e., [last - 1]), swap them.
-	// 2. divide = last - 1: [divide] = pivot, no need swap.
-	if(divide != last - 1)
+	if(first + not_greater_number != last - 1)
 	{
-		swap(data[divide], data[last - 1]);
+		swap(data[first + not_greater_number], data[last - 1]);
 	}
-	return divide;
+	return first + not_greater_number;
 }
 // TC: Best = O(nlogn), Average = O(nlogn), Worst = O(n^2)
 // SC: Best = O(logn), Worst = O(n)
 void QuickSort(int *data, int first, int last) // [first, last)
 {
-	if(last - first >= 2) // Only one element is auto sorted.
+	if(last - first <= 1) // Only one element is auto sorted.
 	{
-		// Divide: value in [first, divide) <= pivot [divide, divide + 1) < value in [divide + 1, last)
-		int divide = Partition(data, first, last);
-		// Conquer: sort [first, divide) and [divide + 1, last) by recursive calls.
-		QuickSort(data, first, divide);
-		QuickSort(data, divide + 1, last);
-		// Combine: subarrays are sorted, no work is needed to combine them,
-		// thus the entire array is sorted.
+		return;
 	}
+	// Divide: [first, divide) <= [divide, divide + 1) < [divide + 1, last)
+	int divide = Partition(data, first, last);
+	// Conquer: sort [first, divide) and [divide + 1, last) by recursive calls.
+	QuickSort(data, first, divide);
+	QuickSort(data, divide + 1, last);
+	// Combine: sub arrays are sorted, no work is needed to combine them.
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Merge(int *data, int first, int middle, int last, int *helper) // O(n)
@@ -147,16 +142,17 @@ void Merge(int *data, int first, int middle, int last, int *helper) // O(n)
 }
 void MergeSortMain(int *data, int first, int last, int *helper)
 {
-	if(last - first >= 2) // Only 1 element is auto sorted.
+	if(last - first <= 1) // Only 1 element is auto sorted.
 	{
-		// Divide: divide n-element array into two n/2-element subarrays.
-		int middle = first + (last - first) / 2;
-		// Conquer: sort two subarrays [first, middle) and [middle, last) recursively.
-		MergeSortMain(data, first, middle, helper);
-		MergeSortMain(data, middle, last, helper);
-		// Combine: merge two sorted subarrays.
-		Merge(data, first, middle, last, helper);
+		return;
 	}
+	// Divide: divide n-element array into two n/2-element subarrays.
+	int middle = first + (last - first) / 2;
+	// Conquer: sort two subarrays [first, middle) and [middle, last) recursively.
+	MergeSortMain(data, first, middle, helper);
+	MergeSortMain(data, middle, last, helper);
+	// Combine: merge two sorted subarrays.
+	Merge(data, first, middle, last, helper);
 }
 // TC: Best = O(nlogn), Average = O(nlogn), Worst = O(nlogn)
 // SC: O(n)
