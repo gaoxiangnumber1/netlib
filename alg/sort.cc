@@ -162,7 +162,7 @@ void MergeSort(int *data, int first, int last) // [first, last)
 	MergeSortMain(data, first, last, helper);
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void MinHeapFixDown(int *data, int parent_index, int last)
+void FixDown(int *data, int parent_index, int last)
 {
 	int max_child_index = parent_index * 2 + 1;
 	while(max_child_index < last)
@@ -176,28 +176,30 @@ void MinHeapFixDown(int *data, int parent_index, int last)
 		{
 			return;
 		}
-		std::swap(data[parent_index], data[max_child_index]);
+		swap(data[parent_index], data[max_child_index]);
 		parent_index = max_child_index;
 		max_child_index = parent_index * 2 + 1;
 	}
 }
 // TC: Best = O(nlogn), Average = O(nlogn), Worst = O(nlogn)
 // SC: O(1)
-void HeapSort(int *data, int first, int last)// 改成正序！！！
+void HeapSort(int *data, int first, int last)
 {
-	// 1. Convert array to min heap. [first, first + length/2 - 1] has children.
-	// O(n): See ITA Page 159
-	for(int parent_index = first + (last - first) / 2 - 1; parent_index >= first; --parent_index)
+	// 1. Convert to max heap. O(n): See ITA Page 159.
+	// [first, first + ((length - 1) - 1) / 2] has children.
+	for(int parent_index = first + ((last - first - 1) - 1) / 2;
+	        parent_index >= first;
+	        --parent_index)
 	{
-		MinHeapFixDown(data, parent_index, last);
+		FixDown(data, parent_index, last);
 	}
-	// 2. Extract min. O(nlogn)
+	// 2. Extract maximum. O(nlogn)
 	for(int index = last - 1; index >= first; --index)
 	{
 		if(data[first] != data[index]) // Guarantee stable.
 		{
-			std::swap(data[first], data[index]);
-			MinHeapFixDown(data, first, index);
+			swap(data[first], data[index]);
+			FixDown(data, first, index);
 		}
 	}
 }
