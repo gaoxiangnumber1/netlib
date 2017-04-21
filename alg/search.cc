@@ -102,6 +102,7 @@ void RKStringSearch(const char *long_string, const char *short_string)
 	printf("\n");
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////
 void ComputePrefix(const char *string, int *prefix, int length)
 {
 	prefix[0] = 0;
