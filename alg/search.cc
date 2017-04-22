@@ -75,7 +75,7 @@ int HashValue(const char *data, const int length) // O(length)
 }
 void RKStringSearch(const char *long_string, const char *short_string)
 {
-	printf("RKStringSearch\n");
+	printf("----------RKStringSearch----------\n");
 	int long_length = static_cast<int>(strlen(long_string));
 	int short_length = static_cast<int>(strlen(short_string));
 	// Pre-process
@@ -84,12 +84,14 @@ void RKStringSearch(const char *long_string, const char *short_string)
 	int hash_value[substring_number];
 	hash_value[0] = HashValue(long_string, short_length);
 	int max_power = QuickPower(kNumberOfChar, short_length - 1);
+	bool good_match = false;
 	for(int index = 0; index < substring_number; ++index)
 	{
 		if(hash_value[index] == target_hash_value &&
 		        strncmp(long_string + index, short_string, short_length) == 0)
 		{
 			printf("%d ", index);
+			good_match = true;
 		}
 		if(index < substring_number - 1)
 		{
@@ -99,50 +101,62 @@ void RKStringSearch(const char *long_string, const char *short_string)
 			    (hash_value[index] - to_subtract) * kNumberOfChar + to_add; // %
 		}
 	}
+	if(good_match == false)
+	{
+		printf("null");
+	}
 	printf("\n");
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////
-void ComputePrefix(const char *string, int *prefix, int length)
+void ComputePrefix(const char *string, int *max_prefix_length, int length)
 {
-	prefix[0] = 0;
-	for(int k = 0, index = 1; index < length; ++index)
+	max_prefix_length[0] = 0;
+	for(int next_checked_prefix_index = 0, real_suffix_end_index = 1;
+	        real_suffix_end_index < length;
+	        ++real_suffix_end_index)
 	{
-		while(k > 0 && string[k] != string[index])
+		while(next_checked_prefix_index > 0 &&
+		        string[next_checked_prefix_index] != string[real_suffix_end_index])
 		{
-			k = prefix[k];
+			next_checked_prefix_index = max_prefix_length[next_checked_prefix_index];
 		}
-		if(string[k] == string[index])
+		if(string[next_checked_prefix_index] == string[real_suffix_end_index])
 		{
-			++k;
+			++next_checked_prefix_index;
 		}
-		prefix[index] = k;
+		max_prefix_length[real_suffix_end_index] = next_checked_prefix_index;
 	}
 }
 void KMPStringSearch(const char *long_string, const char *short_string)
 {
-	printf("KMPStringSearch\n");
+	printf("----------KMPStringSearch----------\n");
 	int long_length = static_cast<int>(strlen(long_string));
 	int short_length = static_cast<int>(strlen(short_string));
 	// Pre-process
-	int prefix[short_length];
-	ComputePrefix(short_string, prefix, short_length);
+	int max_prefix_length[short_length];
+	ComputePrefix(short_string, max_prefix_length, short_length);
 	int matched = 0;
+	bool good_match = false;
 	for(int index = 0; index < long_length; ++index)
 	{
 		while(matched > 0 && short_string[matched] != long_string[index])
 		{
-			matched = prefix[matched];
+			matched = max_prefix_length[matched - 1];
 		}
 		if(short_string[matched] == long_string[index])
 		{
 			++matched;
 		}
-		if(matched == short_length - 1)
+		if(matched == short_length)
 		{
+			good_match = true;
 			printf("%d ", index - matched + 1);
-			matched = prefix[matched];
+			matched = max_prefix_length[matched - 1];
 		}
+	}
+	if(good_match == false)
+	{
+		printf("null");
 	}
 	printf("\n");
 }
@@ -159,5 +173,23 @@ int main()
 	}
 }
 /*
+a a
+aaa a
+aaa aa
+abcdefac ac
+abcdabcd bc
 ababaca aba
+a b
+ab c
+abc cd
+----------------
+0
+0 1 2
+0 1
+6
+1 5
+0 2
+null
+null
+null
 */
