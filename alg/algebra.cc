@@ -1,21 +1,57 @@
 #include <stdio.h>
 #include <string.h>
+#include <utility>
+using std::swap;
 
-const int kMax = 100000;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+int EuclidGreatestCommonDivisor(int big, int small)
+{
+	if(big < small)
+	{
+		swap(big, small);
+	}
+	while(small != 0)
+	{
+		int mod = big % small;
+		big = small;
+		small = mod;
+	}
+	return big;
+}
+void TestEuclidGreatestCommonDivisor()
+{
+	printf("----------TestEuclidGreatestCommonDivisor----------\n");
+	const int kCaseNumber = 5;
+	int num[kCaseNumber][2] = {{100,9},{1,55},{11,1254},{55,66},{8,9}};
+	int answer[kCaseNumber] = {1,1,11,11,1};
+	for(int index = 0; index < kCaseNumber; ++index)
+	{
+		if(EuclidGreatestCommonDivisor(num[index][0], num[index][1]) != answer[index])
+		{
+			printf("Case %d Not pass.\n", index);
+		}
+	}
+	printf("All case pass\n");
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+const int kMax = 255;
 bool is_prime[kMax + 1];
 int prime[kMax + 1];
-int prime_count = -1;
-
-void GetPrime()
+int prime_count;
+void Prime()
 {
 	memset(is_prime, true, sizeof is_prime);
+	prime_count = 0;
 	for(int number = 2; number <= kMax; ++number)
 	{
 		if(is_prime[number] == true)
 		{
 			prime[++prime_count] = number;
 		}
-		for(int index = 0; index <= prime_count && (prime[index] * number <= kMax); ++index)
+		for(int index = 1;
+		        index <= prime_count && prime[index] * number <= kMax;
+		        ++index)
 		{
 			is_prime[prime[index] * number] = false;
 			if(number % prime[index] == 0)
@@ -24,6 +60,25 @@ void GetPrime()
 			}
 		}
 	}
+}
+void TestPrime()
+{
+	printf("----------TestPrime----------\n");
+	const int answer[] =
+	{
+		0,2,3,5,7,11,13,17,19,23,29,31,37,41,43,47,53,59,61,67,71,73,79,83,89,97,
+		101,103,107,109,113,127,131,137,139,149,151,157,163,167,173,179,181,
+		191,193,197,199,211,223,227,229,233,239,241,251
+	};
+	Prime();
+	for(int index = 1; index <= prime_count; ++index)
+	{
+		if(prime[index] != answer[index])
+		{
+			printf("Case %d Not pass.\n", index);
+		}
+	}
+	printf("All case Pass.\n");
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool g_invalid_input = false;  // global variable to indicate whether the input is invalid
@@ -89,5 +144,6 @@ double QuickPower(double base, int exponent)
 
 int main()
 {
-	return 0;
+	TestEuclidGreatestCommonDivisor();
+	TestPrime();
 }
