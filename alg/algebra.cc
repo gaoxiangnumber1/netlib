@@ -43,18 +43,18 @@ void Prime()
 {
 	memset(is_prime, true, sizeof is_prime);
 	prime_count = 0;
-	for(int number = 2; number <= kMax; ++number)
+	for(int num = 2; num <= kMax; ++num)
 	{
-		if(is_prime[number] == true)
+		if(is_prime[num] == true)
 		{
-			prime[++prime_count] = number;
+			prime[++prime_count] = num;
 		}
 		for(int index = 1;
-		        index <= prime_count && prime[index] * number <= kMax;
+		        index <= prime_count && prime[index] * num <= kMax;
 		        ++index)
 		{
-			is_prime[prime[index] * number] = false;
-			if(number % prime[index] == 0)
+			is_prime[prime[index] * num] = false;
+			if(num % prime[index] == 0)
 			{
 				break;
 			}
@@ -84,7 +84,7 @@ void TestPrime()
 bool g_invalid_input = false;  // global variable to indicate whether the input is invalid
 bool Equal(double num1, double num2)
 {
-	// since float number can't be represented exactly, if the difference is very small,
+	// since float num can't be represented exactly, if the difference is very small,
 	// we think the two numbers are equal.
 	if((num1 - num2 > -0.0000001) && (num1 - num2 < 0.0000001))
 	{
