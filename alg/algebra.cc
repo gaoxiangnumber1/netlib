@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <utility>
+#include <math.h>
 using std::swap;
-
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int EuclidGreatestCommonDivisor(int big, int small)
@@ -36,11 +36,11 @@ void TestEuclidGreatestCommonDivisor()
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 const int kMax = 255;
-bool is_prime[kMax + 1];
-int prime[kMax + 1];
+int prime[kMax];
 int prime_count;
 void Prime()
 {
+	bool is_prime[kMax + 1];
 	memset(is_prime, true, sizeof is_prime);
 	prime_count = 0;
 	for(int num = 2; num <= kMax; ++num)
@@ -81,57 +81,32 @@ void TestPrime()
 	printf("All case Pass.\n");
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool g_invalid_input = false;  // global variable to indicate whether the input is invalid
+bool g_invalid_input = false;
 bool Equal(double num1, double num2)
 {
-	// since float num can't be represented exactly, if the difference is very small,
-	// we think the two numbers are equal.
-	if((num1 - num2 > -0.0000001) && (num1 - num2 < 0.0000001))
+	if(num1 - num2 > -0.0000001 && num1 - num2 < 0.0000001)
 	{
 		return true;
 	}
 	return false;
 }
-// recursive quick power
-double RecursiveQuickPower(double base, int exponent)  // exponent must >= 0
-{
-	if(exponent == 0)
-	{
-		return 1;  // x^0 = 1
-	}
-	if(exponent == 1)
-	{
-		return base;  // x^1 = x
-	}
-
-	double result = RecursiveQuickPower(base, exponent >> 1);  // >> is more efficient than /
-	result *= result;
-	if((exponent & 0x1) == 1)  // if exponent is odd
-	{
-		result *= base;
-	}
-	return result;
-}
 double QuickPower(double base, int exponent)
 {
-	if(Equal(base, 0.0) && exponent < 0)  // invalid input: divided by 0
+	if(Equal(base, 0.0) && exponent < 0) // Negative: divided by 0.
 	{
 		g_invalid_input = true;
 		return 0.0;
 	}
 
-	int abs_exponent = exponent >= 0 ? exponent : -exponent;  // exponent's absolute value
-	//double result = RecursiveQuickPower(base, abs_exponent);
-	// RecursiveQuickPower is a kind of recursive quick power,
-	// which is slower than the following loop quick power.
+	int abs_exponent = exponent >= 0 ? exponent : -exponent;
 	double result = 1.0;
 	while(abs_exponent != 0)
 	{
-		if((abs_exponent & 0x1) == 1)  // the lowest bit is 1
+		if((abs_exponent & 0x1) == 1)
 		{
 			result *= base;
 		}
-		abs_exponent >>= 1;  // move to right 1 bit
+		abs_exponent >>= 1;
 		base *= base;
 	}
 
@@ -141,9 +116,30 @@ double QuickPower(double base, int exponent)
 	}
 	return result;
 }
+void TestQuickPower()
+{
+	printf("----------TestQuickPower----------\n");
+	const int kCaseNumber = 3;
+	double base[kCaseNumber] = {-12.34, 12.34, 34.12};
+	int exponent[kCaseNumber] = {-5, 0, 5};
+	for(int index1 = 0; index1 < kCaseNumber; ++index1)
+	{
+		for(int index2 = 0; index2 < kCaseNumber; ++index2)
+		{
+			if(Equal(pow(base[index1], exponent[index2]),
+			         QuickPower(base[index1], exponent[index2])) == false)
+			{
+				printf("Case %f^%d Not Pass.\n", base[index1], exponent[index2]);
+			}
+		}
+	}
+	printf("All case Pass.\n");
+}
+//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 int main()
 {
 	TestEuclidGreatestCommonDivisor();
 	TestPrime();
+	TestQuickPower();
 }
