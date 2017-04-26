@@ -84,33 +84,34 @@ void TestPrime()
 bool g_invalid_input = false;
 bool Equal(double num1, double num2)
 {
-	if(num1 - num2 > -0.0000001 && num1 - num2 < 0.0000001)
+	double diff = num1 - num2;
+	if(-0.0000001 < diff && diff < 0.0000001)
 	{
 		return true;
 	}
 	return false;
 }
-double QuickPower(double base, int exponent)
+double QuickPower(double base, int exp)
 {
-	if(Equal(base, 0.0) && exponent < 0) // Negative: divided by 0.
+	if(Equal(base, 0.0) == true && exp < 0) // Negative: divided by 0.
 	{
 		g_invalid_input = true;
 		return 0.0;
 	}
 
-	int abs_exponent = exponent >= 0 ? exponent : -exponent;
+	int abs_exp = exp >= 0 ? exp : -exp;
 	double result = 1.0;
-	while(abs_exponent != 0)
+	while(abs_exp > 0)
 	{
-		if((abs_exponent & 0x1) == 1)
+		if((abs_exp & 0x1) == 1)
 		{
 			result *= base;
 		}
-		abs_exponent >>= 1;
+		abs_exp >>= 1;
 		base *= base;
 	}
 
-	if(exponent < 0)
+	if(exp < 0)
 	{
 		result = 1.0 / result;
 	}
@@ -121,15 +122,15 @@ void TestQuickPower()
 	printf("----------TestQuickPower----------\n");
 	const int kCaseNumber = 3;
 	double base[kCaseNumber] = {-12.34, 12.34, 34.12};
-	int exponent[kCaseNumber] = {-5, 0, 5};
+	int exp[kCaseNumber] = {-5, 0, 5};
 	for(int index1 = 0; index1 < kCaseNumber; ++index1)
 	{
 		for(int index2 = 0; index2 < kCaseNumber; ++index2)
 		{
-			if(Equal(pow(base[index1], exponent[index2]),
-			         QuickPower(base[index1], exponent[index2])) == false)
+			if(Equal(pow(base[index1], exp[index2]),
+			         QuickPower(base[index1], exp[index2])) == false)
 			{
-				printf("Case %f^%d Not Pass.\n", base[index1], exponent[index2]);
+				printf("Case %f^%d Not Pass.\n", base[index1], exp[index2]);
 			}
 		}
 	}

@@ -4,7 +4,7 @@
 using std::swap;
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-const int kNumberOfQueenKind = 3;
+const int kQueenKindNumber = 3;
 const int kMaxQueenNumber = 50;
 // [0][column]: false if no queen in this column; otherwise true.
 // [1][row + column] and [2][row - column + queen_number] are for 2 kinds of
@@ -13,7 +13,7 @@ const int kMaxQueenNumber = 50;
 // formula: y = k*x + b, which y(row), k(1 or -1), x(column) and b is a constant.
 // Since row - column can be negative, so we add queen_number to
 // guarantee that the index is nonnegative.
-bool have_queen[kNumberOfQueenKind][kMaxQueenNumber * 2 + 10];
+bool have_queen[kQueenKindNumber][kMaxQueenNumber * 2 + 10];
 // position[row] = column: place queen in [row][column]. Used to print solution.
 int position[kMaxQueenNumber];
 int solution_number;
@@ -196,7 +196,7 @@ void TestSudoku()
 	printf("All Case pass.\n");
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void ShowContent(int *data, int first, int last)
+void GetPermutation(int *data, int first, int last)
 {
 	for(int index = first; index < last; ++index)
 	{
@@ -210,7 +210,7 @@ void Permutation(int *data, int first, int last)  // [first, last)
 	if(last - first == 1) // Length = 1, recursive ends, get one n-data permutation.
 	{
 		++g_permutation_number;
-		ShowContent(data, 0, last);
+		GetPermutation(data, 0, last);
 		return;
 	}
 	for(int index = first; index < last; ++index)
@@ -261,8 +261,8 @@ void TestPermutationAndSubset()
 	for(int index = 0; index < kCaseNumber; ++index)
 	{
 		g_permutation_number = 0;
-		//Permutation(data[index], 0, kDataLength);
-		//printf("Case %d: total %d permutation.\n", index, g_permutation_number);
+		Permutation(data[index], 0, kDataLength);
+		printf("Case %d: total %d permutation.\n", index, g_permutation_number);
 	}
 	for(int index = 0; index < kCaseNumber; ++index)
 	{
@@ -276,6 +276,5 @@ int main()
 {
 	TestNQueen();
 	TestSudoku();
-//	TestPermutationAndSubset();
+	TestPermutationAndSubset();
 }
-
