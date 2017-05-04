@@ -1,8 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 
-// TODO:
-// 1. Save memory: use char? dynamic allocate array?
+// TODO: 1. Save memory: use char? dynamic allocate array?
 struct BigInteger
 {
 public:
@@ -165,7 +164,6 @@ public:
 		BigInteger result;
 		if(comp > 0)
 		{
-
 		}
 		else
 		{
