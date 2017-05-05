@@ -1,65 +1,107 @@
 #include <string.h>
 #include <stdio.h>
 
-// TODO: 1. Save memory: use char? dynamic allocate array?
 struct BigInteger
 {
 public:
-	BigInteger(): is_neg_(false), size_(0)
+	BigInteger(): neg_(false), size_(0), num_(nullptr) {}
+	BigInteger(const char *input)
 	{
-		memset(num_, 0, sizeof num_);
-	}
-	void CreateFromInput()
-	{
-		char input[kBigIntegerSize];
-		scanf("%s", input);
 		if(input[0] == '-')
 		{
-			is_neg_ = true;
+			neg_ = true;
 		}
 		int input_size = static_cast<int>(strlen(input));
-		size_ = is_neg_ ? input_size - 1 : input_size;
+		size_ = neg_ ? input_size - 1 : input_size;
+		num_ = new short[size_];
 		for(int index = 0; index < size_; ++index)
 		{
-			num_[index] = input[input_size - 1 - index] - '0';
+			num_[index] = static_cast<short>(input[input_size - 1 - index] - '0');
 		}
-		//ShowContent();
+		ShowContent();
 	}
-	void Add(BigInteger &rhs)
+	BigInteger &operator=(BigInteger rhs)
 	{
-		if((is_neg_ == true && rhs.is_neg_ == true) ||
-		        (is_neg_ == false && rhs.is_neg_ == false))
+		neg_ = rhs.neg_;
+		size_ = rhs.size_;
+		delete [] num_;
+		num_ = new short[size_];
+		memmove(num_, rhs.num_, size_ * sizeof(short));
+	}
+	~BigInteger()
+	{
+		delete [] num_;
+	}
+	void set_neg(bool neg)
+	{
+		neg_ = neg;
+	}
+	void set_size(int new_size)
+	{
+		size_ = new_size;
+		delete [] num_;
+		num_ = new short[new_size];
+	}
+	void ShowContent()
+	{
+		if(neg_ == true)
+		{
+			printf("-");
+		}
+		for(int index = size_ - 1; index >= 0; --index)
+		{
+			printf("%d", num_[index]);
+		}
+		printf("\n");
+	}
+
+	BigInteger Add(BigInteger &rhs)
+	{
+		BigInteger result;
+		if((neg_ == true && rhs.neg_ == true) ||
+		        (neg_ == false && rhs.neg_ == false))
 		{
 			int max_size = size_ > rhs.size_ ? size_ : rhs.size_;
-			BigInteger result;
-			int carry = 0;
-			for(int index = 0; index <= max_size; ++index) // `<=`: 09 + 09 = 18
+			result.set_neg(neg_);
+			result.set_size(max_size + 1);
+			int min_size = size_ < rhs.size_ ? size_ : rhs.size_;
+			for(int index = 0; index < min_size; ++index)
 			{
-				int value = num_[index] + rhs.num_[index] + carry;
-				carry = value / 10;
-				value %= 10;
-				result.num_[index] = value;
+				result.num_[index] = num_[index] + rhs.num_[index];
 			}
-			result.is_neg_ = is_neg_;
-			result.size_  = result.num_[max_size] == 0 ? max_size : max_size + 1;
-			result.ShowContent();
+			short *more_num = size_ > rhs.size_ ? num_ : rhs.num_;
+			for(int index = min_size; index < max_size; ++index);
+			{
+				result.num_[index] = more_num[index];
+			}
+			result.num_[max_size] = 0;
+			for(int index = 0; index < max_size; ++index)
+			{
+				result.num_[index + 1] += result.num_[index] / 10;
+				result.num_[index] %= 10;
+			}
+			if(result.num_[max_size] == 0)
+			{
+				--result.size_;
+			}
 		}
-		else if(is_neg_ == false && rhs.is_neg_ == true)
+		else if(neg_ == false && rhs.neg_ == true)
 		{
-			rhs.is_neg_ = false;
-			Subtract(rhs);
-			rhs.is_neg_ = true;
+			rhs.neg_ = false;
+			result = Subtract(rhs);
+			rhs.neg_ = true;
 		}
 		else
 		{
-			is_neg_ = false;
-			rhs.Subtract(*this);
-			is_neg_ = true;
+			neg_ = false;
+			result = Subtract(*this);
+			neg_ = true;
 		}
+		return result;
 	}
-	void Subtract(BigInteger &rhs)
+	BigInteger Subtract(BigInteger &rhs)
 	{
-		if(is_neg_ == false && rhs.is_neg_ == false)
+		if(neg_ == false && rhs.neg_ == false)
 		{
 			int comp = Compare(rhs);
 			BigInteger result;
@@ -88,28 +130,28 @@ public:
 						result.num_[low] += 10;
 					}
 				}
-				result.is_neg_ = comp > 0 ? false : true;
+				result.neg_ = comp > 0 ? false : true;
 				for(result.size_ = max_size; result.num_[result.size_ - 1] == 0; --result.size_);
 			}
 			result.ShowContent();
 		}
-		else if(is_neg_ == true && rhs.is_neg_ == true)
+		else if(neg_ == true && rhs.neg_ == true)
 		{
-			is_neg_ = rhs.is_neg_ = false;
+			neg_ = rhs.neg_ = false;
 			rhs.Subtract(*this);
-			is_neg_ = rhs.is_neg_ = true;
+			neg_ = rhs.neg_ = true;
 		}
-		else if(is_neg_ == false && rhs.is_neg_ == true)
+		else if(neg_ == false && rhs.neg_ == true)
 		{
-			rhs.is_neg_ = false;
+			rhs.neg_ = false;
 			Add(rhs);
-			rhs.is_neg_ = true;
+			rhs.neg_ = true;
 		}
 		else
 		{
-			rhs.is_neg_ = true;
+			rhs.neg_ = true;
 			Add(rhs);
-			rhs.is_neg_ = false;
+			rhs.neg_ = false;
 		}
 	}
 	int Compare(const BigInteger &rhs)
@@ -128,6 +170,7 @@ public:
 		}
 		return 0;
 	}
+	/*
 	void Multiple(const BigInteger &rhs)
 	{
 		int max_size = size_ > rhs.size_ ? size_ : rhs.size_;
@@ -150,10 +193,10 @@ public:
 			result.num_[index + 1] += result.num_[index] / 10;
 			result.num_[index] %= 10;
 		}
-		if((is_neg_ == true && rhs.is_neg_ == false) ||
-		        (is_neg_ == false && rhs.is_neg_ == true))
+		if((neg_ == true && rhs.neg_ == false) ||
+		        (neg_ == false && rhs.neg_ == true))
 		{
-			result.is_neg_ = true;
+			result.neg_ = true;
 		}
 		for(result.size_ = result_max_size; result.num_[result.size_ - 1] == 0; --result.size_);
 		result.ShowContent();
@@ -170,43 +213,29 @@ public:
 			result.num_[0] = comp == 0 ? 1 : 0;
 			result.size_ = 1;
 		}
-		if((is_neg_ == true && rhs.is_neg_ == false) ||
-		        (is_neg_ == false && rhs.is_neg_ == true))
+		if((neg_ == true && rhs.neg_ == false) ||
+		        (neg_ == false && rhs.neg_ == true))
 		{
-			result.is_neg_ = true;
+			result.neg_ = true;
 		}
 		result.ShowContent();
 	}
-	void ShowContent()
-	{
-		if(is_neg_ == true)
-		{
-			printf("-");
-		}
-		for(int index = size_ - 1; index >= 0; --index)
-		{
-			printf("%d", num_[index]);
-		}
-		printf("\n");
-	}
+	*/
 
-	static const int kBigIntegerSize = 128;
-	int num_[kBigIntegerSize];
-	bool is_neg_;
+	bool neg_;
 	int size_;
+	short *num_;
 };
 
 int main()
 {
-	while(true)
+	const int kBufferSize = 64 * 1024; // 64kB
+	char buffer[kBufferSize];
+	while(scanf("%s", buffer) == 1)
 	{
-		BigInteger bi1, bi2;
-		bi1.CreateFromInput();
-		bi2.CreateFromInput();
-		bi1.Add(bi2);
-		bi1.Subtract(bi2);
-		bi1.Multiple(bi2);
-		bi1.Divide(bi2);
+		BigInteger bi1(buffer);
+		scanf("%s", buffer);
+		BigInteger bi2(buffer);
 	}
 }
 /*
