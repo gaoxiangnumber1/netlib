@@ -19,6 +19,7 @@ struct BigInteger
 		{
 			num_[index] = input[input_size - 1 - index] - '0';
 		}
+		for(; size_ != 1 && num_[size_ - 1] == 0; --size_);
 	}
 	BigInteger(bool neg, int size):
 		neg_(neg),
@@ -59,10 +60,7 @@ struct BigInteger
 		delete [] num_;
 		num_ = nullptr;
 	}
-	void set_neg(bool neg)
-	{
-		neg_ = neg;
-	}
+
 	void set_size(int new_size)
 	{
 		size_ = new_size;
@@ -70,9 +68,14 @@ struct BigInteger
 		num_ = new int[size_];
 		memset(num_, 0, size_ * sizeof(int));
 	}
-	void ShowContent()
+	void ShowContent() const
 	{
-		if(neg_ == true)
+		if(size_ == 0)
+		{
+			printf("INF\n");
+			return;
+		}
+		if(neg_ == true && (num_[0] != 0 || size_ > 1))
 		{
 			printf("-");
 		}
@@ -82,15 +85,37 @@ struct BigInteger
 		}
 		printf("\n");
 	}
+	int CompareAbs(const BigInteger &rhs) const
+	{
+		if(size_ > rhs.size_)
+		{
+			return 1;
+		}
+		else if(size_ < rhs.size_)
+		{
+			return -1;
+		}
+		for(int index = size_ - 1; index >= 0; --index)
+		{
+			if(num_[index] > rhs.num_[index])
+			{
+				return 1;
+			}
+			else if(num_[index] < rhs.num_[index])
+			{
+				return -1;
+			}
+		}
+		return 0;
+	}
 
 	BigInteger Add(BigInteger &rhs)
 	{
 		BigInteger result;
-		if((neg_ == true && rhs.neg_ == true) ||
-		        (neg_ == false && rhs.neg_ == false))
+		if((neg_ == false && rhs.neg_ == false) || (neg_ == true && rhs.neg_ == true))
 		{
+			result.neg_ = neg_;
 			int max_size = size_ > rhs.size_ ? size_ : rhs.size_;
-			result.set_neg(neg_);
 			result.set_size(max_size + 1);
 			int min_size = size_ < rhs.size_ ? size_ : rhs.size_;
 			for(int index = 0; index < min_size; ++index)
@@ -107,10 +132,7 @@ struct BigInteger
 				result.num_[index + 1] += result.num_[index] / 10;
 				result.num_[index] %= 10;
 			}
-			if(result.num_[max_size] == 0)
-			{
-				--result.size_;
-			}
+			for(; result.size_ != 1 && result.num_[result.size_ - 1] == 0; --result.size_);
 		}
 		else if(neg_ == false && rhs.neg_ == true)
 		{
@@ -165,14 +187,8 @@ struct BigInteger
 						result.num_[low] += 10;
 					}
 				}
-				for(; result.num_[result.size_ - 1] == 0; --result.size_);
+				for(; result.size_ != 1 && result.num_[result.size_ - 1] == 0; --result.size_);
 			}
-		}
-		else if(neg_ == true && rhs.neg_ == true)
-		{
-			neg_ = rhs.neg_ = false;
-			result = rhs.Subtract(*this);
-			neg_ = rhs.neg_ = true;
 		}
 		else if(neg_ == false && rhs.neg_ == true)
 		{
@@ -180,45 +196,28 @@ struct BigInteger
 			result = Add(rhs);
 			rhs.neg_ = true;
 		}
-		else
+		else if(neg_ == true && rhs.neg_ == false)
 		{
 			rhs.neg_ = true;
 			result = Add(rhs);
 			rhs.neg_ = false;
 		}
+		else
+		{
+			neg_ = rhs.neg_ = false;
+			result = rhs.Subtract(*this);
+			neg_ = rhs.neg_ = true;
+		}
 		return result;
 	}
-	int CompareAbs(const BigInteger &rhs)
-	{
-		if(size_ > rhs.size_)
-		{
-			return 1;
-		}
-		else if(size_ < rhs.size_)
-		{
-			return -1;
-		}
-		for(int index = size_ - 1; index >= 0; --index)
-		{
-			if(num_[index] > rhs.num_[index])
-			{
-				return 1;
-			}
-			else if(num_[index] < rhs.num_[index])
-			{
-				return -1;
-			}
-		}
-		return 0;
-	}
-	BigInteger Multiple(const BigInteger &rhs)
+	BigInteger Multiple(const BigInteger &rhs) const
 	{
 		BigInteger result;
 		if((neg_ == true && rhs.neg_ == false) || (neg_ == false && rhs.neg_ == true))
 		{
-			result.set_neg(true);
+			result.neg_ = true;
 		}
-		result.set_size(size_ > rhs.size_ ? size_ * 2 + 1 : rhs.size_ * 2 + 1);
+		result.set_size(size_ > rhs.size_ ? size_ * 2: rhs.size_ * 2);
 		for(int index1 = 0; index1 < size_; ++index1)
 		{
 			for(int index2 = 0; index2 < rhs.size_; ++index2)
@@ -231,62 +230,57 @@ struct BigInteger
 			result.num_[index + 1] += result.num_[index] / 10;
 			result.num_[index] %= 10;
 		}
-		for(; result.num_[result.size_ - 1] == 0; --result.size_);
+		for(; result.size_ != 1 && result.num_[result.size_ - 1] == 0; --result.size_);
 		return result;
 	}
-	std::pair<BigInteger, BigInteger> DivideAndMod(const BigInteger &rhs)
+	std::pair<BigInteger, BigInteger> DivideAndMod(const BigInteger &rhs) const
 	{
 		BigInteger division, mod;
-		if((neg_ == true && rhs.neg_ == false) || (neg_ == false && rhs.neg_ == true))
+		if(rhs.size_ > 1 || rhs.num_[0] > 0)
 		{
-			division.set_neg(true);
-		}
-		int comp = CompareAbs(rhs);
-		if(comp <= 0)
-		{
-			division.set_size(1);
+			int comp = CompareAbs(rhs);
 			if(comp == -1)
 			{
-				division.set_neg(false); // -0 -> 0
+				division.set_size(1);
 				mod = *this;
 			}
-			else
+			else if(comp == 0)
 			{
+				division.set_size(1);
 				division.num_[0] = 1;
 				mod.set_size(1);
 			}
-		}
-		else
-		{
-			int size_diff = size_ - rhs.size_;
-			division.set_size(size_diff + 1); // At most x-y+1 digits.
-			BigInteger temp_lhs(*this);
-			temp_lhs.set_neg(false);
-			for(int offset = size_diff; offset >= 0; --offset)
+			else
 			{
-				BigInteger temp_rhs(false, rhs.size_ + offset);
-				memmove(temp_rhs.num_ + offset, rhs.num_, rhs.size_ * sizeof(int));
-				for(;;)
+				int size_diff = size_ - rhs.size_;
+				division.set_size(size_diff + 1);
+				BigInteger temp_lhs(*this);
+				temp_lhs.neg_ = false;
+				for(int offset = size_diff; offset >= 0; --offset)
 				{
-					BigInteger sub_result = temp_lhs.Subtract(temp_rhs);
-					if(sub_result.neg_ == false)
+					BigInteger temp_rhs(false, rhs.size_ + offset);
+					memmove(temp_rhs.num_ + offset, rhs.num_, rhs.size_ * sizeof(int));
+					for(;;)
 					{
-						++division.num_[offset];
-						temp_lhs = sub_result;
-					}
-					else
-					{
+						BigInteger sub_result = temp_lhs.Subtract(temp_rhs);
+						if(sub_result.neg_ == false)
+						{
+							++division.num_[offset];
+							temp_lhs = sub_result;
+							continue;
+						}
 						break;
 					}
 				}
-			}
-			mod = temp_lhs;
-			mod.set_neg(neg_);
-			if(division.num_[division.size_ - 1] == 0)
-			{
-				--division.size_;
+				mod = temp_lhs;
+				for(; division.size_ != 1 && division.num_[division.size_ - 1] == 0; --division.size_);
 			}
 		}
+		if((neg_ == true && rhs.neg_ == false) || (neg_ == false && rhs.neg_ == true))
+		{
+			division.neg_ = true;
+		}
+		mod.neg_ = neg_;
 		return std::pair<BigInteger, BigInteger>(division, mod);
 	}
 
@@ -324,13 +318,67 @@ int main()
 38 908
 -38 -992
 ************************
-1024 0 262144 1 0
--1024 0 262144 1 0
-920 104 208896 1 104
-920 -104 208896 0 408
-1030 954 37696 26 4
-1030 -954 37696 0 38
-946 870 34504 23 34
-946 -870 34504 0 38
--1030 954 37696 0 -38
+1024
+0
+262144
+1
+0
+
+-1024
+0
+262144
+1
+0
+
+920
+104
+208896
+1
+104
+
+920
+-104
+208896
+0
+408
+
+1030
+954
+37696
+26
+4
+
+1030
+-954
+37696
+0
+38
+
+946
+870
+34504
+23
+34
+
+946
+-870
+34504
+0
+38
+
+-1030
+954
+37696
+0
+-38
 */
+unsigned next_seed = 1;
+unsigned rand()
+{
+	next_seed = next_seed * 1103515245 + 12543;
+	return (next_seed >> 16) % 32768;
+}
+void srand(unsigned new_seed)
+{
+	next_seed = new_seed;
+}
