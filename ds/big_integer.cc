@@ -9,17 +9,16 @@ struct BigInteger
 		size_(0),
 		num_(nullptr)
 	{}
-	BigInteger(const char *input)
+	BigInteger(const char *input) // Assume input is valid.
 	{
 		neg_ = input[0] == '-' ? true : false;
 		int input_size = static_cast<int>(strlen(input));
-		size_ = neg_ ? input_size - 1 : input_size;
+		size_ = input[0] == '-' ? input_size - 1 : input_size;
 		num_ = new int[size_];
 		for(int index = 0; index < size_; ++index)
 		{
 			num_[index] = input[input_size - 1 - index] - '0';
 		}
-		for(; size_ != 1 && num_[size_ - 1] == 0; --size_);
 	}
 	BigInteger(bool neg, int size):
 		neg_(neg),
@@ -91,7 +90,7 @@ struct BigInteger
 		{
 			return 1;
 		}
-		else if(size_ < rhs.size_)
+		if(size_ < rhs.size_)
 		{
 			return -1;
 		}
@@ -115,19 +114,16 @@ struct BigInteger
 		if((neg_ == false && rhs.neg_ == false) || (neg_ == true && rhs.neg_ == true))
 		{
 			result.neg_ = neg_;
-			int max_size = size_ > rhs.size_ ? size_ : rhs.size_;
-			result.set_size(max_size + 1);
+			result.set_size(size_ > rhs.size_ ? size_ + 1 : rhs.size_ + 1);
 			int min_size = size_ < rhs.size_ ? size_ : rhs.size_;
 			for(int index = 0; index < min_size; ++index)
 			{
 				result.num_[index] = num_[index] + rhs.num_[index];
 			}
-			int *more_num = size_ > rhs.size_ ? num_ : rhs.num_;
-			for(int index = min_size; index < max_size; ++index)
-			{
-				result.num_[index] = more_num[index];
-			}
-			for(int index = 0; index < max_size; ++index)
+			memmove(result.num_ + min_size,
+			        (size_ > rhs.size_ ? num_ : rhs.num_) + min_size,
+			        (result.size_ - 1 - min_size) * sizeof(int));
+			for(int index = 0; index < result.size_ - 1; ++index)
 			{
 				result.num_[index + 1] += result.num_[index] / 10;
 				result.num_[index] %= 10;
@@ -161,19 +157,16 @@ struct BigInteger
 			else
 			{
 				result.neg_ = comp > 0 ? false : true;
-				int max_size = size_ > rhs.size_ ? size_ : rhs.size_;
-				result.set_size(max_size);
+				result.set_size(size_ > rhs.size_ ? size_ : rhs.size_);
 				int min_size = size_ < rhs.size_ ? size_ : rhs.size_;
 				for(int index = 0; index < min_size; ++index)
 				{
 					result.num_[index] = comp * (num_[index] - rhs.num_[index]);
 				}
-				int *more_num = size_ > rhs.size_ ? num_ : rhs.num_;
-				for(int index = min_size; index < max_size; ++index)
-				{
-					result.num_[index] = more_num[index];
-				}
-				for(int low = 0; low < max_size; ++low)
+				memmove(result.num_ + min_size,
+				        (size_ > rhs.size_ ? num_ : rhs.num_) + min_size,
+				        (result.size_ - min_size) * sizeof(int));
+				for(int low = 0; low < result.size_; ++low)
 				{
 					if(result.num_[low] < 0)
 					{
@@ -225,7 +218,7 @@ struct BigInteger
 				result.num_[index1 + index2] += num_[index1] * rhs.num_[index2];
 			}
 		}
-		for(int index = 0; index < result.size_; ++index)
+		for(int index = 0; index < result.size_ - 1; ++index)
 		{
 			result.num_[index + 1] += result.num_[index] / 10;
 			result.num_[index] %= 10;
@@ -372,13 +365,3 @@ int main()
 0
 -38
 */
-unsigned next_seed = 1;
-unsigned rand()
-{
-	next_seed = next_seed * 1103515245 + 12543;
-	return (next_seed >> 16) % 32768;
-}
-void srand(unsigned new_seed)
-{
-	next_seed = new_seed;
-}
