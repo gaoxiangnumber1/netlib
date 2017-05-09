@@ -2,9 +2,6 @@
 #include <string.h> // str*()
 #include <vector>
 #include <utility> // swap()
-#include <queue>
-
-// Review: ~String()
 
 class String
 {
