@@ -8,6 +8,10 @@ bool IsOp(const char ch)
 {
 	return ch == '+' || ch == '-' || ch == '*' || ch == '/';
 }
+bool IsOp(const string &str)
+{
+	return str == "+" || str == "-" || str == "*" || str == "/";
+}
 bool IsEqualOrGreat(char ch1, char ch2)
 {
 	if(ch1 == '+' || ch1 == '-')
@@ -21,95 +25,145 @@ bool IsEqualOrGreat(char ch1, char ch2)
 	return true;
 }
 
-int main()
+void CalculatePrefix(stack<string> &prefix)
 {
-	const int kInputSize = 1024;
-	char input[kInputSize];
-	while(scanf("%s", input) == 1)
+	stack<int> cal;
+	while(prefix.empty() == false)
 	{
-		stack<char> op;
-		stack<string> prefix;
-		int input_size = static_cast<int>(strlen(input));
-		for(int index = input_size - 1; index >= 0; )
+		string str = prefix.top();
+		prefix.pop();
+		if(IsOp(str) == false)
 		{
-			if(isdigit(input[index]))
+			cal.push(atoi(str.data()));
+		}
+		else
+		{
+			int lhs = cal.top();
+			cal.pop();
+			int rhs = cal.top();
+			cal.pop();
+			switch(*str.data())
 			{
-				int begin_index = index - 1;
-				for(; begin_index >= 0 && isdigit(input[begin_index]); --begin_index);
-				if(begin_index < 0)
-				{
-					prefix.push(string(input, index + 1));
-					break;
-				}
-				else if(begin_index == 0)
-				{
-					if(input[0] != '-')
-					{
-						prefix.push(string(input + 1, index));
-						index = 0;
-					}
-					else
-					{
-						prefix.push(string(input, index + 1));
-						break;
-					}
-				}
-				else
-				{
-					if(IsOp(input[begin_index - 1]) && input[begin_index] == '-')
-					{
-						prefix.push(string(input + begin_index, index - begin_index + 1));
-						index = begin_index - 1;
-					}
-					else
-					{
-						prefix.push(string(input + begin_index + 1, index - begin_index));
-						index = begin_index;
-					}
-				}
+			case '+':
+				lhs += rhs;
+				break;
+			case '-':
+				lhs -= rhs;
+				break;
+			case '*':
+				lhs *= rhs;
+				break;
+			case '/':
+				lhs /= rhs;
 			}
-			else if(IsOp(input[index]))
+			cal.push(lhs);
+		}
+	}
+	printf("\nResult is: %d\n", cal.top());
+}
+void InfixToPrefix(const char *infix)
+{
+	stack<char> op;
+	stack<string> prefix;
+	int input_size = static_cast<int>(strlen(infix));
+	for(int index = input_size - 1; index >= 0; )
+	{
+		if(isdigit(infix[index]))
+		{
+			int begin_index = index - 1;
+			for(; begin_index >= 0 && isdigit(infix[begin_index]); --begin_index);
+			if(begin_index < 0)
 			{
-				if(op.empty() == true || op.top() == ')' || IsEqualOrGreat(input[index], op.top()))
+				prefix.push(string(infix, index + 1));
+				break;
+			}
+			else if(begin_index == 0)
+			{
+				if(infix[0] != '-')
 				{
-					op.push(input[index]);
-					--index;
+					prefix.push(string(infix + 1, index));
+					index = 0;
 				}
 				else
 				{
-					prefix.push(string(&op.top(), 1));
-					op.pop();
-					continue;
+					prefix.push(string(infix, index + 1));
+					break;
 				}
 			}
 			else
 			{
-				if(input[index] == ')')
+				if(IsOp(infix[begin_index - 1]) && infix[begin_index] == '-')
 				{
-					op.push(input[index]);
+					prefix.push(string(infix + begin_index, index - begin_index + 1));
+					index = begin_index - 1;
 				}
 				else
 				{
-					while(op.top() != ')')
-					{
-						prefix.push(string(&op.top(), 1));
-						op.pop();
-					}
-					op.pop();
+					prefix.push(string(infix + begin_index + 1, index - begin_index));
+					index = begin_index;
 				}
-				--index;
 			}
 		}
-		while(op.empty() == false)
+		else if(IsOp(infix[index]))
 		{
-			prefix.push(string(&op.top(), 1));
-			op.pop();
+			if(op.empty() == true || op.top() == ')' || IsEqualOrGreat(infix[index], op.top()))
+			{
+				op.push(infix[index]);
+				--index;
+			}
+			else
+			{
+				prefix.push(string(&op.top(), 1));
+				op.pop();
+				continue;
+			}
 		}
-		while(prefix.empty() == false)
+		else
 		{
-			printf("%s", prefix.top().data());
-			prefix.pop();
+			if(infix[index] == ')')
+			{
+				op.push(infix[index]);
+			}
+			else
+			{
+				while(op.top() != ')')
+				{
+					prefix.push(string(&op.top(), 1));
+					op.pop();
+				}
+				op.pop();
+			}
+			--index;
 		}
-		printf("\n");
+	}
+	while(op.empty() == false)
+	{
+		prefix.push(string(&op.top(), 1));
+		op.pop();
+	}
+	stack<string> temp;
+	printf("Prefix is: ");
+	while(prefix.empty() == false)
+	{
+		temp.push(prefix.top());
+		printf("%s,", prefix.top().data());
+		prefix.pop();
+	}
+	CalculatePrefix(temp);
+}
+
+int main()
+{
+	const int kInputSize = 1024;
+	char infix[kInputSize];
+	while(scanf("%s", infix) == 1)
+	{
+		InfixToPrefix(infix);
 	}
 }
+/*
+-23+((4+56)*78)+-5+6*-78+123
+**********************************
+Prefix is: +,+,+,+,-23,*,+,4,56,78,-5,*,6,-78,123,
+Result is: 4307
+*/
