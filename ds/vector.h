@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <utility>
 
+// TODO: Separate "allocate memory" with "construct object"
+// 1.Use std::allocator, see <C++ Primer> Section 13.5
 template<typename T>
 class Vector
 {
