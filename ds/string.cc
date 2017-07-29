@@ -8,32 +8,32 @@ class String
 public:
 	// Default ctor
 	String() :
-			data_(new char[1]), length_(0)
+		data_(new char[1]), length_(0)
 	{
 		*data_ = '\0';
 		printf("Default_ctor    ");
 	}
 	String(const char *data, size_t length) :
-			data_(new char[length + 1]), length_(length)
+		data_(new char[length + 1]), length_(length)
 	{
 		memcpy(data_, data, length_);
 		data_[length] = '\0';
 		printf("Const_char_*length_ctor    ");
 	}
 	String(const char *data) :
-			String(data, strlen(data)) // Delegating ctor
+		String(data, strlen(data)) // Delegating ctor
 	{
 		printf("Const_char_*ctor    ");
 	}
 	// Copy ctor
 	String(const String &rhs) :
-			String(rhs.data_, rhs.length_)
+		String(rhs.data_, rhs.length_)
 	{
 		printf("Copy_ctor    ");
 	}
 	// Move ctor
-	String(String &&rhs) :
-			data_(rhs.data_), length_(rhs.length_)
+	String(String &&rhs) noexcept:
+	data_(rhs.data_), length_(rhs.length_)
 	{
 		rhs.data_ = nullptr;
 		rhs.length_ = 0;
@@ -48,7 +48,7 @@ public:
 		printf("Swap    ");
 	}
 	// Unifying assignment operator: no need to write copy/move assignment operator.
-	String &operator=(String rhs) // Copy and Swap idiom.
+	String &operator=(String rhs)// Copy and Swap idiom.
 	{
 		Swap(rhs);
 		printf("Unifying-AO    ");
@@ -131,7 +131,7 @@ int main()
 	printf("----------Test Ctor----------\n");
 	String s0;
 	printf("s0 = %s, s0.Size() = %d\n", s0.c_str(),
-			static_cast<int>(s0.Size()));
+		static_cast<int>(s0.Size()));
 	String s1("gao");
 	printf("s1 = %s\n", s1.c_str());
 	String s2 = "xiang"; // Equivalent to `String s3("xiang");`
@@ -173,7 +173,7 @@ int main()
 	printf("vec[0] = %s\tvec[1] = %s\n", vec[0].c_str(), vec[1].c_str());
 	vec.push_back("gaoxiangnumber1");
 	printf("vec[0] = %s\tvec[1] = %s\tvec[2] = %s\n", vec[0].c_str(),
-			vec[1].c_str(), vec[2].c_str());
+		vec[1].c_str(), vec[2].c_str());
 
 	printf("----------All Test Passed!----------\n");
 }
