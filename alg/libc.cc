@@ -4,12 +4,12 @@
 #include <stdint.h>
 
 bool g_invalid_input = false;
-void ShowContent(const void *data, int length)
+void ShowContent(const void *data, size_t length)
 {
-	const char *char_data = static_cast<const char*>(data);
-	for(int index = 0; index < length; ++index)
+	const char *data_char = static_cast<const char*>(data);
+	for(size_t index = 0; index < length; ++index)
 	{
-		printf("%c", char_data[index] ? char_data[index] : '*');
+		printf("%c", data_char[index] ? data_char[index] : '*');
 	}
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -22,7 +22,8 @@ size_t StringLength(const char *string)
 	}
 
 	size_t length = 0;
-	for(; *string != 0; ++string, ++length);
+	for(; string[length] != 0; ++length)
+		;
 	return length;
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -38,20 +39,20 @@ void *MemoryCopyOrMove(void *dest, const void *src, size_t length)
 	{
 		return dest;
 	}
-	char *char_dest = static_cast<char*>(dest);
-	const char *char_src = static_cast<const char*>(src);
-	if(char_dest < char_src || char_dest >= char_src + length)
+	char *dest_char = static_cast<char*>(dest);
+	const char *src_char = static_cast<const char*>(src);
+	if(dest_char < src_char || dest_char >= src_char + length)
 	{
 		for(size_t index = 0; index < length; ++index)
 		{
-			char_dest[index] = char_src[index];
+			dest_char[index] = src_char[index];
 		}
 	}
-	else // char_src < char_dest < char_src + length
+	else // src_char < dest_char < src_char + length
 	{
 		for(size_t index = 0; index < length; ++index)
 		{
-			char_dest[length - 1 - index] = char_src[length - 1 - index];
+			dest_char[length - 1 - index] = src_char[length - 1 - index];
 		}
 	}
 	return dest;
@@ -60,13 +61,13 @@ void TestMemoryCopyOrMove()
 {
 	printf("----------TestMemoryCopyOrMove----------\n");
 	const int kCaseNumber = 7, kStringSize = 12;
-	int offset[kCaseNumber] = {0, 1, 2, 4, 5, 7, 8};
+	int offset[kCaseNumber] =
+	{ 0, 1, 2, 4, 5, 7, 8 };
 	const char answer[kCaseNumber][kStringSize] =
 	{
 		// .1. [2src - length] .3. [4src] .5. [6src + length] .7.
 		"abc.abc....", ".abcabc....", "..abcbc....", "....abc....",
-		"....aabc...", "....abcabc.", "....abc.abc",
-	};
+		"....aabc...", "....abcabc.", "....abc.abc", };
 	bool pass = true;
 	for(int cnt = 0; cnt < kCaseNumber; ++cnt)
 	{
@@ -74,7 +75,8 @@ void TestMemoryCopyOrMove()
 		MemoryCopyOrMove(string + offset[cnt], string + 4, 3);
 		if(strcmp(string, answer[cnt]) != 0)
 		{
-			printf("Case %d Not Pass. your = `%s` right = `%s`\n", cnt, string, answer[cnt]);
+			printf("Case %d Not Pass. your = `%s` right = `%s`\n", cnt, string,
+				answer[cnt]);
 			pass = false;
 		}
 	}
@@ -86,16 +88,17 @@ void TestMemoryCopyOrMove()
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 char *StringCopy(char *dest, const char *src)
 {
+	// Check to avoid function call.
 	if(dest == nullptr || src == nullptr)
 	{
 		g_invalid_input = true;
 		return dest;
 	}
-
 	if(dest == src)
 	{
 		return dest;
 	}
+
 	MemoryCopyOrMove(dest, src, StringLength(src) + 1);
 	return dest;
 }
@@ -103,14 +106,15 @@ void TestStringCopy()
 {
 	printf("----------TestStringCopy----------\n");
 	const int kCaseNumber = 7, kStringSize = 16;
-	int offset[kCaseNumber] = {0, 1, 2, 5, 7, 9, 10};
+	int offset[kCaseNumber] =
+	{ 0, 1, 2, 5, 7, 9, 10 };
 	const char answer[kCaseNumber][kStringSize] =
 	{
 		// .1. [2src - length] .3. [4src] .5. [6src + length] .7.
 		"abc\0.abc\0", ".abc\0abc\0", "..abc\0bc\0", ".....abc\0",
-		".....ababc\0", ".....abc\0abc\0", ".....abc\0\0abc\0"
-	};
-	const int answer_length[kCaseNumber] = {9, 9, 9, 9, 11, 13, 14};
+		".....ababc\0", ".....abc\0abc\0", ".....abc\0\0abc\0" };
+	const int answer_length[kCaseNumber] =
+	{ 9, 9, 9, 9, 11, 13, 14 };
 	bool pass = true;
 	for(int cnt = 0; cnt < kCaseNumber; ++cnt)
 	{
@@ -132,6 +136,7 @@ void TestStringCopy()
 	}
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Look at this.//
 int MemoryCompare(const void *data1, const void *data2, size_t length)
 {
 	if(data1 == nullptr || data2 == nullptr)
@@ -147,7 +152,8 @@ int MemoryCompare(const void *data1, const void *data2, size_t length)
 	const unsigned char *char_data1 = static_cast<const unsigned char*>(data1);
 	const unsigned char *char_data2 = static_cast<const unsigned char*>(data2);
 	size_t index = 0;
-	for(; index < length && char_data1[index] == char_data2[index]; ++index);
+	for(; index < length && char_data1[index] == char_data2[index]; ++index)
+		;
 	return index == length ? 0 : char_data1[index] - char_data2[index];
 }
 void TestMemoryCompare()
@@ -155,9 +161,13 @@ void TestMemoryCompare()
 	printf("----------TestMemoryCompare----------\n");
 	int i1 = 12345, i2 = 67890;
 	double d1 = 123.45, d2 = 678.90, d3 = 123.45;
-	assert(MemoryCompare(&i1, &i2, sizeof i1) * memcmp(&i1, &i2, sizeof i1) > 0);
-	assert(MemoryCompare(&d1, &d2, sizeof d1) * memcmp(&d1, &d2, sizeof d1) > 0);
-	assert(MemoryCompare(&d1, &d3, sizeof d1) == 0 && memcmp(&d1, &d3, sizeof d1) == 0);
+	assert(
+		MemoryCompare(&i1, &i2, sizeof i1) * memcmp(&i1, &i2, sizeof i1) > 0);
+	assert(
+		MemoryCompare(&d1, &d2, sizeof d1) * memcmp(&d1, &d2, sizeof d1) > 0);
+	assert(
+		MemoryCompare(&d1, &d3, sizeof d1) == 0
+			&& memcmp(&d1, &d3, sizeof d1) == 0);
 	printf("All Case Pass.\n");
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -173,16 +183,22 @@ int StringCompare(const char *string1, const char *string2)
 	{
 		return 0;
 	}
-	for(; *string1 != 0 && *string1 == *string2; ++string1, ++string2);
+	for(; *string1 != 0 && *string1 == *string2; ++string1, ++string2)
+		;
 	return *string1 - *string2;
 }
 void TestStringCompare()
 {
 	printf("----------TestMemoryCompare----------\n");
-	char string[3][8] = { "abcd", "abcde", "abcd" };
-	assert(StringCompare(string[0], string[1]) * strcmp(string[0], string[1]) > 0);
-	assert(StringCompare(string[1], string[0]) * strcmp(string[1], string[0]) > 0);
-	assert(StringCompare(string[0], string[2]) == 0 && strcmp(string[0], string[2]) == 0);
+	char string[3][8] =
+	{ "abcd", "abcde", "abcd" };
+	assert(
+		StringCompare(string[0], string[1]) * strcmp(string[0], string[1]) > 0);
+	assert(
+		StringCompare(string[1], string[0]) * strcmp(string[1], string[0]) > 0);
+	assert(
+		StringCompare(string[0], string[2]) == 0
+			&& strcmp(string[0], string[2]) == 0);
 	printf("All Case Pass.\n");
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -194,11 +210,11 @@ void *MemorySet(void *data, int value, size_t length)
 		return data;
 	}
 
-	char *char_data = static_cast<char*>(data);
+	char *data_char = static_cast<char*>(data);
 	const char char_value = static_cast<const char>(value);
 	for(size_t index = 0; index < length; ++index)
 	{
-		char_data[index] = char_value;
+		data_char[index] = char_value;
 	}
 	return data;
 }
@@ -218,7 +234,8 @@ int StringToInt(const char *string)
 {
 	if(string == nullptr) // Negative
 	{
-		ERROR();
+		ERROR()
+		;
 	}
 	if(*string == 0) // Edge
 	{
@@ -235,7 +252,8 @@ int StringToInt(const char *string)
 		++string;
 		if(*string == 0)
 		{
-			ERROR();
+			ERROR()
+			;
 		}
 	}
 	// Process number.
@@ -246,16 +264,18 @@ int StringToInt(const char *string)
 		if('0' <= *string && *string <= '9')
 		{
 			num = num * 10 + *string - '0';
-			if((negative == true && -1 * num < kIntMin) ||
-			        (negative == false && num > kIntMax)) // Under/Overflow.
+			if((negative == true && -1 * num < kIntMin)
+				|| (negative == false && num > kIntMax)) // Under/Overflow.
 			{
-				ERROR();
+				ERROR()
+				;
 			}
 			++string;
 		}
 		else
 		{
-			ERROR();
+			ERROR()
+			;
 		}
 	}
 	int result = static_cast<int>(num);
@@ -273,24 +293,18 @@ void TestStringToInt()
 	printf("----------TestStringToInt----------\n");
 	const int kCaseNumber = 15;
 	const char *string[kCaseNumber] =
-	{
-		"-2147483648", "-999", "-0", "0", "+0", "999", "+999", "2147483647",
-		"",
-		nullptr,"+","-","9a","-2147483649","2147483648"
-	};
+	{ "-2147483648", "-999", "-0", "0", "+0", "999", "+999", "2147483647", "",
+		nullptr, "+", "-", "9a", "-2147483649", "2147483648" };
 	const int answer[kCaseNumber] =
-	{
-		-2147483648, -999, 0, 0, 0, 999, 999, 2147483647,
-		0,
-		0, 0, 0, 0,0,0
-	};
+	{ -2147483648, -999, 0, 0, 0, 999, 999, 2147483647, 0, 0, 0, 0, 0, 0, 0 };
 	bool pass = true;
 	for(int index = 0; index < kCaseNumber; ++index)
 	{
 		int your = StringToInt(string[index]);
 		if(your != answer[index])
 		{
-			printf("Case %d Not Pass. your = %d, right = %d\n", index, your, answer[index]);
+			printf("Case %d Not Pass. your = %d, right = %d\n", index, your,
+				answer[index]);
 			pass = false;
 		}
 	}
