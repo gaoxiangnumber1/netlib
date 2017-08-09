@@ -11,8 +11,5 @@ all: $(TEST)
 .cc:
 	$(CXX) $(CXXFLAG) -o $@ $<
 
-
-
-
 clean:
 	rm -f $(TEST) *~
