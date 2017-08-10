@@ -149,12 +149,15 @@ int MemoryCompare(const void *data1, const void *data2, size_t length)
 	{
 		return 0;
 	}
-	const unsigned char *char_data1 = static_cast<const unsigned char*>(data1);
-	const unsigned char *char_data2 = static_cast<const unsigned char*>(data2);
+	const unsigned char *data1_unsigned =
+		static_cast<const unsigned char*>(data1);
+	const unsigned char *data2_unsigned =
+		static_cast<const unsigned char*>(data2);
 	size_t index = 0;
-	for(; index < length && char_data1[index] == char_data2[index]; ++index)
+	for(; index < length && data1_unsigned[index] == data2_unsigned[index];
+		++index)
 		;
-	return index == length ? 0 : char_data1[index] - char_data2[index];
+	return index == length ? 0 : data1_unsigned[index] - data2_unsigned[index];
 }
 void TestMemoryCompare()
 {
@@ -211,10 +214,10 @@ void *MemorySet(void *data, int value, size_t length)
 	}
 
 	char *data_char = static_cast<char*>(data);
-	const char char_value = static_cast<const char>(value);
+	const char value_char = static_cast<const char>(value);
 	for(size_t index = 0; index < length; ++index)
 	{
-		data_char[index] = char_value;
+		data_char[index] = value_char;
 	}
 	return data;
 }
@@ -232,57 +235,45 @@ void TestMemorySet()
 #define ERROR() g_invalid_input = true; return 0;
 int StringToInt(const char *string)
 {
-	if(string == nullptr) // Negative
+	if(string == nullptr)
 	{
 		ERROR()
 		;
 	}
-	if(*string == 0) // Edge
+	if(*string == 0)
 	{
 		return 0;
 	}
 	// Process sign.
-	bool negative = false;
-	if(*string == '-')
-	{
-		negative = true;
-	}
+	int sign = 1;
 	if(*string == '+' || *string == '-')
 	{
-		++string;
-		if(*string == 0)
+		if(*(string + 1) == 0)
 		{
 			ERROR()
 			;
 		}
+		sign = (*string == '-' ? -1 : sign);
+		++string;
 	}
 	// Process number.
 	int64_t num = 0;
 	const int kIntMin = 0x80000000, kIntMax = 0x7fffffff;
-	while(*string != 0)
+	for(; *string != 0; ++string)
 	{
-		if('0' <= *string && *string <= '9')
+		if(*string < '0' || *string > '9')
 		{
-			num = num * 10 + *string - '0';
-			if((negative == true && -1 * num < kIntMin)
-				|| (negative == false && num > kIntMax)) // Under/Overflow.
-			{
-				ERROR()
-				;
-			}
-			++string;
+			ERROR()
+			;
 		}
-		else
+		num = num * 10 + *string - '0';
+		if((sign == -1 && -1 * num < kIntMin) || (sign == 1 && num > kIntMax))
 		{
 			ERROR()
 			;
 		}
 	}
-	int result = static_cast<int>(num);
-	if(negative == true)
-	{
-		result *= -1;
-	}
+	int result = static_cast<int>(num) * sign;
 	return result;
 }
 void TestStringToInt()
