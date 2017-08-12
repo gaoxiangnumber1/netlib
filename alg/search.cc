@@ -73,30 +73,30 @@ int HashValue(const char *data, const int length) // O(length)
 	}
 	return hash_value;
 }
-void RKStringSearch(const char *long_string, const char *short_string)
+void RKStringSearch(const char *haystack, const char *needle)
 {
 	printf("----------RKStringSearch----------\n");
-	int long_length = static_cast<int>(strlen(long_string));
-	int short_length = static_cast<int>(strlen(short_string));
+	int long_length = static_cast<int>(strlen(haystack));
+	int short_length = static_cast<int>(strlen(needle));
 	// Pre-process
-	int target_hash_value = HashValue(short_string, short_length);
+	int target_hash_value = HashValue(needle, short_length);
 	int substring_number = long_length - short_length + 1;
 	int hash_value[substring_number];
-	hash_value[0] = HashValue(long_string, short_length);
+	hash_value[0] = HashValue(haystack, short_length);
 	int max_power = QuickPower(kNumberOfChar, short_length - 1);
 	bool good_match = false;
 	for(int index = 0; index < substring_number; ++index)
 	{
 		if(hash_value[index] == target_hash_value &&
-		        strncmp(long_string + index, short_string, short_length) == 0)
+		        strncmp(haystack + index, needle, short_length) == 0)
 		{
 			printf("%d ", index);
 			good_match = true;
 		}
 		if(index < substring_number - 1)
 		{
-			int to_subtract = static_cast<int>(long_string[index]) * max_power; // %
-			int to_add = static_cast<int>(long_string[index + short_length]);
+			int to_subtract = static_cast<int>(haystack[index]) * max_power; // %
+			int to_add = static_cast<int>(haystack[index + short_length]);
 			hash_value[index + 1] =
 			    (hash_value[index] - to_subtract) * kNumberOfChar + to_add; // %
 		}
@@ -132,22 +132,22 @@ void ComputePrefix(const char *string, int *max_prefix_length, int length)
 		max_prefix_length[index] = matched;
 	}
 }
-void KMPStringSearch(const char *long_string, const char *short_string)
+void KMPStringSearch(const char *haystack, const char *needle)
 {
 	printf("----------KMPStringSearch----------\n");
-	int long_length = static_cast<int>(strlen(long_string));
-	int short_length = static_cast<int>(strlen(short_string));
+	int long_length = static_cast<int>(strlen(haystack));
+	int short_length = static_cast<int>(strlen(needle));
 	int max_prefix_length[short_length];
-	ComputePrefix(short_string, max_prefix_length, short_length);
+	ComputePrefix(needle, max_prefix_length, short_length);
 	int matched = 0;
 	bool good_match = false;
 	for(int index = 0; index < long_length; ++index)
 	{
-		while(matched > 0 && short_string[matched] != long_string[index])
+		while(matched > 0 && needle[matched] != haystack[index])
 		{
 			matched = max_prefix_length[matched - 1];
 		}
-		if(short_string[matched] == long_string[index])
+		if(needle[matched] == haystack[index])
 		{
 			++matched;
 		}
@@ -168,11 +168,11 @@ void TestStringSearch()
 {
 	const int kLongStringSize = 1024;
 	const int kShortStringSize = 64;
-	char long_string[kLongStringSize], short_string[kShortStringSize];
-	while(scanf("%s %s", long_string, short_string) == 2)
+	char haystack[kLongStringSize], needle[kShortStringSize];
+	while(scanf("%s %s", haystack, needle) == 2)
 	{
-		RKStringSearch(long_string, short_string);
-		KMPStringSearch(long_string, short_string);
+		RKStringSearch(haystack, needle);
+		KMPStringSearch(haystack, needle);
 	}
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

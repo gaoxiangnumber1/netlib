@@ -26,6 +26,26 @@ size_t StringLength(const char *string)
 		;
 	return length;
 }
+size_t StringLengthRecursive(const char *string)
+{
+	if(string == nullptr)
+	{
+		g_invalid_input = true;
+		return 0;
+	}
+	return *string ? StringLengthRecursive(string + 1) + 1 : 0;
+}
+void TestStringLengthRecursive()
+{
+	printf("----------TestStringLengthRecursive----------\n");
+	assert(StringLengthRecursive(nullptr) == 0 && g_invalid_input == true);
+	assert(StringLengthRecursive("") == 0);
+	assert(StringLengthRecursive("a") == 1);
+	assert(StringLengthRecursive("aaa") == 3);
+	assert(StringLengthRecursive("aaaaa") == 5);
+	assert(StringLengthRecursive("aaaaaaaaaa") == 10);
+	printf("All Case Pass.\n");
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////////
 void *MemoryCopyOrMove(void *dest, const void *src, size_t length)
 {
@@ -130,7 +150,6 @@ void TestStringCopy()
 	}
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-// Look at this.//
 int MemoryCompare(const void *data1, const void *data2, size_t length)
 {
 	if(data1 == nullptr || data2 == nullptr)
@@ -285,49 +304,46 @@ void TestStringToInt()
 	}
 }
 //////////////////////////////////////////////////////////////////////////////////////////////////////
-const char *StringSearch(const char *long_string, const char *short_string)
+const char *StringSearch(const char *haystack, const char *needle)
 {
-	if(long_string == nullptr || short_string == nullptr)
+	if(haystack == nullptr || needle == nullptr)
 	{
 		g_invalid_input = true;
 		return nullptr;
 	}
 
-	if(long_string == short_string)
+	if(haystack == needle)
 	{
-		return long_string;
+		return haystack;
 	}
-	int long_length = static_cast<int>(StringLength(long_string));
-	int short_length = static_cast<int>(StringLength(short_string));
+	int long_length = static_cast<int>(StringLength(haystack));
+	int short_length = static_cast<int>(StringLength(needle));
 	int diff = long_length - short_length;
 	for(int offset = 0; offset <= diff; ++offset)
 	{
-		const char *substring = long_string + offset;
-		for(int index = 0; index < short_length; ++index)
+		const char *substring = haystack + offset;
+		int index = 0;
+		for(; index < short_length && substring[index] == needle[index]; ++index)
+			;
+		if(index == short_length)
 		{
-			if(substring[index] != short_string[index])
-			{
-				break;
-			}
-			if(index == short_length - 1)
-			{
-				return substring;
-			}
+			return substring;
 		}
 	}
 	return nullptr;
 }
+// TODO: use kmp to implement StringSearch.
 void TestStringSearch()
 {
 	printf("----------TestStringSearch----------\n");
 	const int kCaseNumber = 4;
-	const char *long_string[kCaseNumber] = { nullptr, "a", "abcd", "abcdefg" };
-	const char *short_string[kCaseNumber] = { "a", nullptr, "abc", "hi" };
-	const char *answer[kCaseNumber] = { nullptr, nullptr, long_string[2], nullptr };
+	const char *haystack[kCaseNumber] = { nullptr, "a", "abcd", "abcdefg" };
+	const char *needle[kCaseNumber] = { "a", nullptr, "abc", "hi" };
+	const char *answer[kCaseNumber] = { nullptr, nullptr, haystack[2], nullptr };
 	bool pass = true;
 	for(int index = 0; index < kCaseNumber; ++index)
 	{
-		if(StringSearch(long_string[index], short_string[index]) != answer[index])
+		if(StringSearch(haystack[index], needle[index]) != answer[index])
 		{
 			printf("Case %d Not Pass.\n", index);
 			pass = false;
@@ -342,6 +358,7 @@ void TestStringSearch()
 
 int main()
 {
+	TestStringLengthRecursive();
 	TestMemoryCopyOrMove();
 	TestStringCopy();
 	TestMemoryCompare();
