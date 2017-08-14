@@ -3,7 +3,7 @@
 #include <utility>
 using namespace std;
 
-// Assume all inputs are invalid.
+// Assume all inputs are valid.
 // Assume n is the number of elements to be sorted.
 
 // TC: Best = O(n^2), Average = O(n^2), Worst = O(n^2)
@@ -11,7 +11,7 @@ using namespace std;
 void SelectionSort(int *data, int first, int last)
 {
 	// [first, first_unsorted) is sorted, [first_unsorted, last) is unsorted.
-	for(int first_unsorted = first; first_unsorted < last; ++first_unsorted)
+	for(int first_unsorted = first; first_unsorted < last - 1; ++first_unsorted)
 	{
 		int min_index = first_unsorted;
 		for(int compare_index = first_unsorted + 1; compare_index < last; ++compare_index)
@@ -34,24 +34,21 @@ void SelectionSort(int *data, int first, int last)
 // SC: O(1)
 void BubbleSort(int *data, int first, int last) // [first, last)
 {
-	// [first, first + unsorted_number) is unsorted
-	// [first + unsorted_number, last) is sorted.
-	for(int unsorted_number = last - first; unsorted_number > 0; )
+	// [first, first_sorted) is unsorted, [first_sorted, last) is sorted.
+	for(int first_sorted = last; first_sorted != first;)
 	{
-		int last_swap_index = -1;
-		// Traverse [first, first + unsorted_number)
-		for(int latter_index = first + 1;
-		        latter_index < first + unsorted_number;
-		        ++latter_index)
+		int last_swap_latter_index = first;
+		// Traverse [first, first_sorted)
+		for(int latter_index = first + 1; latter_index < first_sorted; ++latter_index)
 		{
 			if(data[latter_index - 1] > data[latter_index])
 			{
 				swap(data[latter_index - 1], data[latter_index]);
-				last_swap_index = latter_index;
+				last_swap_latter_index = latter_index;
 			}
 		}
-		// [first, last_swap_index) is unsorted, [last_swap_index, last) is sorted.
-		unsorted_number = last_swap_index - first;
+		// [first, last_swap_latter_index) is unsorted, [last_swap_latter_index, last) is sorted.
+		first_sorted = last_swap_latter_index;
 	}
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -63,8 +60,8 @@ void InsertionSort(int *data, int first, int last)
 	for(int first_unsorted = first; first_unsorted < last; ++first_unsorted)
 	{
 		for(int latter_index = first_unsorted;
-		        latter_index - 1 >= first && data[latter_index - 1] > data[latter_index];
-		        --latter_index)
+			latter_index - 1 >= first && data[latter_index - 1] > data[latter_index];
+			--latter_index)
 		{
 			swap(data[latter_index - 1], data[latter_index]);
 		}
@@ -167,8 +164,7 @@ void FixDown(int *data, int parent_index, int last)
 	int max_child_index = parent_index * 2 + 1;
 	while(max_child_index < last)
 	{
-		if(max_child_index < last - 1 &&
-		        data[max_child_index] < data[max_child_index + 1])
+		if(max_child_index < last - 1 && data[max_child_index] < data[max_child_index + 1])
 		{
 			++max_child_index;
 		}
@@ -187,9 +183,8 @@ void HeapSort(int *data, int first, int last)
 {
 	// 1. Convert to max heap. O(n): See ITA Page 159.
 	// [first, first + ((length - 1) - 1) / 2] has children.
-	for(int parent_index = first + ((last - first - 1) - 1) / 2;
-	        parent_index >= first;
-	        --parent_index)
+	for(int parent_index = first + ((last - first - 1) - 1) / 2; parent_index >= first;
+		--parent_index)
 	{
 		FixDown(data, parent_index, last);
 	}
@@ -294,12 +289,8 @@ void Test(const char *name, SortFunction Sort)
 {
 	printf("----------%s----------\n", name);
 	const int data_length = 10;
-	int data[][data_length] =
-	{
-		{0,1,2,3,4,5,6,7,8,9},
-		{9,8,7,6,5,4,3,2,1,0},
-		{0,2,4,6,8,9,7,5,3,1}
-	};
+	int data[][data_length] = { { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 },
+		{ 0, 2, 4, 6, 8, 9, 7, 5, 3, 1 } };
 	int data_number = static_cast<int>(sizeof(data) / sizeof(data[0]));
 	for(int data_index = 0; data_index < data_number; ++data_index)
 	{
