@@ -316,16 +316,16 @@ const char *StringSearch(const char *haystack, const char *needle)
 	{
 		return haystack;
 	}
-	int long_length = static_cast<int>(StringLength(haystack));
-	int short_length = static_cast<int>(StringLength(needle));
-	int diff = long_length - short_length;
-	for(int offset = 0; offset <= diff; ++offset)
+	size_t haystack_length = StringLength(haystack);
+	size_t needle_length = StringLength(needle);
+	size_t diff = haystack_length - needle_length;
+	for(size_t offset = 0; offset <= diff; ++offset)
 	{
 		const char *substring = haystack + offset;
-		int index = 0;
-		for(; index < short_length && substring[index] == needle[index]; ++index)
+		size_t index = 0;
+		for(; index < needle_length && substring[index] == needle[index]; ++index)
 			;
-		if(index == short_length)
+		if(index == needle_length)
 		{
 			return substring;
 		}
