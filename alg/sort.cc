@@ -57,13 +57,13 @@ void BubbleSort(int *data, int first, int last) // [first, last)
 void InsertionSort(int *data, int first, int last)
 {
 	// [first, first_unsorted) is sorted, [first_unsorted, last) is unsorted.
-	for(int first_unsorted = first; first_unsorted < last; ++first_unsorted)
+	for(int first_unsorted = first + 1; first_unsorted < last; ++first_unsorted)
 	{
-		for(int latter_index = first_unsorted;
-			latter_index - 1 >= first && data[latter_index - 1] > data[latter_index];
-			--latter_index)
+		for(int compare_index = first_unsorted;
+			compare_index - 1 >= first && data[compare_index - 1] > data[compare_index];
+			--compare_index)
 		{
-			swap(data[latter_index - 1], data[latter_index]);
+			swap(data[compare_index - 1], data[compare_index]);
 		}
 		// One more element is sorted.
 		// [first, first_unsorted + 1) is sorted; [first_unsorted + 1, last) is unsorted.
@@ -73,23 +73,23 @@ void InsertionSort(int *data, int first, int last)
 int Partition(int *data, int first, int last) // O(n)
 {
 	int pivot = data[last - 1];
-	int not_greater_number = 0;
+	int not_greater_count = 0;
 	for(int index = first; index < last - 1; ++index)
 	{
 		if(data[index] <= pivot)
 		{
-			++not_greater_number;
-			if(index != first + not_greater_number - 1)
+			++not_greater_count;
+			if(index != first + not_greater_count - 1)
 			{
-				swap(data[index], data[first + not_greater_number - 1]);
+				swap(data[index], data[first + not_greater_count - 1]);
 			}
 		}
 	}
-	if(first + not_greater_number != last - 1)
+	if(first + not_greater_count != last - 1)
 	{
-		swap(data[first + not_greater_number], data[last - 1]);
+		swap(data[first + not_greater_count], data[last - 1]);
 	}
-	return first + not_greater_number;
+	return first + not_greater_count;
 }
 // TC: Best = O(nlogn), Average = O(nlogn), Worst = O(n^2)
 // SC: Best = O(logn), Worst = O(n)
@@ -278,9 +278,10 @@ void RadixSort(int *data, int first, int last)
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 void PrintData(int *data, int first, int last)
 {
-	for(int index = 0; index < last; ++index)
+	printf("%d", data[first]);
+	for(int index = first + 1; index < last; ++index)
 	{
-		printf("%d ", data[index]);
+		printf(" %d", data[index]);
 	}
 	printf("\n");
 }
