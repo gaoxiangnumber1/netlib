@@ -295,7 +295,7 @@ void Test(const char *name, SortFunction Sort)
 	int data_number = static_cast<int>(sizeof(data) / sizeof(data[0]));
 	for(int data_index = 0; data_index < data_number; ++data_index)
 	{
-		Sort(data[data_index], 0, data_length);
+		Sort(data[data_index], 3, data_length);
 		PrintData(data[data_index], 0, data_length);
 	}
 }
