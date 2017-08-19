@@ -159,12 +159,12 @@ void MergeSort(int *data, int first, int last) // [first, last)
 	MergeSortMain(data, first, last, helper);
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-void FixDown(int *data, int parent_index, int last)
+void FixDown(int *data, int parent_index, int length)
 {
 	int max_child_index = parent_index * 2 + 1;
-	while(max_child_index < last)
+	while(max_child_index < length)
 	{
-		if(max_child_index < last - 1 && data[max_child_index] < data[max_child_index + 1])
+		if(max_child_index < length - 1 && data[max_child_index] < data[max_child_index + 1])
 		{
 			++max_child_index;
 		}
@@ -181,20 +181,20 @@ void FixDown(int *data, int parent_index, int last)
 // SC: O(1)
 void HeapSort(int *data, int first, int last)
 {
-	// 1. Convert to max heap. O(n): See ITA Page 159.
-	// [first, first + ((length - 1) - 1) / 2] has children.
-	for(int parent_index = first + ((last - first - 1) - 1) / 2; parent_index >= first;
-		--parent_index)
+	// 1. Convert to max heap. O(nlogn). (Tight is O(n), see ITA $6.3).
+	int length = last - first;
+	data = data + first; // [first, last) -> [0, length)
+	for(int parent_index = (length - 2) / 2; parent_index >= 0; --parent_index)
 	{
-		FixDown(data, parent_index, last);
+		FixDown(data, parent_index, length);
 	}
 	// 2. Extract maximum. O(nlogn)
-	for(int index = last - 1; index >= first; --index)
+	for(int now_length = length - 1; now_length > 0; --now_length)
 	{
-		if(data[first] != data[index]) // Guarantee stable.
+		if(data[0] != data[now_length]) // Guarantee stable.
 		{
-			swap(data[first], data[index]);
-			FixDown(data, first, index);
+			swap(data[0], data[now_length]);
+			FixDown(data, 0, now_length);
 		}
 	}
 }
@@ -295,7 +295,7 @@ void Test(const char *name, SortFunction Sort)
 	int data_number = static_cast<int>(sizeof(data) / sizeof(data[0]));
 	for(int data_index = 0; data_index < data_number; ++data_index)
 	{
-		Sort(data[data_index], 3, data_length);
+		Sort(data[data_index], 0, data_length);
 		PrintData(data[data_index], 0, data_length);
 	}
 }
