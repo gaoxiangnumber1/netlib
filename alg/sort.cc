@@ -204,36 +204,38 @@ void HeapSort(int *data, int first, int last)
 // SC: O(n + m)
 void CountingSort(int *data, int first, int last) // [first, last)
 {
+	int length = last - first;
+	data += first;
 	// Get the maximum value.
-	int max_value = data[first];
-	for(int index = first + 1; index < last; ++index)
+	int max = data[0];
+	for(int index = 1; index < length; ++index)
 	{
-		if(max_value < data[index])
+		if(max < data[index])
 		{
-			max_value = data[index];
+			max = data[index];
 		}
 	}
-	int count[max_value + 1]; // count[value] is the count of elements that are <= value.
+	int count[max + 1]; // count[value] is the count of elements that are <= value.
 	memset(count, 0, sizeof count);
-	int temp[last]; // Temporary store the sorted elements.
 	// Count the frequency of every value in data.
-	for(int index = first; index < last; ++index)
+	for(int index = 0; index < length; ++index)
 	{
-		++count[data[index]];
+		count[data[index]] = 1;
 	}
 	// Compute how many elements are <= value.
-	for(int value = 1; value <= max_value; ++value)
+	for(int value = 1; value <= max; ++value)
 	{
 		count[value] += count[value - 1];
 	}
 	// 1. x elements <= value: place value in [x - 1].
 	// 2. Place from back to front: keep stability.
-	for(int index = last - 1; index >= first; --index)
+	int temp[length]; // Temporary store the sorted elements.
+	for(int index = length - 1; index >= 0; --index)
 	{
 		temp[--count[data[index]]] = data[index];
 	}
 	// Copy the sorted elements into data.
-	for(int index = first; index < last; ++index)
+	for(int index = 0; index < length; ++index)
 	{
 		data[index] = temp[index];
 	}
@@ -295,7 +297,7 @@ void Test(const char *name, SortFunction Sort)
 	int data_number = static_cast<int>(sizeof(data) / sizeof(data[0]));
 	for(int data_index = 0; data_index < data_number; ++data_index)
 	{
-		Sort(data[data_index], 0, data_length);
+		Sort(data[data_index], 3, data_length);
 		PrintData(data[data_index], 0, data_length);
 	}
 }
