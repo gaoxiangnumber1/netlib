@@ -220,7 +220,7 @@ void CountingSort(int *data, int first, int last) // [first, last)
 	// Count the frequency of every value in data.
 	for(int index = 0; index < length; ++index)
 	{
-		count[data[index]] = 1;
+		++count[data[index]]; // WRONG: count[data[index]] = 1
 	}
 	// Compute how many elements are <= value.
 	for(int value = 1; value <= max; ++value)
@@ -248,14 +248,16 @@ void RadixSort(int *data, int first, int last)
 {
 	const int kMaxDigitValue = 9;
 	const int kDigitValueNumber = kMaxDigitValue + 1;
-	int digit_number[last], count[kDigitValueNumber], temp[last];
 	const int kMaxDigitNumber = 10; // 10^10 < 2^31 < 10^11, thus has at most 10 digits.
+	data = data + first;
+	int length = last - first;
 	int divisor = 1;
 	for(int digit = 1; digit <= kMaxDigitNumber; ++digit)
 	{
+		int digit_number[length], count[kDigitValueNumber];
 		memset(count, 0, sizeof count);
 		// Get each digit number from least to most significant digit.
-		for(int index = first; index < last; ++index)
+		for(int index = 0; index < length; ++index)
 		{
 			digit_number[index] = (data[index] / divisor) % kDigitValueNumber;
 			++count[digit_number[index]];
@@ -264,12 +266,13 @@ void RadixSort(int *data, int first, int last)
 		{
 			count[value] += count[value - 1];
 		}
-		for(int index = last - 1; index >= first; --index)
+		int temp[length];
+		for(int index = length - 1; index >= 0; --index)
 		{
 			// Sort according to digit_number, but store data.
 			temp[--count[digit_number[index]]] = data[index];
 		}
-		for(int index = first; index < last; ++index)
+		for(int index = 0; index < length; ++index)
 		{
 			data[index] = temp[index];
 		}
@@ -297,7 +300,7 @@ void Test(const char *name, SortFunction Sort)
 	int data_number = static_cast<int>(sizeof(data) / sizeof(data[0]));
 	for(int data_index = 0; data_index < data_number; ++data_index)
 	{
-		Sort(data[data_index], 3, data_length);
+		Sort(data[data_index], 0, data_length);
 		PrintData(data[data_index], 0, data_length);
 	}
 }
