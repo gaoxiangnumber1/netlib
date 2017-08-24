@@ -69,6 +69,25 @@ void InsertionSort(int *data, int first, int last)
 		// [first, first_unsorted + 1) is sorted; [first_unsorted + 1, last) is unsorted.
 	}
 }
+void ShellSort(int *data, int first, int last)
+{
+	for(int gap = (last - first) / 2; gap > 0; gap /= 2)
+	{
+		for(int first_sorted = first; first_sorted < first + gap; ++first_sorted)
+		{
+			for(int first_unsorted = first_sorted + gap; first_unsorted < last; first_unsorted +=
+				gap)
+			{
+				for(int compare_index = first_unsorted;
+					compare_index - gap >= first && data[compare_index - gap] > data[compare_index];
+					compare_index -= gap)
+				{
+					swap(data[compare_index - gap], data[compare_index]);
+				}
+			}
+		}
+	}
+}
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 int Partition(int *data, int first, int last) // O(n)
 {
@@ -300,7 +319,7 @@ void Test(const char *name, SortFunction Sort)
 	int data_number = static_cast<int>(sizeof(data) / sizeof(data[0]));
 	for(int data_index = 0; data_index < data_number; ++data_index)
 	{
-		Sort(data[data_index], 0, data_length);
+		Sort(data[data_index], 3, data_length);
 		PrintData(data[data_index], 0, data_length);
 	}
 }
@@ -310,6 +329,7 @@ int main()
 	Test("SelectionSort", SelectionSort);
 	Test("BubbleSort", BubbleSort);
 	Test("InsertionSort", InsertionSort);
+	Test("ShellSort", ShellSort);
 	Test("QuickSort", QuickSort);
 	Test("MergeSort", MergeSort);
 	Test("HeapSort", HeapSort);
