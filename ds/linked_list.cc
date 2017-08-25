@@ -4,7 +4,10 @@ template<typename T>
 class LinkedList
 {
 public:
-	LinkedList(): first_(nullptr), length_(0) {}
+	LinkedList() :
+		first_(nullptr), length_(0)
+	{
+	}
 	~LinkedList();
 
 	void Create();
@@ -129,11 +132,46 @@ template<typename T>
 void LinkedList<T>::ShowContent() const
 {
 	printf("%02d data:", Size());
-	for(Node<T> *node = first_; node != nullptr; node = node -> next_)
+	for(Node<T> *node = first_; node != nullptr; node = node->next_)
 	{
 		printf(" %d", node->data_);
 	}
 	printf("\n");
+}
+
+// TODO: check edge case(only 1/2/3/4/5 elements)
+void QuickSort(Node *first, Node *last) // [first, last]
+{
+	if(first == last)
+	{
+		return;
+	}
+	Node *right = first, *left = last;
+	Partition(first, last, right, left); // [first, right] <= [divide] < [left, last]
+	QuickSort(first, right);
+	QuickSort(left, last);
+}
+void Partition(Node *first, Node *last, Node *&right, Node *&left)
+{
+	int pivot = last->value;
+	Node *divide = first;
+	for(Node *node = first; node != last; node = node->next)
+	{
+		if(node->value <= pivot)
+		{
+			if(node != divide)
+			{
+				swap(node->value, divide->value);
+			}
+			right = divide;
+			divide = divide->next;
+		}
+	}
+	if(divide != last)
+	{
+		swap(divide->value, last->value);
+	}
+	left = divide->next ? divide->next : left;
 }
 
 int main()
@@ -169,35 +207,35 @@ int main()
 	}
 }
 /*
-1 5 1 2 3 4 5
-4
-2 -1 0
-2 0 6
-2 4 7
-2 7 8
-2 9 9
-2 100 10
-4
-3 -1
-3 0
-3 5
-3 7
-3 5
-4
-0
-05 data: 1 2 3 4 5
-05 data: 5 4 3 2 1
-06 data: 0 5 4 3 2 1
-07 data: 6 0 5 4 3 2 1
-08 data: 6 0 5 4 7 3 2 1
-09 data: 6 0 5 4 7 3 2 8 1
-10 data: 6 0 5 4 7 3 2 8 1 9
-11 data: 6 0 5 4 7 3 2 8 1 9 10
-11 data: 10 9 1 8 2 3 7 4 5 0 6
-10 data: 9 1 8 2 3 7 4 5 0 6
-09 data: 1 8 2 3 7 4 5 0 6
-08 data: 1 8 2 3 7 5 0 6
-07 data: 1 8 2 3 7 5 0
-06 data: 1 8 2 3 7 0
-06 data: 0 7 3 2 8 1
-*/
+ 1 5 1 2 3 4 5
+ 4
+ 2 -1 0
+ 2 0 6
+ 2 4 7
+ 2 7 8
+ 2 9 9
+ 2 100 10
+ 4
+ 3 -1
+ 3 0
+ 3 5
+ 3 7
+ 3 5
+ 4
+ 0
+ 05 data: 1 2 3 4 5
+ 05 data: 5 4 3 2 1
+ 06 data: 0 5 4 3 2 1
+ 07 data: 6 0 5 4 3 2 1
+ 08 data: 6 0 5 4 7 3 2 1
+ 09 data: 6 0 5 4 7 3 2 8 1
+ 10 data: 6 0 5 4 7 3 2 8 1 9
+ 11 data: 6 0 5 4 7 3 2 8 1 9 10
+ 11 data: 10 9 1 8 2 3 7 4 5 0 6
+ 10 data: 9 1 8 2 3 7 4 5 0 6
+ 09 data: 1 8 2 3 7 4 5 0 6
+ 08 data: 1 8 2 3 7 5 0 6
+ 07 data: 1 8 2 3 7 5 0
+ 06 data: 1 8 2 3 7 0
+ 06 data: 0 7 3 2 8 1
+ */
