@@ -1,4 +1,6 @@
 #include "node.h"
+#include <utility>
+using std::swap;
 
 template<typename T>
 class LinkedList
@@ -11,12 +13,15 @@ public:
 	~LinkedList();
 
 	void Create();
+	void CreateFromArray(T *data, int length);
 	void Insert(int index, const T &data);
 	void Delete(int index);
 	void Reverse();
 
 	bool Empty() const;
 	int Size() const;
+	Node<T> *FirstNode() const;
+	Node<T> *LastNode() const;
 	void ShowContent() const;
 
 private:
@@ -43,6 +48,14 @@ void LinkedList<T>::Create()
 	{
 		scanf("%d", &data);
 		Insert(Size(), data);
+	}
+}
+template<typename T>
+void LinkedList<T>::CreateFromArray(T *data, int length)
+{
+	for(int index = 0; index < length; ++index)
+	{
+		Insert(Size(), data[index]);
 	}
 }
 template<typename T>
@@ -129,6 +142,21 @@ int LinkedList<T>::Size() const
 	return length_;
 }
 template<typename T>
+Node<T> *LinkedList<T>::FirstNode() const
+{
+	return first_;
+}
+template<typename T>
+Node<T> *LinkedList<T>::LastNode() const
+{
+	Node<T> *last = first_;
+	for(int index = 1; index < length_; ++index)
+	{
+		last = last->next_;
+	}
+	return last;
+}
+template<typename T>
 void LinkedList<T>::ShowContent() const
 {
 	printf("%02d data:", Size());
@@ -139,45 +167,63 @@ void LinkedList<T>::ShowContent() const
 	printf("\n");
 }
 
-// TODO: check edge case(only 1/2/3/4/5 elements)
-void QuickSort(Node *first, Node *last) // [first, last]
+template<typename T>
+void Partition(Node<T> *first, Node<T> *&right, Node<T> *&left, Node<T> *last)
 {
-	if(first == last)
+	int pivot = last->data_;
+	Node<T> *divide = first;
+	for(Node<T> *node = first; node != last; node = node->next_)
+	{
+		if(node->data_ <= pivot)
+		{
+			if(node->data_ != divide->data_)
+			{
+				swap(node->data_, divide->data_);
+			}
+			right = divide;
+			divide = divide->next_;
+		}
+	}
+	if(divide->data_ != last->data_)
+	{
+		swap(divide->data_, last->data_);
+	}
+	left = (divide == last) ? last : divide->next_; // Adjust 0 node to 1 node to end recursive.
+}
+template<typename T>
+// Sort nodes in [first, last], assume input is valid(at least 1 node).
+void QuickSort(Node<T> *first, Node<T> *last)
+{
+	if(first == last) // Only 1 node.
 	{
 		return;
 	}
-	Node *right = first, *left = last;
-	Partition(first, last, right, left); // [first, right] <= [divide] < [left, last]
+	// Partition [first, last] into { [first, right] <= [divide] < [left, last] }
+	Node<T> *right = first, *left = last;
+	Partition(first, right, left, last);
 	QuickSort(first, right);
 	QuickSort(left, last);
 }
-void Partition(Node *first, Node *last, Node *&right, Node *&left)
+void TestQuickSort()
 {
-	int pivot = last->value;
-	Node *divide = first;
-	for(Node *node = first; node != last; node = node->next)
+	const int data_length = 10;
+	int data[][data_length] = { { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, { 9, 8, 7, 6, 5, 4, 3, 2, 1, 0 },
+		{ 0, 2, 4, 6, 8, 9, 7, 5, 3, 1 } };
+	int data_number = static_cast<int>(sizeof(data) / sizeof(data[0]));
+	for(int data_index = 0; data_index < data_number; ++data_index)
 	{
-		if(node->value <= pivot)
-		{
-			if(node != divide)
-			{
-				swap(node->value, divide->value);
-			}
-			right = divide;
-			divide = divide->next;
-		}
+		LinkedList<int> object;
+		object.CreateFromArray(data[data_index], data_length);
+		QuickSort(object.FirstNode(), object.LastNode());
+		object.ShowContent();
 	}
-	if(divide != last)
-	{
-		swap(divide->value, last->value);
-	}
-	left = divide->next ? divide->next : left;
 }
 
 int main()
 {
 	LinkedList<int> object; // Stack object's dtor is auto called when scope ends.
-	printf("0: Exit\n1: Create\n2: Insert\n3: Delete\n4: Reverse\n");
+	printf(
+		"0: Exit\n1: Create\n2: Insert\n3: Delete\n4: Reverse\n5: QuickSort\n6: TestQuickSort\n");
 
 	int operation, data, index;
 	while(scanf("%d", &operation) == 1)
@@ -203,6 +249,13 @@ int main()
 		case 4:
 			object.Reverse();
 			object.ShowContent();
+			break;
+		case 5:
+			QuickSort(object.FirstNode(), object.LastNode());
+			object.ShowContent();
+			break;
+		case 6:
+			TestQuickSort();
 		}
 	}
 }
