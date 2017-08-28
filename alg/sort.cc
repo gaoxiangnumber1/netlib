@@ -202,7 +202,7 @@ void HeapSort(int *data, int first, int last)
 {
 	// 1. Convert to max heap. O(nlogn). (Tight is O(n), see ITA $6.3).
 	int length = last - first;
-	data = data + first; // [first, last) -> [0, length)
+	data += first; // [first, last) -> [0, length)
 	for(int parent_index = (length - 2) / 2; parent_index >= 0; --parent_index)
 	{
 		FixDown(data, parent_index, length);
@@ -268,7 +268,7 @@ void RadixSort(int *data, int first, int last)
 	const int kMaxDigitValue = 9;
 	const int kDigitValueNumber = kMaxDigitValue + 1;
 	const int kMaxDigitNumber = 10; // 10^10 < 2^31 < 10^11, thus has at most 10 digits.
-	data = data + first;
+	data += first;
 	int length = last - first;
 	int divisor = 1;
 	for(int digit = 1; digit <= kMaxDigitNumber; ++digit)
