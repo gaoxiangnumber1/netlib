@@ -23,8 +23,3 @@
  - Connection。使用std::shared_ptr管理TcpConnection的生命期；使用shutdown(2)关闭连接，保证收发数据的完整性。
  - TcpClient。能主动发起TCP连接，带back-off地重试直至建立连接；能在连接断开后自动重新连接；能主动断开连接。
 
-## 关于
-
- - Blog：http://blog.csdn.net/gaoxiangnumber1
- - E-mail：gaoxiangnumber1@126.com 欢迎您对我的项目/博客提出任何建议和批评。
- - 如果您觉得本项目不错或者对您有帮助，请赏颗星吧！谢谢您的阅读！

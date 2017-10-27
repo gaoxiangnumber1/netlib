@@ -6,7 +6,7 @@ CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wconversion -Werror -Wextra -Wno-unused-parameter \
 						-Wold-style-cast -Woverloaded-virtual -Wpointer-arith -Wshadow \
 						-Wwrite-strings -march=native -rdynamic -I$(NETLIB_INCLUDE)
-LDFLAGS = -L$(NETLIB_LIBRARY) -lnetlib -lpthread
+LDFLAGS = -L$(NETLIB_LIBRARY) -lnetlib -pthread
 
 TEST_SOURCE = $(shell find -name '*.cc')
 TEST = $(TEST_SOURCE:.cc=)

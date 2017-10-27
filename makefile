@@ -2,7 +2,6 @@ CXX = g++
 CXXFLAG =	-std=c++11 -Wall -Wconversion -Werror -Wextra -Wno-unused-parameter \
 						-Wold-style-cast -Woverloaded-virtual -Wpointer-arith -Wshadow \
 						-Wwrite-strings -march=native -rdynamic -I.
-LDFLAGS = -lpthread
 
 NETLIB_SOURCE	= $(shell find netlib -name '*.cc')
 NETLIB_OBJECT	= $(NETLIB_SOURCE:.cc=.o)
